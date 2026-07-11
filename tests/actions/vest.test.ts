@@ -16,8 +16,17 @@ vi.mock("@/lib/auth/session", () => ({
 const { adminDb, orgRef } = await import("@/lib/firebase/admin");
 const { saveVestConfig } = await import("@/actions/vest");
 
+import type { PatchCategory } from "@/lib/types";
+
 const ORG = "vest-test-org";
-const goodSlots = [
+const goodSlots: {
+  slot: string;
+  u: number;
+  v: number;
+  maxScale: number;
+  accepts: PatchCategory[];
+  capacity: number;
+}[] = [
   { slot: "LEFT_CHEST", u: 0.3, v: 0.3, maxScale: 0.7, accepts: ["activity"], capacity: 3 },
   { slot: "RIGHT_CHEST", u: 0.7, v: 0.3, maxScale: 0.7, accepts: ["service"], capacity: 3 },
 ];
