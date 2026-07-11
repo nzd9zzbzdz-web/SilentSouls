@@ -22,6 +22,27 @@ const CATEGORY_LABELS: Record<Patch["category"], string> = {
   legendary: "Legendary",
 };
 
+const RARITY_COLOR: Record<string, string> = {
+  common: "#A8A29E",
+  rare: "#5F9BD5",
+  epic: "#B084E0",
+  legendary: "#E0B84A",
+};
+
+function RarityChip({ rarity }: { rarity?: string }) {
+  if (!rarity) return null;
+  const c = RARITY_COLOR[rarity] ?? RARITY_COLOR.common;
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider"
+      style={{ color: c }}
+    >
+      <span className="size-1.5 rounded-full" style={{ background: c }} />
+      {rarity}
+    </span>
+  );
+}
+
 export default async function PatchWallPage({
   params,
 }: {
@@ -118,9 +139,12 @@ export default async function PatchWallPage({
                   >
                     {patch.name}
                   </p>
-                  <Badge variant="outline" className="border-primary/40 text-primary">
-                    {CATEGORY_LABELS[patch.category]}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="outline" className="border-primary/40 text-primary">
+                      {CATEGORY_LABELS[patch.category]}
+                    </Badge>
+                    <RarityChip rarity={patch.rarity} />
+                  </div>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">{patch.description}</p>
               </li>

@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { CutRenderModel, CutSurface, Rarity, ResolvedPlacement } from "@/lib/types";
 import type { CutSummary } from "@/lib/cut/getCut";
+import { VestBody } from "./VestBody";
 import { cn } from "@/lib/utils";
 
 const RARITY: Record<Rarity, { color: string; label: string }> = {
@@ -27,10 +28,6 @@ function glow(rarity: Rarity): string {
   if (rarity === "rare") return `0 0 10px ${c}44`;
   return "none";
 }
-
-// A vest silhouette with a V-neck, drawn in CSS (no artwork needed).
-const VEST_CLIP =
-  "polygon(14% 0, 41% 0, 50% 11%, 59% 0, 86% 0, 93% 9%, 90% 100%, 10% 100%, 7% 9%)";
 
 function pct(n: number) {
   return `${n * 100}%`;
@@ -161,21 +158,7 @@ function Surface({
 }) {
   return (
     <div className="relative mx-auto w-full max-w-sm" style={{ aspectRatio }}>
-      {/* Vest body */}
-      <div
-        className="absolute inset-0"
-        style={{
-          clipPath: VEST_CLIP,
-          background:
-            "linear-gradient(160deg,#1c1913 0%,#14110c 45%,#0d0b07 100%)",
-          boxShadow: "inset 0 0 0 2px rgba(212,175,55,0.10), inset 0 8px 40px rgba(0,0,0,0.6)",
-        }}
-      />
-      {/* Stitch line */}
-      <div
-        className="pointer-events-none absolute inset-[6%]"
-        style={{ clipPath: VEST_CLIP, boxShadow: "inset 0 0 0 1px rgba(212,175,55,0.14)" }}
-      />
+      <VestBody />
       {placements.length === 0 && (
         <div className="absolute inset-0 grid place-items-center">
           <span className="text-xs uppercase tracking-[0.2em] text-stone-500">

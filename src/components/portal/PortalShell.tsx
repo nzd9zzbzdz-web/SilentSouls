@@ -14,6 +14,7 @@ import {
   ListChecks,
   LogOut,
   Palette,
+  PenTool,
   Shield,
   Shirt,
   SlidersHorizontal,
@@ -64,6 +65,7 @@ const ADMIN_NAV = [
   { href: "/admin/ranks", label: "Ranks", icon: Shield },
   { href: "/admin/activity-types", label: "Activity Types", icon: SlidersHorizontal },
   { href: "/admin/patches", label: "Patches", icon: ListChecks },
+  { href: "/admin/vest", label: "Vest Designer", icon: PenTool },
   { href: "/admin/branding", label: "Branding", icon: Palette },
 ];
 
