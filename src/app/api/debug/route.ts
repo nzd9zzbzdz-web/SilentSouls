@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 
 export async function GET() {
   const out: Record<string, unknown> = {};
+  out.nodeVersion = process.version;
   try {
     const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64 ?? "";
     out.hasB64 = b64.length > 0;
