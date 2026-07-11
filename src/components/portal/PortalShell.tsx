@@ -17,6 +17,7 @@ import {
   Shield,
   Shirt,
   SlidersHorizontal,
+  UserCheck,
   UserPlus,
   Users,
   Vote,
@@ -55,6 +56,7 @@ const MAIN_NAV = [
 
 const OFFICER_NAV = [
   { href: "/activities/review", label: "Review Queue", icon: ClipboardCheck },
+  { href: "/recruitment", label: "Recruitment", icon: UserCheck },
 ];
 
 const ADMIN_NAV = [

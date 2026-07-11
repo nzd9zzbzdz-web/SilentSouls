@@ -295,6 +295,24 @@ export interface Invite {
   usedAt?: Timestamp | Date;
 }
 
+// Open recruitment: a public applicant awaiting officer review. Keyed by the
+// applicant's uid (one live application per account). Grants no access until
+// approved — approval creates the Member + membership.
+export interface Application {
+  id: string; // == applicant uid
+  roadName: string;
+  handle: string; // Discord/in-game handle
+  email: string;
+  message?: string;
+  status: "pending" | "approved" | "rejected";
+  memberId?: string; // set on approval
+  role?: SystemRole; // granted role, set on approval
+  reviewedBy?: string;
+  reviewedAt?: Timestamp | Date;
+  reviewNote?: string;
+  createdAt: Timestamp | Date;
+}
+
 // ── Root collections ───────────────────────────────────────────────────
 
 export interface UserMembership {

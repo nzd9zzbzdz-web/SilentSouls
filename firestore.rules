@@ -152,6 +152,12 @@ service cloud.firestore {
         // Token exchange is server-only.
         allow read, write: if false;
       }
+      match /applications/{uid} {
+        // Officers triage the queue; an applicant may read their own status.
+        // Created/updated only via server actions (Admin SDK).
+        allow read: if isOfficer(orgId) || (signedIn() && request.auth.uid == uid);
+        allow write: if false;
+      }
     }
 
     // Default deny — also blocks collection-group queries from clients.

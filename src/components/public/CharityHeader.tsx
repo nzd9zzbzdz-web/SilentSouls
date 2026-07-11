@@ -13,6 +13,7 @@ const NAV = [
   { href: "/gallery", label: "Gallery" },
   { href: "/contact", label: "Contact" },
   { href: "/volunteer-resources", label: "Volunteer Resources" },
+  { href: "/join", label: "Get Involved" },
 ];
 
 export function CharityHeader({

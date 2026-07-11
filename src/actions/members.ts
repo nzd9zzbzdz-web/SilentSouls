@@ -93,6 +93,7 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
     const ref = orgRef(orgId).collection("members").doc(memberId);
     const snap = await ref.get();
     if (!snap.exists) return { ok: false, error: "Member not found" };
+    const current = snap.data();
 
     const update: Record<string, unknown> = {};
     if (fields.displayName) update.displayName = fields.displayName;
@@ -103,10 +104,33 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
     if (fields.sponsorMemberId !== undefined) update.sponsorMemberId = fields.sponsorMemberId;
     if (!Object.keys(update).length) return { ok: false, error: "Nothing to update" };
 
+    // De-provisioning: exile/retire strips portal access. Firestore and Auth
+    // can't share a single transaction, so revoke access FIRST — if it throws
+    // we bail before flipping status, leaving the member consistent. If the
+    // status write later fails, access is already gone, which is the safe
+    // failure direction: a stale status can be re-applied on retry, but a
+    // member marked exiled with a live session cannot be allowed to happen.
+    const linkedUid = current?.uid as string | null | undefined;
+    const isDeprovision =
+      !!linkedUid &&
+      (fields.status === "exiled" || fields.status === "retired") &&
+      fields.status !== current?.status;
+
+    if (isDeprovision) {
+      await adminDb
+        .collection("users")
+        .doc(linkedUid!)
+        .set(
+          { memberships: { [orgId]: FieldValue.delete() } },
+          { merge: true },
+        );
+      await syncUserClaims(linkedUid!);
+    }
+
     await ref.update(update);
 
     // Rank changes land in the service record.
-    if (fields.rankId && fields.rankId !== snap.data()?.rankId) {
+    if (fields.rankId && fields.rankId !== current?.rankId) {
       const rankSnap = await orgRef(orgId).collection("ranks").doc(fields.rankId).get();
       await ref.collection("serviceRecord").add({
         kind: "promotion",
@@ -117,23 +141,7 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
       });
     }
 
-    // De-provisioning: exile/retire strips portal access. Remove the membership
-    // and re-sync claims (which revokes refresh tokens), so the account can no
-    // longer pass the portal guard or any requireOrgRole gate.
-    const linkedUid = snap.data()?.uid as string | null | undefined;
-    if (
-      linkedUid &&
-      (fields.status === "exiled" || fields.status === "retired") &&
-      fields.status !== snap.data()?.status
-    ) {
-      await adminDb
-        .collection("users")
-        .doc(linkedUid)
-        .set(
-          { memberships: { [orgId]: FieldValue.delete() } },
-          { merge: true },
-        );
-      await syncUserClaims(linkedUid);
+    if (isDeprovision) {
       await ref.collection("serviceRecord").add({
         kind: "removal",
         title: fields.status === "exiled" ? "Exiled from the club" : "Retired",
@@ -273,7 +281,17 @@ export async function acceptInvite(raw: {
         throw new InviteError("This invite was issued to a different email address");
       }
 
-      tx.update(org.collection("members").doc(data.memberId), { uid });
+      // The member must still be unlinked. Multiple invites can be issued for
+      // one member before any is accepted; without this check a second redeemer
+      // would overwrite member.uid and bind two accounts to the same member.
+      const memberRef = org.collection("members").doc(data.memberId);
+      const memberSnap = await tx.get(memberRef);
+      if (!memberSnap.exists) throw new InviteError("Member record no longer exists");
+      if (memberSnap.data()?.uid) {
+        throw new InviteError("This member is already linked to an account");
+      }
+
+      tx.update(memberRef, { uid });
       tx.set(
         adminDb.collection("users").doc(uid),
         {
