@@ -20,6 +20,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 import { ACTIVITY_TYPE_SEEDS, DEFAULT_RANKS } from "../src/lib/constants";
+import { writeCutConfig } from "./lib/writeCutConfig";
 import type { Branding, Patch, StatKey } from "../src/lib/types";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "demo-brotherhood-portal";
@@ -206,6 +207,12 @@ async function bootstrap() {
   );
   await auth.setCustomUserClaims(uid, { orgs: { [ORG_ID]: { r: "admin", m: memberId } } });
   console.log("  ✓ admin member record + membership + claims");
+
+  // Digital Cut config (M8): vest surfaces, slots, rank visuals, patch rarity.
+  const cut = await writeCutConfig(db, ORG_ID, { orgName: "Silent Souls MC", location: "San Andreas" });
+  console.log(
+    `  ✓ digital cut: ${cut.vestSurfaces} vest surfaces, ${cut.rankVisuals} rank visuals, ${cut.patchesBackfilled} patches tagged`,
+  );
 
   const resetLink = await auth.generatePasswordResetLink(ADMIN_EMAIL!);
   console.log("\n──────────────────────────────────────────────────────────────");

@@ -12,6 +12,7 @@
     "lint": "eslint",
     "emulators": "firebase emulators:start --project demo-brotherhood-portal",
     "seed": "tsx scripts/seed.ts",
+    "migrate:cut": "tsx scripts/migrate-cut.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

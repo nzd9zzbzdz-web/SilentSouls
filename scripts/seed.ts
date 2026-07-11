@@ -13,6 +13,7 @@ import {
   ACTIVITY_TYPE_SEEDS,
   DEFAULT_RANKS,
 } from "../src/lib/constants";
+import { writeCutConfig } from "./lib/writeCutConfig";
 import type {
   Branding,
   CutLayout,
@@ -419,6 +420,12 @@ async function seed() {
     icon: "home",
     createdBy: "system",
   });
+
+  // Digital Cut config (M8): vest surfaces, slots, rank visuals, patch rarity.
+  const cut = await writeCutConfig(db, ORG_ID, { orgName: "Silent Souls MC", location: "San Andreas" });
+  console.log(
+    `  cut: ${cut.vestSurfaces} vest surfaces, ${cut.rankVisuals} rank visuals, ${cut.patchesBackfilled} patches tagged`,
+  );
 
   console.log("Seed complete.");
   console.log("──────────────────────────────────────────────");

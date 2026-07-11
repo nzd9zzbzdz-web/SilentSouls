@@ -53,6 +53,15 @@ service cloud.firestore {
         allow read: if isMember(orgId);
         allow write: if false;
       }
+      match /vestConfigs/{surface} {
+        // Digital Cut: vest art + slot map. Club-visible; authored server-side.
+        allow read: if isMember(orgId);
+        allow write: if false;
+      }
+      match /rankVisuals/{rankId} {
+        allow read: if isMember(orgId);
+        allow write: if false;
+      }
       match /ranks/{rankId} {
         allow read: if isMember(orgId);
         allow write: if false;

@@ -147,6 +147,9 @@ export interface PatchRequirement {
   threshold: number;
 }
 
+/** Presentation weight — drives glow/border/sort on the cut. Distinct from category. */
+export type Rarity = "common" | "rare" | "epic" | "legendary";
+
 export interface Patch {
   id: string;
   name: string;
@@ -154,10 +157,12 @@ export interface Patch {
   description: string;
   imagePath?: string;
   tier: number;
+  rarity?: Rarity; // Digital Cut: visual weight. Backfilled from tier for legacy patches.
+  defaultSlot?: string; // Digital Cut: named slot on the vest (resolves to u/v via VestConfig).
   requirement: PatchRequirement | null; // null ⇒ manual-only
   manual: boolean;
   active: boolean;
-  defaultPlacement: CutPlacementBase;
+  defaultPlacement: CutPlacementBase; // legacy direct u/v; kept as fallback when no slot resolves
 }
 
 export interface AwardedPatch {
@@ -195,6 +200,56 @@ export interface CutLayout {
     back: CutPlacement[];
   };
   updatedAt: Timestamp | Date;
+}
+
+// ── Digital Cut config (M8) — org-authored vest, slots, and rank visuals ───
+
+/**
+ * A named anchor on a vest surface. Slot names double as future 3D attachment
+ * points (leftChest, upperBack, …), so position is stored as normalized u/v —
+ * never pixels — to survive resolution changes and the 2D→3D migration.
+ */
+export interface PatchSlot {
+  slot: string; // e.g. "LEFT_CHEST" — semantic, stable, org-defined
+  u: number; // 0..1 across the surface
+  v: number; // 0..1 top→bottom
+  maxScale: number; // caps patch render size in this slot
+  accepts: PatchCategory[]; // which categories may land here (designer/validation guard)
+  capacity: number; // patches before overflow-nudging kicks in
+}
+
+/** One vest surface for an org: the base art plus its slot map. Doc id = surface. */
+export interface VestConfig {
+  surface: CutSurface; // "front" | "back"
+  imagePath: string | null; // Storage path; null ⇒ renderer draws a schematic placeholder
+  aspectRatio: number; // w/h — the render stage locks to this so u/v stays true
+  slots: PatchSlot[]; // embedded: small, always read with the surface
+  model3d?: { gltfPath: string; anchors: Record<string, string> } | null; // Phase 3 only
+}
+
+/** What a rank puts on the cut, independent of earned patches. */
+export type GrantKind =
+  | "topRocker"
+  | "bottomRocker"
+  | "centerPatch"
+  | "rankTab"
+  | "prospectTab"
+  | "saaDiamond";
+
+export interface Grant {
+  kind: GrantKind;
+  surface: CutSurface;
+  u: number;
+  v: number;
+  scale: number;
+  text?: string; // stand-in until org uploads art
+  assetPath?: string; // Storage path for the tab/rocker artwork
+}
+
+/** Rank → cut visuals. Doc id = rankId. Config, not code: each org defines its own. */
+export interface RankVisual {
+  showsColors: boolean; // Hangaround = false (bare vest); Patched+ = true
+  grants: Grant[];
 }
 
 // ── Prospects, votes, events, gallery, timeline ───────────────────────
