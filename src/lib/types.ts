@@ -252,6 +252,36 @@ export interface RankVisual {
   grants: Grant[];
 }
 
+/**
+ * The renderer-agnostic output of buildRenderModel(). A plain, serializable
+ * object with no coordinate assumptions beyond "u/v + surface". The 2D DOM
+ * renderer consumes it today; the 3D R3F renderer will consume the same shape.
+ */
+export interface ResolvedPlacement {
+  key: string; // "patch:road-warrior" | "rank:topRocker" — stable react key
+  type: "patch" | GrantKind;
+  surface: CutSurface;
+  u: number;
+  v: number;
+  scale: number;
+  z: number;
+  label: string; // patch name or rocker/tab text
+  art: string | null; // Storage image path if any; null ⇒ styled placeholder
+  rarity?: Rarity;
+  category?: PatchCategory;
+  // Inspection metadata (patches only)
+  patchId?: string;
+  description?: string;
+  awardedAt?: string | null; // ISO string
+  awardedBy?: string | null;
+  reason?: string | null;
+}
+
+export interface CutRenderModel {
+  front: ResolvedPlacement[];
+  back: ResolvedPlacement[];
+}
+
 // ── Prospects, votes, events, gallery, timeline ───────────────────────
 
 export interface ProspectRequirement {
