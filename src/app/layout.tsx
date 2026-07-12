@@ -4,8 +4,8 @@ import {
   Inter,
   JetBrains_Mono,
   Lato,
-  Pirata_One,
 } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 // All tenant-selectable fonts load once here and are referenced by CSS
@@ -20,9 +20,10 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
   display: "swap",
 });
-const blackletter = Pirata_One({
-  weight: "400",
-  subsets: ["latin"],
+// Cloister Black (Dieter Steffmann, free) — the classic Old English face used
+// across the club's brand art; self-hosted, referenced as --font-blackletter.
+const blackletter = localFont({
+  src: "../fonts/CloisterBlack.ttf",
   variable: "--font-blackletter",
   display: "swap",
 });

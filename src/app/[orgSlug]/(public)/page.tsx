@@ -65,7 +65,7 @@ export default async function PublicHomePage({
           )}
         </div>
 
-        <div className="relative mx-auto flex min-h-[520px] max-w-6xl items-center px-4 py-16 md:min-h-[680px] md:py-24">
+        <div className="relative flex min-h-[520px] items-center px-6 py-16 md:min-h-[680px] md:px-16 md:py-24 lg:px-24">
           <div className="max-w-2xl">
             <DisplayHeading className="text-5xl leading-[0.95] text-[#F3EDDE] md:text-7xl">
               {line1}
