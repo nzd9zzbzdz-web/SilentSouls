@@ -69,35 +69,34 @@ export default async function PublicHomePage({
           aria-hidden
         />
 
-        {/* Text — overlaid left-of-centre */}
+        {/* Text — overlaid, pushed right of the left edge */}
         <div className="absolute inset-0 flex items-center">
-          <div className="max-w-xl px-6 md:pl-24 md:pr-6 lg:pl-40">
-            <DisplayHeading className="text-5xl leading-[0.95] text-[#F3EDDE] md:text-7xl">
+          <div className="px-6 md:pl-32 md:pr-6 lg:pl-56">
+            <DisplayHeading className="text-6xl leading-[0.92] text-[#F5EFE1] drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)] md:text-7xl lg:text-8xl">
               {line1}
               {line2 && <span className="mt-1 block">{line2}</span>}
             </DisplayHeading>
 
-            {/* Ornamental rule */}
-            <div className="mt-7 flex max-w-md items-center gap-3" aria-hidden>
-              <span className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${GOLD}, transparent)` }} />
-              <span className="size-1.5 rotate-45" style={{ background: GOLD }} />
-              <span className="h-px flex-1" style={{ background: `linear-gradient(270deg, ${GOLD}, transparent)` }} />
+            {/* Creed, sandwiched by ornamental rules */}
+            <div className="mt-8 max-w-xl">
+              <OrnamentRule />
+              <p
+                className="my-3.5 text-center text-base font-semibold uppercase tracking-[0.16em] md:text-lg"
+                style={{ color: "#E3BC4E" }}
+              >
+                {creed.split(/\s*[·|]\s*/).join(" | ")}
+              </p>
+              <OrnamentRule />
             </div>
 
-            <p
-              className="mt-6 text-sm font-semibold uppercase tracking-[0.28em] md:text-base"
-              style={{ color: GOLD }}
-            >
-              {creed.split(/\s*[·|]\s*/).join(" | ")}
-            </p>
-            <p className="mt-6 max-w-lg leading-relaxed text-[#C9BFA8]">
+            <p className="mt-7 max-w-lg text-lg leading-relaxed text-[#E4DCCB]">
               {branding?.mission ??
                 "We are the silent ones. We ride in shadows, bound by loyalty and respect. Our souls may be silent, but our presence speaks louder than words."}
             </p>
-            <div className="mt-9">
+            <div className="mt-10">
               <Link
                 href={`${base}/about`}
-                className="inline-flex min-h-11 items-center gap-2 rounded-sm border px-8 text-xs font-semibold uppercase tracking-[0.18em] transition-colors duration-200 hover:bg-[#D4AF37]/10"
+                className="inline-flex min-h-12 items-center rounded-sm border px-10 text-sm font-semibold uppercase tracking-[0.22em] transition-colors duration-200 hover:bg-[#D4AF37]/10"
                 style={{ borderColor: GOLD, color: GOLD }}
               >
                 Learn More
@@ -212,6 +211,17 @@ export default async function PublicHomePage({
         </div>
       </section>
     </>
+  );
+}
+
+/** Thin gold rule with a centered diamond — brackets the hero creed. */
+function OrnamentRule() {
+  return (
+    <div className="flex items-center gap-3" aria-hidden>
+      <span className="h-px flex-1" style={{ background: "rgba(212,175,55,0.45)" }} />
+      <span className="size-1.5 rotate-45" style={{ background: GOLD }} />
+      <span className="h-px flex-1" style={{ background: "rgba(212,175,55,0.45)" }} />
+    </div>
   );
 }
 
