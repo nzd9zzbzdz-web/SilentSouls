@@ -23,7 +23,7 @@ export function CharityFooter({
               height={600}
               unoptimized
               aria-hidden
-              className="h-10 w-auto object-contain"
+              className="h-32 w-auto object-contain"
             />
             <span className="text-lg" style={{ fontFamily: "var(--font-display)" }}>{name}</span>
           </p>
