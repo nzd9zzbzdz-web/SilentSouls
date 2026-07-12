@@ -38,8 +38,9 @@ export default async function PublicHomePage({
     <>
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-[#D4AF37]/15 bg-black">
-        {/* Capped-height cinematic backdrop */}
-        <div className="relative h-[360px] w-full sm:h-[400px] md:h-[440px] lg:h-[480px]">
+        {/* Backdrop locked to the image's own aspect so the full photo shows,
+            capped so it can't blow up on an ultrawide screen. */}
+        <div className="relative w-full min-h-[440px] overflow-hidden sm:min-h-0 sm:aspect-[2400/1026] sm:max-h-[760px]">
           {branding?.heroImagePath ? (
             <Image
               src={branding.heroImagePath}
@@ -48,7 +49,7 @@ export default async function PublicHomePage({
               priority
               sizes="100vw"
               className="object-cover"
-              style={{ objectPosition: "center 38%" }}
+              style={{ objectPosition: "center 42%" }}
             />
           ) : (
             <div
