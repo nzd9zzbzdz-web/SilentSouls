@@ -38,19 +38,54 @@ export default async function PublicHomePage({
     <>
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-[#D4AF37]/15 bg-black">
+        {/* Motion styles: a slow push-in toward the road's vanishing point sells
+            forward motion (we're following the pack), while the taillights pulse
+            like live brake lights. Disabled for reduced-motion users. */}
+        <style>{`
+          @keyframes hero-ride {
+            from { transform: scale(1.02); }
+            to   { transform: scale(1.13); }
+          }
+          .hero-motion {
+            transform-origin: 60% 36%;
+            animation: hero-ride 24s ease-in-out infinite alternate;
+            will-change: transform;
+          }
+          @keyframes hero-taillights {
+            0%, 100% { opacity: 0.30; }
+            45%      { opacity: 0.72; }
+          }
+          .hero-taillights {
+            background:
+              radial-gradient(30% 16% at 52% 84%, rgba(255,45,25,0.35), transparent 70%),
+              radial-gradient(22% 14% at 86% 74%, rgba(255,45,25,0.30), transparent 70%),
+              radial-gradient(18% 12% at 40% 70%, rgba(255,45,25,0.22), transparent 70%);
+            mix-blend-mode: screen;
+            animation: hero-taillights 2.8s ease-in-out infinite;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .hero-motion, .hero-taillights { animation: none; }
+          }
+        `}</style>
         {/* Backdrop locked to the image's own aspect so the full photo shows,
             capped so it can't blow up on an ultrawide screen. */}
         <div className="relative w-full min-h-[440px] overflow-hidden sm:min-h-0 sm:aspect-[2400/1026] sm:max-h-[760px]">
           {branding?.heroImagePath ? (
-            <Image
-              src={branding.heroImagePath}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-              style={{ objectPosition: "center 42%" }}
-            />
+            <>
+              <div className="hero-motion absolute inset-0">
+                <Image
+                  src={branding.heroImagePath}
+                  alt=""
+                  fill
+                  priority
+                  sizes="100vw"
+                  className="object-cover"
+                  style={{ objectPosition: "center 42%" }}
+                />
+              </div>
+              {/* Live brake-light glow layered over the pack's taillights */}
+              <div className="hero-taillights pointer-events-none absolute inset-0" aria-hidden />
+            </>
           ) : (
             <div
               className="absolute inset-0"
