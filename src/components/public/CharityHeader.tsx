@@ -39,6 +39,9 @@ export function CharityHeader({
       <Link
         href={base}
         aria-label={name}
+        onClick={() => {
+          if (pathname === base) window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
         className="absolute left-4 top-2 z-10"
       >
         <Image
@@ -52,7 +55,7 @@ export function CharityHeader({
         />
       </Link>
       <div className="mx-auto flex h-24 max-w-6xl items-center justify-end gap-4 px-4 md:h-28 lg:pl-[240px]">
-        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="Main" className="relative z-20 hidden items-center gap-1 lg:flex">
           {NAV.map((item) => {
             if (!item.href) {
               return (
@@ -74,6 +77,10 @@ export function CharityHeader({
                 key={item.label}
                 href={href}
                 aria-current={active ? "page" : undefined}
+                onClick={() => {
+                  if (href === pathname)
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
                 className={cn(
                   "flex min-h-11 items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] transition-colors duration-200",
                   active
