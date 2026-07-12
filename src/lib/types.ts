@@ -68,6 +68,7 @@ export interface Branding {
   };
   logoPath?: string;
   heroImagePath?: string; // full-bleed public hero backdrop
+  characterStagePath?: string; // portal: backdrop art for member character screens
   orgDisplayName: string;
   tagline?: string;
   mission?: string;

@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
 import { Award, ScrollText, ShieldAlert } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { CharacterStage, type StagePatch } from "@/components/portal/CharacterStage";
 import { OfficerNotes } from "@/components/portal/OfficerNotes";
 import { requireOrgRole } from "@/lib/auth/session";
-import { getOrgBySlug } from "@/lib/tenant";
+import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { orgRef } from "@/lib/firebase/admin";
 import {
   getMember,
@@ -48,13 +47,15 @@ export default async function MemberDetailPage({
   const member = await getMember(org.id, memberId);
   if (!member) notFound();
 
-  const [ranks, awards, patches, activities, members] = await Promise.all([
-    listRanks(org.id),
-    listMemberAwards(org.id, memberId),
-    listPatches(org.id),
-    listActivities(org.id, { memberId, limit: 15 }),
-    listMembers(org.id),
-  ]);
+  const [ranks, awards, patches, activities, members, branding] =
+    await Promise.all([
+      listRanks(org.id),
+      listMemberAwards(org.id, memberId),
+      listPatches(org.id),
+      listActivities(org.id, { memberId, limit: 15 }),
+      listMembers(org.id),
+      getBranding(org.id, "portal"),
+    ]);
   const rank = ranks.find((r) => r.id === member.rankId);
   const patchById = new Map(patches.map((p) => [p.id, p]));
   const sponsor = member.sponsorMemberId
@@ -83,64 +84,67 @@ export default async function MemberDetailPage({
 
   const joined = (member.joinDate as Timestamp)?.toDate?.();
 
+  // Top patches for the stage's diamond slots — rarest first, then tier.
+  const rarityWeight = { legendary: 4, epic: 3, rare: 2, common: 1 } as const;
+  const stagePatches: StagePatch[] = awards
+    .map((award) => ({ award, patch: patchById.get(award.patchId) }))
+    .filter((x): x is { award: (typeof awards)[number]; patch: NonNullable<ReturnType<typeof patchById.get>> } => Boolean(x.patch))
+    .sort(
+      (a, b) =>
+        rarityWeight[b.patch.rarity ?? "common"] -
+          rarityWeight[a.patch.rarity ?? "common"] ||
+        b.patch.tier - a.patch.tier,
+    )
+    .slice(0, 4)
+    .map(({ award, patch }) => {
+      const awardedAt = (award.awardedAt as Timestamp)?.toDate?.();
+      return {
+        name: patch.name,
+        description: patch.description,
+        category: patch.category,
+        awardedLabel: awardedAt
+          ? `Earned ${awardedAt.toLocaleDateString("en-US", { month: "short", year: "numeric" })}`
+          : "Earned",
+      };
+    });
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-4">
-        <Avatar className="size-16">
-          <AvatarFallback className="bg-secondary text-lg font-bold">
-            {member.roadName.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <DisplayHeading className="text-3xl text-primary">
-            &ldquo;{member.roadName}&rdquo;
-          </DisplayHeading>
-          <p className="text-sm text-muted-foreground">
-            {member.displayName} · Member #{member.memberNumber}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-            <Badge variant="outline" className="border-primary/40 text-primary">
-              {rank?.name ?? "Unranked"}
-            </Badge>
-            <Badge variant="secondary">{member.status}</Badge>
-            {joined && (
-              <span className="text-xs text-muted-foreground">
-                Joined{" "}
-                {joined.toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
-            )}
-            {sponsor && (
-              <span className="text-xs text-muted-foreground">
-                · Sponsored by &ldquo;{sponsor.roadName}&rdquo;
-              </span>
-            )}
-          </div>
-        </div>
+      {/* Character screen */}
+      <CharacterStage
+        orgName={branding?.orgDisplayName ?? org.name}
+        tagline={branding?.tagline}
+        roadName={member.roadName}
+        displayName={member.displayName}
+        memberNumber={member.memberNumber}
+        rankName={rank?.name ?? "Unranked"}
+        statusLabel={member.status}
+        stats={PROFILE_STAT_ORDER.map((stat) => ({
+          label: stat.label,
+          value: member.stats?.[stat.key] ?? 0,
+        }))}
+        patches={stagePatches}
+        stagePath={branding?.characterStagePath}
+        characterPath={member.photoPath}
+      />
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <Badge variant="secondary">{member.status}</Badge>
+        {joined && (
+          <span className="text-xs text-muted-foreground">
+            Joined{" "}
+            {joined.toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
+        )}
+        {sponsor && (
+          <span className="text-xs text-muted-foreground">
+            · Sponsored by &ldquo;{sponsor.roadName}&rdquo;
+          </span>
+        )}
       </div>
-
-      {/* Stats */}
-      <section aria-labelledby="member-stats">
-        <h2 id="member-stats" className="sr-only">
-          Statistics
-        </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {PROFILE_STAT_ORDER.map((stat) => (
-            <Card key={stat.key} className="py-4">
-              <CardContent className="px-4">
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="font-stat mt-1 text-2xl font-semibold">
-                  {member.stats?.[stat.key] ?? 0}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Earned patches */}

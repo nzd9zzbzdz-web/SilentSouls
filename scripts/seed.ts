@@ -64,6 +64,7 @@ const portalBranding: Branding = {
   },
   orgDisplayName: "Silent Souls MC",
   tagline: "San Andreas",
+  characterStagePath: "/brand/character-stage.webp",
 };
 
 const publicBranding: Branding = {
@@ -154,6 +155,7 @@ interface MemberSeed {
   joinDate: string; // ISO
   sponsorId?: string;
   stats: Partial<Record<StatKey, number>>;
+  photoPath?: string; // full-body character render for the character screen
 }
 
 const MEMBERS: MemberSeed[] = [
@@ -161,6 +163,7 @@ const MEMBERS: MemberSeed[] = [
     id: "m-reaper", displayName: "Marcus Cole", roadName: "Reaper",
     email: "reaper@silentsouls.rp", rankName: "President", role: "admin",
     status: "patched", memberNumber: 1, joinDate: "2023-02-11",
+    photoPath: "/brand/members/reaper.webp",
     stats: { clubRuns: 61, churchAttendance: 48, operations: 22, territoryDefense: 14, recruitment: 4, specialAssignments: 9, communityOutreach: 18, charityEvents: 12, securityDetail: 11, territoryPatrol: 20 },
   },
   {
@@ -329,6 +332,7 @@ async function seed() {
       uid,
       displayName: m.displayName,
       roadName: m.roadName,
+      ...(m.photoPath ? { photoPath: m.photoPath } : {}),
       rankId: rankIdByName.get(m.rankName),
       status: m.status,
       joinDate: Timestamp.fromDate(new Date(m.joinDate)),
