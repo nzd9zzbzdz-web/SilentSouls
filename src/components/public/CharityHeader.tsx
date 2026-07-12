@@ -57,7 +57,7 @@ export function CharityHeader({
       <div className="mx-auto flex h-24 max-w-6xl items-center justify-end gap-4 px-4 md:h-28 lg:pl-[240px]">
         <nav aria-label="Main" className="relative z-20 hidden items-center gap-1 lg:flex">
           {NAV.map((item) => {
-            if (!item.href) {
+            if (item.href === undefined) {
               return (
                 <span
                   key={item.label}
@@ -114,7 +114,7 @@ export function CharityHeader({
       {open && (
         <nav aria-label="Mobile" className="relative z-20 border-t border-[#D4AF37]/15 bg-[#0a0908] px-4 pb-4 lg:hidden">
           {NAV.map((item) =>
-            item.href ? (
+            item.href !== undefined ? (
               <Link
                 key={item.label}
                 href={`${base}${item.href}`}
