@@ -252,7 +252,7 @@ async function seed() {
   await db.recursiveDelete(org);
 
   await org.set({
-    name: "Silent Souls MC",
+    name: "Silent Souls MC San Andreas",
     publicName: "Silent Souls Community Foundation",
     slug: ORG_ID,
     status: "active",

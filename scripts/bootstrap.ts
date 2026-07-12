@@ -111,7 +111,7 @@ async function bootstrap() {
 
   if (!orgSnap.exists) {
     await org.set({
-      name: "Silent Souls MC",
+      name: "Silent Souls MC San Andreas",
       publicName: "Silent Souls Community Foundation",
       slug: ORG_ID,
       status: "active",
