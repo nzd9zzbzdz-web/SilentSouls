@@ -116,7 +116,17 @@ export default async function PublicHomePage({
           sizes="100vw"
           className="pointer-events-none object-cover object-left"
         />
-        <div className="relative px-6 py-16 md:py-20 lg:pl-[26%] lg:pr-16">
+        {/* Right-fading scrim: keeps the skull strong at the far left and fades the
+            art to the section's black under the columns so their text stays legible. */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(90deg, rgba(10,8,6,0.10) 0%, rgba(10,8,6,0.55) 34%, rgba(10,8,6,0.92) 62%, #0a0806 100%)",
+          }}
+          aria-hidden
+        />
+        <div className="relative mx-auto max-w-[1400px] px-6 py-16 md:py-20 lg:pl-[26%] lg:pr-16">
           <h2 id="creed-heading" className="sr-only">
             The club
           </h2>
