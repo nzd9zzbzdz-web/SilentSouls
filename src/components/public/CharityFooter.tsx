@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { HeartHandshake } from "lucide-react";
+import { Skull } from "lucide-react";
 
 export function CharityFooter({
   orgSlug,
@@ -12,53 +12,37 @@ export function CharityFooter({
 }) {
   const base = `/${orgSlug}`;
   return (
-    <footer className="border-t border-border bg-secondary">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 md:grid-cols-3">
+    <footer className="border-t border-[#D4AF37]/15 bg-[#080706] text-[#9c917a]">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-14 sm:grid-cols-2 md:grid-cols-3">
         <div>
-          <p
-            className="flex items-center gap-2 font-semibold text-secondary-foreground"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            <HeartHandshake className="size-5 text-primary" aria-hidden />
-            {name}
+          <p className="flex items-center gap-2.5 text-[#EDE6D3]">
+            <Skull className="size-6 text-[#D4AF37]" aria-hidden />
+            <span className="text-lg" style={{ fontFamily: "var(--font-display)" }}>{name}</span>
           </p>
           {tagline && (
-            <p className="mt-2 text-sm text-muted-foreground">{tagline}</p>
+            <p className="mt-3 text-sm uppercase tracking-[0.14em] text-[#8f846d]">{tagline}</p>
           )}
         </div>
         <nav aria-label="Footer" className="text-sm">
-          <p className="mb-3 font-semibold text-secondary-foreground">Get Involved</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#D4AF37]">The Club</p>
           <ul className="space-y-2">
-            <li>
-              <Link href={`${base}/donate`} className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline">
-                Make a Donation
-              </Link>
-            </li>
-            <li>
-              <Link href={`${base}/events`} className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline">
-                Upcoming Events
-              </Link>
-            </li>
-            <li>
-              <Link href={`${base}/volunteer-resources`} className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline">
-                Volunteer Resources
-              </Link>
-            </li>
+            <li><Link href={`${base}/about`} className="hover:text-[#EDE6D3]">About the Souls</Link></li>
+            <li><Link href={`${base}/events`} className="hover:text-[#EDE6D3]">Rides &amp; Events</Link></li>
+            <li><Link href={`${base}/join`} className="hover:text-[#EDE6D3]">Prospect With Us</Link></li>
+            <li><Link href={`${base}/volunteer-resources`} className="hover:text-[#EDE6D3]">Member Login</Link></li>
           </ul>
         </nav>
-        <div className="text-sm text-muted-foreground">
-          <p className="mb-3 font-semibold text-secondary-foreground">Contact</p>
-          <p>Legion Square Community Center</p>
-          <p>Los Santos, San Andreas</p>
+        <div className="text-sm">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#D4AF37]">Territory</p>
+          <p>The Clubhouse, Sandy Shores</p>
+          <p>San Andreas</p>
           <p className="mt-2">
-            <Link href={`${base}/contact`} className="underline-offset-4 hover:text-primary hover:underline">
-              Send us a message
-            </Link>
+            <Link href={`${base}/contact`} className="hover:text-[#EDE6D3]">Send word</Link>
           </p>
         </div>
       </div>
-      <div className="border-t border-border py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} {name}. All rights reserved.
+      <div className="border-t border-[#D4AF37]/10 py-4 text-center text-xs text-[#6e6550]">
+        © {new Date().getFullYear()} {name}. Ride free.
       </div>
     </footer>
   );
