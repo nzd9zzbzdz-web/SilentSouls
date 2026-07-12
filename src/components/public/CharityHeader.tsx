@@ -33,8 +33,15 @@ export function CharityHeader({
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#D4AF37]/15 bg-[#0a0908]/95 backdrop-blur">
-      <div className="mx-auto flex h-24 max-w-6xl items-center justify-between gap-4 px-4 md:h-28">
-        <Link href={base} aria-label={name} className="flex items-center">
+      <div className="relative mx-auto flex h-24 max-w-6xl items-center justify-end gap-4 px-4 md:h-28 lg:pl-[240px]">
+        {/* Oversized club patch: anchored near the top of the bar and left to
+            overhang below it, spilling onto the hero. z-10 keeps it above the
+            nav; lg:pl on the bar reserves room so links never slide under it. */}
+        <Link
+          href={base}
+          aria-label={name}
+          className="absolute left-4 top-2 z-10"
+        >
           <Image
             src="/brand/club-patch.webp"
             alt={name}
@@ -42,7 +49,7 @@ export function CharityHeader({
             height={600}
             priority
             unoptimized
-            className="h-20 w-auto object-contain md:h-24"
+            className="h-32 w-auto object-contain drop-shadow-[0_10px_28px_rgba(0,0,0,0.7)] sm:h-40 md:h-52 lg:h-60"
           />
         </Link>
 
@@ -99,7 +106,7 @@ export function CharityHeader({
       </div>
 
       {open && (
-        <nav aria-label="Mobile" className="border-t border-[#D4AF37]/15 px-4 pb-4 lg:hidden">
+        <nav aria-label="Mobile" className="relative z-20 border-t border-[#D4AF37]/15 bg-[#0a0908] px-4 pb-4 lg:hidden">
           {NAV.map((item) =>
             item.href ? (
               <Link
