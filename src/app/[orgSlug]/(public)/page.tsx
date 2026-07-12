@@ -38,74 +38,64 @@ export default async function PublicHomePage({
     <>
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-[#D4AF37]/15 bg-[#0a0908]">
-        {/* Cinematic backdrop (swap for a real hero photo when available) */}
+        {/* Full-bleed cinematic backdrop */}
         <div className="pointer-events-none absolute inset-0" aria-hidden>
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(120% 80% at 78% 18%, rgba(212,175,55,0.10), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(185,28,28,0.10), transparent 60%), linear-gradient(180deg,#0d0b08,#080706)",
-            }}
-          />
-          <Skull
-            className="absolute -right-10 top-1/2 hidden -translate-y-1/2 text-[#D4AF37]/[0.06] md:block"
-            style={{ width: "40rem", height: "40rem" }}
-            aria-hidden
-          />
-          {/* road vanishing point */}
-          <div
-            className="absolute inset-x-0 bottom-0 h-2/3"
-            style={{
-              background: "linear-gradient(180deg,transparent, rgba(0,0,0,0.6))",
-              maskImage: "radial-gradient(60% 100% at 50% 100%, black, transparent)",
-            }}
-          />
+          {branding?.heroImagePath ? (
+            <>
+              <Image
+                src={branding.heroImagePath}
+                alt=""
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover object-center"
+              />
+              {/* Legibility scrim: dark on the text side, clear over the riders */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-black/70" />
+            </>
+          ) : (
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(120% 80% at 78% 18%, rgba(212,175,55,0.10), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(185,28,28,0.10), transparent 60%), linear-gradient(180deg,#0d0b08,#080706)",
+              }}
+            />
+          )}
         </div>
 
-        <div className="relative mx-auto max-w-6xl px-4 py-24 md:py-36">
+        <div className="relative mx-auto flex min-h-[520px] max-w-6xl items-center px-4 py-16 md:min-h-[680px] md:py-24">
           <div className="max-w-2xl">
-            {branding?.logoPath ? (
-              <>
-                <h1 className="sr-only">{org.name}</h1>
-                <Image
-                  src={branding.logoPath}
-                  alt={`${org.name} banner`}
-                  width={1600}
-                  height={800}
-                  priority
-                  className="w-full max-w-xl drop-shadow-[0_10px_40px_rgba(212,175,55,0.15)]"
-                />
-              </>
-            ) : (
-              <DisplayHeading className="text-5xl leading-[0.95] text-[#EDE6D3] md:text-7xl">
-                {line1}
-                {line2 && <span className="mt-1 block">{line2}</span>}
-              </DisplayHeading>
-            )}
+            <DisplayHeading className="text-5xl leading-[0.95] text-[#F3EDDE] md:text-7xl">
+              {line1}
+              {line2 && <span className="mt-1 block">{line2}</span>}
+            </DisplayHeading>
+
+            {/* Ornamental rule */}
+            <div className="mt-7 flex max-w-md items-center gap-3" aria-hidden>
+              <span className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${GOLD}, transparent)` }} />
+              <span className="size-1.5 rotate-45" style={{ background: GOLD }} />
+              <span className="h-px flex-1" style={{ background: `linear-gradient(270deg, ${GOLD}, transparent)` }} />
+            </div>
+
             <p
               className="mt-6 text-sm font-semibold uppercase tracking-[0.28em] md:text-base"
               style={{ color: GOLD }}
             >
-              {creed}
+              {creed.split(/\s*[·|]\s*/).join(" | ")}
             </p>
-            <p className="mt-6 max-w-lg leading-relaxed text-[#A79C84]">
+            <p className="mt-6 max-w-lg leading-relaxed text-[#C9BFA8]">
               {branding?.mission ??
                 "We are the silent ones. We ride in shadows, bound by loyalty and respect. Our souls may be silent, but our presence speaks louder than words."}
             </p>
-            <div className="mt-9 flex flex-wrap gap-3">
+            <div className="mt-9">
               <Link
                 href={`${base}/about`}
-                className="inline-flex min-h-11 items-center gap-2 rounded-sm border px-7 text-xs font-semibold uppercase tracking-[0.16em] transition-colors duration-200"
+                className="inline-flex min-h-11 items-center gap-2 rounded-sm border px-8 text-xs font-semibold uppercase tracking-[0.18em] transition-colors duration-200 hover:bg-[#D4AF37]/10"
                 style={{ borderColor: GOLD, color: GOLD }}
               >
-                Learn More <ChevronRight className="size-4" aria-hidden />
-              </Link>
-              <Link
-                href={`${base}/join`}
-                className="inline-flex min-h-11 items-center rounded-sm px-7 text-xs font-semibold uppercase tracking-[0.16em] text-[#1a1408] transition-opacity duration-200 hover:opacity-90"
-                style={{ background: GOLD }}
-              >
-                Prospect With Us
+                Learn More
               </Link>
             </div>
           </div>

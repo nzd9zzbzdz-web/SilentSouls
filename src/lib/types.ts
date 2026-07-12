@@ -67,6 +67,7 @@ export interface Branding {
     mono?: string;
   };
   logoPath?: string;
+  heroImagePath?: string; // full-bleed public hero backdrop
   orgDisplayName: string;
   tagline?: string;
   mission?: string;
