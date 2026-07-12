@@ -119,7 +119,10 @@ export default async function PublicHomePage({
           fill
           sizes="100vw"
           className="pointer-events-none object-contain object-left"
-          style={{ mixBlendMode: "lighten" }}
+          style={{
+            mixBlendMode: "lighten",
+            filter: "brightness(3.8) contrast(1.12) saturate(1.15)",
+          }}
         />
         <div className="relative px-6 py-16 md:py-20 lg:pl-[24%] lg:pr-12">
           <h2 id="creed-heading" className="sr-only">
