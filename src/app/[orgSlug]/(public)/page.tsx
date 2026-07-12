@@ -109,21 +109,17 @@ export default async function PublicHomePage({
       {/* ── Pillars ── */}
       <section aria-labelledby="creed-heading" className="relative overflow-hidden bg-[#0a0806]">
         {/* Skull illustration bleeds off the left; art fades to black on the right */}
-        {/* Contain shows the whole skull, but leaves a hard right edge where the
-            art's dark rectangle meets the section. Mask it to fade into the section's
-            black before that edge so there's no visible seam at any viewport width. */}
+        {/* The art's canvas is near-black (~#020202), darker than the section, so an
+            opaque contain image reads as a rectangle. mix-blend-mode:lighten takes the
+            per-pixel max against the section bg: the dark canvas becomes exactly the
+            section color (vanishes) while the brighter skull shows — no seam, any width. */}
         <Image
           src="/brand/skull-bg.webp"
           alt=""
           fill
           sizes="100vw"
           className="pointer-events-none object-contain object-left"
-          style={{
-            WebkitMaskImage:
-              "linear-gradient(to right, #000 0%, #000 25%, transparent 46%)",
-            maskImage:
-              "linear-gradient(to right, #000 0%, #000 25%, transparent 46%)",
-          }}
+          style={{ mixBlendMode: "lighten" }}
         />
         <div className="relative px-6 py-16 md:py-20 lg:pl-[24%] lg:pr-12">
           <h2 id="creed-heading" className="sr-only">
