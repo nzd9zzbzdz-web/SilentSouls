@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Image as ImageIcon } from "lucide-react";
 import { getOrgBySlug } from "@/lib/tenant";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { Component as ImageAutoSlider } from "@/components/ui/image-auto-slider";
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
 
@@ -44,14 +45,22 @@ export default async function PublicGalleryPage({
   const photos = getGalleryPhotos();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16">
-      <DisplayHeading className="text-4xl text-foreground">Gallery</DisplayHeading>
-      <p className="mt-3 text-muted-foreground">
-        Moments from our drives, builds, and community days.
-      </p>
+    <div className="py-16">
+      <div className="mx-auto max-w-6xl px-4">
+        <DisplayHeading className="text-4xl text-foreground">Gallery</DisplayHeading>
+        <p className="mt-3 text-muted-foreground">
+          Moments from our drives, builds, and community days.
+        </p>
+      </div>
 
       {photos.length > 0 ? (
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <>
+          {/* Auto-scrolling showcase band (hover to pause) */}
+          <div className="mt-10">
+            <ImageAutoSlider images={photos.map((p) => p.src)} />
+          </div>
+
+          <div className="mx-auto mt-12 grid max-w-6xl gap-4 px-4 sm:grid-cols-2 lg:grid-cols-3">
           {photos.map((photo) => (
             <figure
               key={photo.src}
@@ -73,15 +82,18 @@ export default async function PublicGalleryPage({
               )}
             </figure>
           ))}
-        </div>
+          </div>
+        </>
       ) : (
-        <div className="mt-12 rounded-lg border border-border bg-card p-10 text-center">
-          <ImageIcon className="mx-auto size-10 text-muted-foreground" aria-hidden />
-          <p className="mt-4 font-medium text-card-foreground">Photos coming soon</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            We&apos;re gathering shots from our latest events — check back after the
-            next food drive.
-          </p>
+        <div className="mx-auto mt-12 max-w-6xl px-4">
+          <div className="rounded-lg border border-border bg-card p-10 text-center">
+            <ImageIcon className="mx-auto size-10 text-muted-foreground" aria-hidden />
+            <p className="mt-4 font-medium text-card-foreground">Photos coming soon</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              We&apos;re gathering shots from our latest events — check back after the
+              next food drive.
+            </p>
+          </div>
         </div>
       )}
     </div>
