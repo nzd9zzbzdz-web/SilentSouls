@@ -37,36 +37,38 @@ export default async function PublicHomePage({
   return (
     <>
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden border-b border-[#D4AF37]/15 bg-[#0a0908]">
-        {/* Full-bleed cinematic backdrop */}
-        <div className="pointer-events-none absolute inset-0" aria-hidden>
-          {branding?.heroImagePath ? (
-            <>
-              <Image
-                src={branding.heroImagePath}
-                alt=""
-                fill
-                priority
-                sizes="100vw"
-                className="object-cover object-center"
-              />
-              {/* Legibility scrim: dark on the text side, clear over the riders */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-black/70" />
-            </>
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(120% 80% at 78% 18%, rgba(212,175,55,0.10), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(185,28,28,0.10), transparent 60%), linear-gradient(180deg,#0d0b08,#080706)",
-              }}
-            />
-          )}
-        </div>
+      <section className="relative overflow-hidden border-b border-[#D4AF37]/15 bg-black">
+        {/* Full, uncropped backdrop */}
+        {branding?.heroImagePath ? (
+          <Image
+            src={branding.heroImagePath}
+            alt=""
+            width={2400}
+            height={1026}
+            priority
+            sizes="100vw"
+            className="block h-auto w-full"
+          />
+        ) : (
+          <div
+            className="min-h-[520px] md:min-h-[620px]"
+            style={{
+              background:
+                "radial-gradient(120% 80% at 78% 18%, rgba(212,175,55,0.10), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(185,28,28,0.10), transparent 60%), linear-gradient(180deg,#0d0b08,#080706)",
+            }}
+            aria-hidden
+          />
+        )}
 
-        <div className="relative flex min-h-[520px] items-center px-6 py-16 md:min-h-[680px] md:px-16 md:py-24 lg:px-24">
-          <div className="max-w-2xl">
+        {/* Legibility scrim — only when text overlays (md+) */}
+        <div
+          className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/85 via-black/35 to-transparent md:block"
+          aria-hidden
+        />
+
+        {/* Text — below the image on mobile, overlaid left-of-centre on desktop */}
+        <div className="md:absolute md:inset-0 md:flex md:items-center">
+          <div className="max-w-xl px-6 py-12 md:py-0 md:pl-24 md:pr-6 lg:pl-40">
             <DisplayHeading className="text-5xl leading-[0.95] text-[#F3EDDE] md:text-7xl">
               {line1}
               {line2 && <span className="mt-1 block">{line2}</span>}
