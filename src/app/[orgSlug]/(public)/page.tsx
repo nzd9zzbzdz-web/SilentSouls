@@ -126,7 +126,7 @@ export default async function PublicHomePage({
           }}
           aria-hidden
         />
-        <div className="relative mx-auto max-w-[1400px] px-6 py-16 md:py-20 lg:pl-[26%] lg:pr-16">
+        <div className="relative px-6 py-16 md:py-20 lg:pl-[24%] lg:pr-12">
           <h2 id="creed-heading" className="sr-only">
             The club
           </h2>
@@ -138,6 +138,7 @@ export default async function PublicHomePage({
                   alt=""
                   width={160}
                   height={160}
+                  unoptimized
                   className="h-16 w-auto object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)] md:h-[4.75rem]"
                 />
                 <h3 className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-[#EDE6D3]">
