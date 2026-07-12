@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, ScrollText, Shield, Skull, Users } from "lucide-react";
+import { ChevronRight, ScrollText } from "lucide-react";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 
@@ -22,10 +22,10 @@ export default async function PublicHomePage({
   const creed = branding?.tagline ?? "Brotherhood · Loyalty · Respect · Silence";
 
   const pillars = [
-    { icon: Skull, title: "About Us", body: "Founded on loyalty, trust, and respect. We are brothers — nothing more, nothing less.", href: `${base}/about`, cta: "Read More" },
-    { icon: Shield, title: "Brotherhood", body: "We ride together, we stand together. Our bond is unbreakable. Our brotherhood is forever.", href: `${base}/about`, cta: "Read More" },
-    { icon: Diamond1, title: "Our Code", body: "We live by a code. It guides our actions and defines who we are. Disrespect it, face the consequences.", href: `${base}/about`, cta: "Read More" },
-    { icon: DiamondMC, title: "Join the Club", body: "Think you have what it takes to ride with us? Loyalty is earned, not given. Start your journey here.", href: `${base}/join`, cta: "Apply Now" },
+    { img: "/brand/emblem-skull.webp", title: "About Us", body: "Silent Souls MC was founded on the core values of loyalty, trust, and respect. We are brothers — nothing more, nothing less.", href: `${base}/about`, cta: "Read More" },
+    { img: "/brand/emblem-winged.webp", title: "Brotherhood", body: "We ride together, we stand together, we bleed together. Our bond is unbreakable. Our brotherhood is forever.", href: `${base}/about`, cta: "Read More" },
+    { img: "/brand/emblem-onepercent.webp", title: "Our Code", body: "We live by a code. It guides our actions and defines who we are. Disrespect the code, and you'll face the consequences.", href: `${base}/about`, cta: "Read More" },
+    { img: "/brand/emblem-mc.webp", title: "Join the Club", body: "Think you have what it takes to be one of us? Loyalty is earned, not given. Start your journey here.", href: `${base}/join`, cta: "Apply Now" },
   ];
 
   const news = [
@@ -107,35 +107,45 @@ export default async function PublicHomePage({
       </section>
 
       {/* ── Pillars ── */}
-      <section aria-labelledby="creed-heading" className="relative bg-[#0b0a08]">
-        <Skull
-          className="pointer-events-none absolute -left-16 top-1/2 hidden -translate-y-1/2 text-[#D4AF37]/[0.04] lg:block"
-          style={{ width: "28rem", height: "28rem" }}
-          aria-hidden
+      <section aria-labelledby="creed-heading" className="relative overflow-hidden bg-[#0a0806]">
+        {/* Skull illustration bleeds off the left; art fades to black on the right */}
+        <Image
+          src="/brand/skull-bg.webp"
+          alt=""
+          fill
+          sizes="100vw"
+          className="pointer-events-none object-cover object-left"
         />
-        <div className="relative mx-auto grid max-w-6xl gap-px border-y border-[#D4AF37]/10 px-4 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8 lg:px-8">
+        <div className="relative px-6 py-16 md:py-20 lg:pl-[26%] lg:pr-16">
           <h2 id="creed-heading" className="sr-only">
             The club
           </h2>
-          {pillars.map((p) => (
-            <article key={p.title} className="flex flex-col items-center px-4 py-6 text-center">
-              <p.icon className="size-11" style={{ color: GOLD }} aria-hidden />
-              <h3
-                className="mt-4 text-lg uppercase tracking-[0.12em] text-[#EDE6D3]"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                {p.title}
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-[#8f846d]">{p.body}</p>
-              <Link
-                href={p.href}
-                className="mt-4 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.14em]"
-                style={{ color: GOLD }}
-              >
-                {p.cta} <ChevronRight className="size-3.5" aria-hidden />
-              </Link>
-            </article>
-          ))}
+          <div className="grid gap-y-12 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-4 lg:gap-x-0 lg:gap-y-0 lg:divide-x lg:divide-[#D4AF37]/15">
+            {pillars.map((p) => (
+              <article key={p.title} className="flex flex-col items-center px-6 text-center">
+                <Image
+                  src={p.img}
+                  alt=""
+                  width={160}
+                  height={160}
+                  className="h-16 w-auto object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)] md:h-[4.75rem]"
+                />
+                <h3 className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-[#EDE6D3]">
+                  {p.title}
+                </h3>
+                <p className="mt-3 max-w-[17rem] text-sm leading-relaxed text-[#9a8f79]">
+                  {p.body}
+                </p>
+                <Link
+                  href={p.href}
+                  className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em]"
+                  style={{ color: GOLD }}
+                >
+                  {p.cta} <ChevronRight className="size-3.5" aria-hidden />
+                </Link>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -232,46 +242,3 @@ function splitName(name: string): [string, string | null] {
   return [name, null];
 }
 
-// Gold heraldic emblems (CSS, no assets needed).
-function Diamond1({ className }: { className?: string }) {
-  return (
-    <span className={className} style={{ display: "inline-grid", placeItems: "center" }} aria-hidden>
-      <span
-        style={{
-          width: "2.4rem",
-          height: "2.4rem",
-          transform: "rotate(45deg)",
-          border: `2px solid ${GOLD}`,
-          borderRadius: 4,
-          display: "grid",
-          placeItems: "center",
-        }}
-      >
-        <span style={{ transform: "rotate(-45deg)", color: GOLD, fontWeight: 700, fontSize: "0.75rem" }}>1%</span>
-      </span>
-    </span>
-  );
-}
-function DiamondMC({ className }: { className?: string }) {
-  return (
-    <span className={className} style={{ display: "inline-grid", placeItems: "center" }} aria-hidden>
-      <span
-        style={{
-          width: "2.4rem",
-          height: "2.4rem",
-          transform: "rotate(45deg)",
-          border: `2px solid ${GOLD}`,
-          borderRadius: 4,
-          display: "grid",
-          placeItems: "center",
-        }}
-      >
-        <span
-          style={{ transform: "rotate(-45deg)", color: GOLD, fontWeight: 700, fontSize: "0.7rem", fontFamily: "var(--font-display)" }}
-        >
-          MC
-        </span>
-      </span>
-    </span>
-  );
-}
