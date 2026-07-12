@@ -109,22 +109,21 @@ export default async function PublicHomePage({
       {/* ── Pillars ── */}
       <section aria-labelledby="creed-heading" className="relative overflow-hidden bg-[#0a0806]">
         {/* Skull illustration bleeds off the left; art fades to black on the right */}
+        {/* Contain shows the whole skull, but leaves a hard right edge where the
+            art's dark rectangle meets the section. Mask it to fade into the section's
+            black before that edge so there's no visible seam at any viewport width. */}
         <Image
           src="/brand/skull-bg.webp"
           alt=""
           fill
           sizes="100vw"
           className="pointer-events-none object-contain object-left"
-        />
-        {/* Right-fading scrim: keeps the skull strong at the far left and fades the
-            art to the section's black under the columns so their text stays legible. */}
-        <div
-          className="pointer-events-none absolute inset-0"
           style={{
-            background:
-              "linear-gradient(90deg, rgba(10,8,6,0.10) 0%, rgba(10,8,6,0.55) 34%, rgba(10,8,6,0.92) 62%, #0a0806 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to right, #000 0%, #000 25%, transparent 46%)",
+            maskImage:
+              "linear-gradient(to right, #000 0%, #000 25%, transparent 46%)",
           }}
-          aria-hidden
         />
         <div className="relative px-6 py-16 md:py-20 lg:pl-[24%] lg:pr-12">
           <h2 id="creed-heading" className="sr-only">
