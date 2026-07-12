@@ -43,3 +43,7 @@ next-env.d.ts
 # firebase emulator logs / cache
 *-debug.log
 .firebase/
+
+# raw source art (optimized copies live in public/brand)
+/images/
+/Images/

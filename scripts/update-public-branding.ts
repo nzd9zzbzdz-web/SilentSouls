@@ -42,6 +42,7 @@ const publicBranding: Branding = {
     ring: "#D4AF37",
   },
   fonts: { display: "var(--font-blackletter)", body: "var(--font-inter)" },
+  logoPath: "/brand/silent-souls-banner.webp",
   orgDisplayName: "Silent Souls MC",
   tagline: "Brotherhood · Loyalty · Respect · Silence",
   mission:

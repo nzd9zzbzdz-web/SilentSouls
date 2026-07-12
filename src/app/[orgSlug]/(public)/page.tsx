@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, ScrollText, Shield, Skull, Users } from "lucide-react";
@@ -63,10 +64,24 @@ export default async function PublicHomePage({
 
         <div className="relative mx-auto max-w-6xl px-4 py-24 md:py-36">
           <div className="max-w-2xl">
-            <DisplayHeading className="text-5xl leading-[0.95] text-[#EDE6D3] md:text-7xl">
-              {line1}
-              {line2 && <span className="mt-1 block">{line2}</span>}
-            </DisplayHeading>
+            {branding?.logoPath ? (
+              <>
+                <h1 className="sr-only">{org.name}</h1>
+                <Image
+                  src={branding.logoPath}
+                  alt={`${org.name} banner`}
+                  width={1600}
+                  height={800}
+                  priority
+                  className="w-full max-w-xl drop-shadow-[0_10px_40px_rgba(212,175,55,0.15)]"
+                />
+              </>
+            ) : (
+              <DisplayHeading className="text-5xl leading-[0.95] text-[#EDE6D3] md:text-7xl">
+                {line1}
+                {line2 && <span className="mt-1 block">{line2}</span>}
+              </DisplayHeading>
+            )}
             <p
               className="mt-6 text-sm font-semibold uppercase tracking-[0.28em] md:text-base"
               style={{ color: GOLD }}
