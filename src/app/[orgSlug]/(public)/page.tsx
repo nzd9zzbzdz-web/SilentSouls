@@ -114,7 +114,7 @@ export default async function PublicHomePage({
           alt=""
           fill
           sizes="100vw"
-          className="pointer-events-none object-cover object-left"
+          className="pointer-events-none object-contain object-left"
         />
         {/* Right-fading scrim: keeps the skull strong at the far left and fades the
             art to the section's black under the columns so their text stays legible. */}
