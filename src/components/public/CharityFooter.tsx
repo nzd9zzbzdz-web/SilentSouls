@@ -1,5 +1,5 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Skull } from "lucide-react";
 
 export function CharityFooter({
   orgSlug,
@@ -16,7 +16,15 @@ export function CharityFooter({
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-14 sm:grid-cols-2 md:grid-cols-3">
         <div>
           <p className="flex items-center gap-2.5 text-[#EDE6D3]">
-            <Skull className="size-6 text-[#D4AF37]" aria-hidden />
+            <Image
+              src="/brand/club-patch.webp"
+              alt=""
+              width={520}
+              height={600}
+              unoptimized
+              aria-hidden
+              className="h-10 w-auto object-contain"
+            />
             <span className="text-lg" style={{ fontFamily: "var(--font-display)" }}>{name}</span>
           </p>
           {tagline && (
