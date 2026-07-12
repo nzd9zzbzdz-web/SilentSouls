@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Image as ImageIcon } from "lucide-react";
 import { getOrgBySlug } from "@/lib/tenant";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Component as ImageAutoSlider } from "@/components/ui/image-auto-slider";
+import { GalleryLightbox } from "@/components/public/GalleryLightbox";
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
 
@@ -60,28 +60,8 @@ export default async function PublicGalleryPage({
             <ImageAutoSlider images={photos.map((p) => p.src)} />
           </div>
 
-          <div className="mx-auto mt-12 grid max-w-6xl gap-4 px-4 sm:grid-cols-2 lg:grid-cols-3">
-          {photos.map((photo) => (
-            <figure
-              key={photo.src}
-              className="group overflow-hidden rounded-lg border border-border bg-card"
-            >
-              <div className="relative aspect-[4/3] overflow-hidden">
-                <Image
-                  src={photo.src}
-                  alt={photo.caption || "Silent Souls MC photo"}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-              {photo.caption && (
-                <figcaption className="px-3 py-2 text-sm capitalize text-muted-foreground">
-                  {photo.caption}
-                </figcaption>
-              )}
-            </figure>
-          ))}
+          <div className="mt-12">
+            <GalleryLightbox photos={photos} />
           </div>
         </>
       ) : (
