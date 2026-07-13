@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { StageArtButton } from "@/components/portal/StageArtButton";
 import { requireOrgRole } from "@/lib/auth/session";
+import { DEFAULT_CHARACTER_STAGE } from "@/lib/constants";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 
 export default async function BrandingAdminPage({
@@ -69,19 +70,17 @@ export default async function BrandingAdminPage({
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            The backdrop behind member character screens.
+            The backdrop behind every member&apos;s character screen.
             {portal?.characterStagePath
-              ? " Stage art is active."
-              : " No stage art set — profiles show a plain gradient."}
+              ? " Set explicitly in branding."
+              : " Using the built-in default."}
           </p>
-          {portal?.characterStagePath && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={portal.characterStagePath}
-              alt="Current character stage art"
-              className="max-h-40 rounded-md border border-border"
-            />
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={portal?.characterStagePath ?? DEFAULT_CHARACTER_STAGE}
+            alt="Current character stage art"
+            className="max-h-40 rounded-md border border-border"
+          />
           <StageArtButton orgId={org.id} />
         </CardContent>
       </Card>

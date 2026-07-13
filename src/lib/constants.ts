@@ -33,6 +33,10 @@ export const DEFAULT_RAP_SHEET: RapSheetEntry[] = [
 // Character render fallback — brand-neutral shadow figure shipped in public/.
 export const CHARACTER_SILHOUETTE = "/brand/members/silhouette.webp";
 
+// Stage backdrop used on every character screen unless the org's portal
+// branding sets its own characterStagePath.
+export const DEFAULT_CHARACTER_STAGE = "/brand/character-stage.webp";
+
 export const STAT_LABELS: Record<StatKey, string> = {
   churchAttendance: "Church Attendance",
   clubRuns: "Club Runs",

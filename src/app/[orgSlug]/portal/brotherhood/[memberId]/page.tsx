@@ -12,6 +12,7 @@ import {
 } from "@/lib/queries";
 import {
   CHARACTER_SILHOUETTE,
+  DEFAULT_CHARACTER_STAGE,
   DEFAULT_RAP_SHEET,
 } from "@/lib/constants";
 import type { Timestamp } from "firebase-admin/firestore";
@@ -96,7 +97,7 @@ export default async function MemberDetailPage({
         panelTitle="Criminal Record"
         stats={panelStats}
         patches={stagePatches}
-        stagePath={branding?.characterStagePath}
+        stagePath={branding?.characterStagePath ?? DEFAULT_CHARACTER_STAGE}
         characterPath={uploadedArt ?? member.photoPath ?? CHARACTER_SILHOUETTE}
       />
       {isOfficer && (
