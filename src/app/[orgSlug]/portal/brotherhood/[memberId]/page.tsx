@@ -8,7 +8,10 @@ import {
   listPatches,
   listRanks,
 } from "@/lib/queries";
-import { PROFILE_STAT_ORDER } from "@/lib/constants";
+import {
+  CHARACTER_SILHOUETTE,
+  DEFAULT_RAP_SHEET,
+} from "@/lib/constants";
 import type { Timestamp } from "firebase-admin/firestore";
 
 export default async function MemberDetailPage({
@@ -57,18 +60,14 @@ export default async function MemberDetailPage({
       };
     });
 
-  // RP rap sheet takes over the panel when present; club stats otherwise.
-  const hasRapSheet = (member.rapSheet?.length ?? 0) > 0;
-  const panelStats = hasRapSheet
-    ? member.rapSheet!.map((e) => ({
-        label: e.label,
-        value: /^\d+$/.test(e.value) ? Number(e.value) : e.value,
-        danger: e.danger,
-      }))
-    : PROFILE_STAT_ORDER.map((stat) => ({
-        label: stat.label,
-        value: member.stats?.[stat.key] ?? 0,
-      }));
+  // Every profile gets a Criminal Record — the member's own rap sheet when
+  // they have one, the zeroed default otherwise (new members start clean).
+  const rapSheet = member.rapSheet?.length ? member.rapSheet : DEFAULT_RAP_SHEET;
+  const panelStats = rapSheet.map((e) => ({
+    label: e.label,
+    value: /^\d+$/.test(e.value) ? Number(e.value) : e.value,
+    danger: e.danger,
+  }));
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -80,11 +79,11 @@ export default async function MemberDetailPage({
         memberNumber={member.memberNumber}
         rankName={rank?.name ?? "Unranked"}
         statusLabel={member.rapStatus ?? member.status}
-        panelTitle={hasRapSheet ? "Criminal Record" : "Service Record"}
+        panelTitle="Criminal Record"
         stats={panelStats}
         patches={stagePatches}
         stagePath={branding?.characterStagePath}
-        characterPath={member.photoPath}
+        characterPath={member.photoPath ?? CHARACTER_SILHOUETTE}
       />
     </div>
   );

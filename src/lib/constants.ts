@@ -1,4 +1,4 @@
-import type { StatKey } from "./types";
+import type { RapSheetEntry, StatKey } from "./types";
 
 // Slugs that can never be org slugs (static route segments win in App Router,
 // but we validate at org creation too).
@@ -18,6 +18,20 @@ export const PROFILE_STAT_ORDER: { key: StatKey; label: string }[] = [
   { key: "recruitment", label: "Recruitment" },
   { key: "specialAssignments", label: "Special Assignments" },
 ];
+
+// Character-screen rap sheet shown when a member has none of their own yet.
+// Rows are org-overridable per member via member.rapSheet.
+export const DEFAULT_RAP_SHEET: RapSheetEntry[] = [
+  { label: "Crimes Committed", value: "0" },
+  { label: "Heists Completed", value: "0" },
+  { label: "Police Gunned Down", value: "0", danger: true },
+  { label: "Jail Time Served", value: "0 mo" },
+  { label: "Times Arrested", value: "0" },
+  { label: "Dirty Money Earned", value: "$0" },
+];
+
+// Character render fallback — brand-neutral shadow figure shipped in public/.
+export const CHARACTER_SILHOUETTE = "/brand/members/silhouette.webp";
 
 export const STAT_LABELS: Record<StatKey, string> = {
   churchAttendance: "Church Attendance",
