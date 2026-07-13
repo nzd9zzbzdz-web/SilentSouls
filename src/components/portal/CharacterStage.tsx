@@ -303,13 +303,14 @@ const CSS_TEXT = `
 
 .charstage-nameplate {
   position: absolute;
-  left: 25.5%; top: 6.5%;
+  left: 25.5%; bottom: 1.6%;
   transform: translateX(-50%);
   text-align: center;
   animation: charstage-name-in 1.2s 0.2s ease-out both;
+  z-index: 2;
 }
 .charstage-name {
-  font-size: 4.2cqw;
+  font-size: 3.6cqw;
   color: var(--primary);
   letter-spacing: 0.06em;
   text-shadow: 0 0 1.4cqw color-mix(in srgb, var(--primary) 40%, transparent), 0 0.2cqw 0.5cqw rgba(0,0,0,0.9);
