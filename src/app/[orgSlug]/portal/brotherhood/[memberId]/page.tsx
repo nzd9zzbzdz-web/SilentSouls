@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { CharacterArtUploader } from "@/components/portal/CharacterArtUploader";
 import { CharacterStage, type StagePatch } from "@/components/portal/CharacterStage";
 import { requireOrgRole } from "@/lib/auth/session";
+import { orgRef } from "@/lib/firebase/admin";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import {
   getMember,
@@ -22,10 +24,22 @@ export default async function MemberDetailPage({
   const { orgSlug, memberId } = await params;
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
-  await requireOrgRole(org.id, "member");
+  const access = await requireOrgRole(org.id, "member");
+  const isOfficer = access.role === "officer" || access.role === "admin";
 
   const member = await getMember(org.id, memberId);
   if (!member) notFound();
+
+  // Website-uploaded render (data URL in a subdoc) wins over seeded art.
+  const assetSnap = await orgRef(org.id)
+    .collection("members")
+    .doc(memberId)
+    .collection("assets")
+    .doc("character")
+    .get();
+  const uploadedArt = assetSnap.exists
+    ? (assetSnap.data()?.dataUrl as string | undefined)
+    : undefined;
 
   const [ranks, awards, patches, branding] = await Promise.all([
     listRanks(org.id),
@@ -83,8 +97,17 @@ export default async function MemberDetailPage({
         stats={panelStats}
         patches={stagePatches}
         stagePath={branding?.characterStagePath}
-        characterPath={member.photoPath ?? CHARACTER_SILHOUETTE}
+        characterPath={uploadedArt ?? member.photoPath ?? CHARACTER_SILHOUETTE}
       />
+      {isOfficer && (
+        <div className="mt-3">
+          <CharacterArtUploader
+            orgId={org.id}
+            memberId={memberId}
+            hasCustomArt={Boolean(uploadedArt)}
+          />
+        </div>
+      )}
     </div>
   );
 }

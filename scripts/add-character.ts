@@ -14,6 +14,10 @@ import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
 import sharp from "sharp";
+import {
+  keyOutLightBackground,
+  needsBackgroundKeying,
+} from "../src/lib/character-key";
 
 const [, , inputPath, memberId, orgIdArg] = process.argv;
 const ORG_ID = orgIdArg ?? "silent-souls";
@@ -25,70 +29,16 @@ if (!inputPath || !memberId) {
 
 const OUT = `public/brand/members/${memberId}.webp`;
 
-async function keyOutBackground(
-  data: Buffer,
-  width: number,
-  height: number,
-): Promise<{ cleared: number }> {
-  // Background = light, near-gray pixel (checkerboard tiles / white studio).
-  const isLight = (x: number, y: number) => {
-    const i = (y * width + x) * 4;
-    const r = data[i], g = data[i + 1], b = data[i + 2];
-    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-    return mn > 170 && mx - mn < 18;
-  };
-
-  const visited = new Uint8Array(width * height);
-  const stack: number[] = [];
-  const push = (x: number, y: number) => {
-    if (x < 0 || y < 0 || x >= width || y >= height) return;
-    const idx = y * width + x;
-    if (visited[idx] || !isLight(x, y)) return;
-    visited[idx] = 1;
-    stack.push(idx);
-  };
-  for (let x = 0; x < width; x++) { push(x, 0); push(x, height - 1); }
-  for (let y = 0; y < height; y++) { push(0, y); push(width - 1, y); }
-
-  let cleared = 0;
-  while (stack.length) {
-    const idx = stack.pop()!;
-    const x = idx % width, y = (idx - x) / width;
-    data[idx * 4 + 3] = 0;
-    cleared++;
-    push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1);
-  }
-
-  // Feather the cut edge so the figure doesn't look razor-clipped.
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const idx = y * width + x;
-      if (data[idx * 4 + 3] === 0) continue;
-      if (visited[idx - 1] || visited[idx + 1] || visited[idx - width] || visited[idx + width]) {
-        data[idx * 4 + 3] = 150;
-      }
-    }
-  }
-  return { cleared };
-}
-
 async function main() {
   const src = sharp(inputPath).ensureAlpha();
   const { data, info } = await src
     .raw()
     .toBuffer({ resolveWithObject: true });
   const { width, height } = info;
+  const pixels = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
 
-  // Already transparent at the borders? Then it's pre-keyed — leave it alone.
-  let borderOpaque = 0;
-  for (let x = 0; x < width; x += 4) {
-    if (data[x * 4 + 3] > 250) borderOpaque++;
-    if (data[((height - 1) * width + x) * 4 + 3] > 250) borderOpaque++;
-  }
-  const needsKeying = borderOpaque > width / 8;
-
-  if (needsKeying) {
-    const { cleared } = await keyOutBackground(data, width, height);
+  if (needsBackgroundKeying(pixels, width, height)) {
+    const { cleared } = keyOutLightBackground(pixels, width, height);
     console.log(`keyed out ${cleared} background pixels (${Math.round((cleared / (width * height)) * 100)}%)`);
   } else {
     console.log("image already has transparency — skipping background keying");

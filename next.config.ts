@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    serverActions: {
+      // Character-render uploads post the raw image through a Server Action.
+      bodySizeLimit: "10mb",
+    },
+  },
 };
 
 export default nextConfig;

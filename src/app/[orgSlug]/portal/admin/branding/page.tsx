@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Palette } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { StageArtButton } from "@/components/portal/StageArtButton";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 
@@ -59,6 +60,29 @@ export default async function BrandingAdminPage({
             <p className="text-sm text-muted-foreground">Tagline: {portal.tagline}</p>
           )}
           {renderSwatches(portal?.colors as Record<string, string> | undefined)}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Character Stage</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            The backdrop behind member character screens.
+            {portal?.characterStagePath
+              ? " Stage art is active."
+              : " No stage art set — profiles show a plain gradient."}
+          </p>
+          {portal?.characterStagePath && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={portal.characterStagePath}
+              alt="Current character stage art"
+              className="max-h-40 rounded-md border border-border"
+            />
+          )}
+          <StageArtButton orgId={org.id} />
         </CardContent>
       </Card>
 
