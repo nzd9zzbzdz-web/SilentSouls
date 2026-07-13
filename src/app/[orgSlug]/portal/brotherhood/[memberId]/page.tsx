@@ -57,6 +57,19 @@ export default async function MemberDetailPage({
       };
     });
 
+  // RP rap sheet takes over the panel when present; club stats otherwise.
+  const hasRapSheet = (member.rapSheet?.length ?? 0) > 0;
+  const panelStats = hasRapSheet
+    ? member.rapSheet!.map((e) => ({
+        label: e.label,
+        value: /^\d+$/.test(e.value) ? Number(e.value) : e.value,
+        danger: e.danger,
+      }))
+    : PROFILE_STAT_ORDER.map((stat) => ({
+        label: stat.label,
+        value: member.stats?.[stat.key] ?? 0,
+      }));
+
   return (
     <div className="mx-auto max-w-6xl">
       <CharacterStage
@@ -66,11 +79,9 @@ export default async function MemberDetailPage({
         displayName={member.displayName}
         memberNumber={member.memberNumber}
         rankName={rank?.name ?? "Unranked"}
-        statusLabel={member.status}
-        stats={PROFILE_STAT_ORDER.map((stat) => ({
-          label: stat.label,
-          value: member.stats?.[stat.key] ?? 0,
-        }))}
+        statusLabel={member.rapStatus ?? member.status}
+        panelTitle={hasRapSheet ? "Criminal Record" : "Service Record"}
+        stats={panelStats}
         patches={stagePatches}
         stagePath={branding?.characterStagePath}
         characterPath={member.photoPath}

@@ -37,7 +37,8 @@ export interface CharacterStageProps {
   memberNumber: number;
   rankName: string;
   statusLabel: string;
-  stats: { label: string; value: number }[];
+  panelTitle?: string; // defaults to "Service Record"
+  stats: { label: string; value: number | string; danger?: boolean }[];
   patches: StagePatch[]; // up to 4 — the diamond slots
   stagePath?: string; // org stage art (branding.characterStagePath)
   characterPath?: string; // member full-body render (member.photoPath)
@@ -83,6 +84,7 @@ export function CharacterStage({
   memberNumber,
   rankName,
   statusLabel,
+  panelTitle = "Service Record",
   stats,
   patches,
   stagePath,
@@ -154,7 +156,7 @@ export function CharacterStage({
       <section className="charstage-panel" aria-label="Service record">
         <header>
           <DisplayHeading as="h3" className="charstage-panel-title">
-            Service Record
+            {panelTitle}
           </DisplayHeading>
           <p className="charstage-panel-sub">
             {rankName} · Member #{memberNumber}
@@ -162,11 +164,18 @@ export function CharacterStage({
         </header>
         <ul className="charstage-stats">
           {stats.map((s) => (
-            <li key={s.label} className="charstage-stat">
+            <li
+              key={s.label}
+              className={`charstage-stat${s.danger ? " charstage-stat-danger" : ""}`}
+            >
               <span className="charstage-stat-label">{s.label}</span>
               <span className="charstage-dots" />
               <span className="charstage-stat-value font-stat">
-                <CountUp value={s.value} />
+                {typeof s.value === "number" ? (
+                  <CountUp value={s.value} />
+                ) : (
+                  s.value
+                )}
               </span>
             </li>
           ))}
@@ -362,6 +371,11 @@ const CSS_TEXT = `
   font-size: 1.35cqw; font-weight: 600;
   color: var(--primary);
   text-shadow: 0 0 0.8cqw color-mix(in srgb, var(--primary) 35%, transparent);
+  white-space: nowrap;
+}
+.charstage-stat-danger .charstage-stat-value {
+  color: var(--destructive);
+  text-shadow: 0 0 0.8cqw color-mix(in srgb, var(--destructive) 40%, transparent);
 }
 .charstage-panel footer {
   padding: 0.8cqw 1.4cqw 1cqw;

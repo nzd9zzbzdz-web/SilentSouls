@@ -101,12 +101,23 @@ export type MemberStatus =
   | "retired"
   | "exiled";
 
+/** One line on the character screen's record panel. RP flavor, org-authored. */
+export interface RapSheetEntry {
+  label: string; // "Crimes Committed"
+  value: string; // "187", "96 mo", "$2.4M" — freeform; pure numbers count up
+  danger?: boolean; // render in destructive color
+}
+
 export interface Member {
   id: string;
   uid: string | null;
   displayName: string;
   roadName: string;
   photoPath?: string;
+  /** Character-screen rap sheet; when present it replaces the activity stats. */
+  rapSheet?: RapSheetEntry[];
+  /** Character-screen status line, e.g. "At Large", "Incarcerated". */
+  rapStatus?: string;
   rankId: string;
   status: MemberStatus;
   joinDate: Timestamp | Date;
