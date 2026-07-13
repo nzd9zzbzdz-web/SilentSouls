@@ -91,9 +91,57 @@ export function CharacterStage({
   characterPath,
 }: CharacterStageProps) {
   const slots = SLOT_POS.map((top, i) => ({ top, patch: patches[i] ?? null }));
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-wheel camera: wheel over the stage dollies in toward the character
+  // and the record panel (0 = full scene, 1 = focused). Drives a single CSS
+  // custom property; all layer transforms derive from it for parallax depth.
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let target = 0;
+    let current = 0;
+    let raf = 0;
+    let running = false;
+
+    const tick = () => {
+      current += (target - current) * 0.13;
+      if (Math.abs(target - current) < 0.002) {
+        current = target;
+        running = false;
+      }
+      el.style.setProperty("--focus", current.toFixed(4));
+      if (running) raf = requestAnimationFrame(tick);
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      target = Math.min(1, Math.max(0, target + e.deltaY * 0.0014));
+      if (reduced) {
+        current = target;
+        el.style.setProperty("--focus", current.toFixed(4));
+        return;
+      }
+      if (!running) {
+        running = true;
+        raf = requestAnimationFrame(tick);
+      }
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   return (
-    <div className="charstage" data-has-art={stagePath ? "true" : "false"}>
+    <div
+      ref={stageRef}
+      className="charstage"
+      data-has-art={stagePath ? "true" : "false"}
+    >
       <style>{CSS_TEXT}</style>
 
       {stagePath ? (
@@ -104,7 +152,7 @@ export function CharacterStage({
       )}
 
       {characterPath && (
-        <>
+        <div className="charstage-char-rig">
           <div className="charstage-shadow" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -112,7 +160,7 @@ export function CharacterStage({
             src={characterPath}
             alt={`${roadName} character render`}
           />
-        </>
+        </div>
       )}
 
       <div className="charstage-nameplate">
@@ -153,6 +201,7 @@ export function CharacterStage({
       })}
 
       {/* Service record panel */}
+      <div className="charstage-panel-rig">
       <section className="charstage-panel" aria-label="Service record">
         <header>
           <DisplayHeading as="h3" className="charstage-panel-title">
@@ -185,7 +234,11 @@ export function CharacterStage({
           <span className="charstage-status">{statusLabel}</span>
         </footer>
       </section>
+      </div>
 
+      <p className="charstage-scroll-hint" aria-hidden>
+        Scroll to focus
+      </p>
       <p className="charstage-legal">{displayName}</p>
     </div>
   );
@@ -207,6 +260,10 @@ const CSS_TEXT = `
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: cover;
+  /* wheel dolly: zoom past the character for depth */
+  transform-origin: 26% 72%;
+  transform: scale(calc(1 + var(--focus, 0) * 0.55));
+  will-change: transform;
 }
 .charstage-bg-fallback {
   background:
@@ -222,6 +279,13 @@ const CSS_TEXT = `
   border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
+.charstage-char-rig {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  transform-origin: 26% 86%;
+  transform: translateX(calc(var(--focus, 0) * 3cqw)) scale(calc(1 + var(--focus, 0) * 0.3));
+  will-change: transform;
+}
 .charstage-character {
   position: absolute;
   left: 3.5%; bottom: 12%;
@@ -273,6 +337,10 @@ const CSS_TEXT = `
   align-items: center;
   justify-content: center;
   z-index: 2;
+  /* fade the trophy rail away as the camera pushes in */
+  opacity: calc(1 - var(--focus, 0) * 1.4);
+  transform: translateX(calc(var(--focus, 0) * -4cqw));
+  will-change: transform, opacity;
 }
 .charstage-slot-icon {
   width: 50%; height: 50%;
@@ -315,10 +383,17 @@ const CSS_TEXT = `
 .charstage-tip-desc { font-size: 0.9cqw; color: var(--muted-foreground); margin-top: 0.2cqw; }
 .charstage-tip-meta { font-size: 0.72cqw; letter-spacing: 0.18em; text-transform: uppercase; color: color-mix(in srgb, var(--primary) 75%, transparent); margin-top: 0.5cqw; }
 
-.charstage-panel {
+.charstage-panel-rig {
   position: absolute;
   left: 41%; top: 13%;
   width: 20%; height: 57%;
+  transform-origin: 20% 45%;
+  transform: translateX(calc(var(--focus, 0) * 2cqw)) scale(calc(1 + var(--focus, 0) * 0.14));
+  will-change: transform;
+  z-index: 3;
+}
+.charstage-panel {
+  width: 100%; height: 100%;
   display: flex; flex-direction: column;
   background: rgba(5, 4, 2, 0.78);
   border: 1px solid color-mix(in srgb, var(--primary) 55%, transparent);
@@ -395,6 +470,15 @@ const CSS_TEXT = `
   position: absolute; right: 1.6%; bottom: 2%;
   font-size: 0.8cqw; letter-spacing: 0.22em; text-transform: uppercase;
   color: color-mix(in srgb, var(--foreground) 35%, transparent);
+}
+
+.charstage-scroll-hint {
+  position: absolute; bottom: 2.2%; left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.78cqw; letter-spacing: 0.32em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--primary) 45%, transparent);
+  opacity: calc(1 - var(--focus, 0) * 2);
+  pointer-events: none;
 }
 
 @keyframes charstage-in { from { opacity: 0; transform: translateY(0.8cqw); } to { opacity: 1; transform: translateY(0); } }
