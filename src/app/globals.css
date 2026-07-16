@@ -29,8 +29,8 @@
   --border: #e5e5e5;
   --input: #e5e5e5;
   --ring: #a3a3a3;
-  --chart-1: #d4af37;
-  --chart-2: #b91c1c;
+  --chart-1: #D9362B;
+  --chart-2: #54213F;
   --chart-3: #0891b2;
   --chart-4: #ea580c;
   --chart-5: #737373;
@@ -47,35 +47,35 @@
   --font-stat: var(--font-jetbrains);
 }
 
-/* Dark clubhouse fallbacks (never pure #000 — design system). */
+/* Dark clubhouse fallbacks — Ravens of Death palette (never pure #000). */
 .dark {
-  --background: #0a0a0b;
-  --foreground: #fafaf9;
-  --card: #1c1917;
-  --card-foreground: #fafaf9;
-  --popover: #1c1917;
-  --popover-foreground: #fafaf9;
-  --primary: #d4af37;
-  --primary-foreground: #1c1917;
-  --secondary: #292524;
-  --secondary-foreground: #fafaf9;
-  --muted: #292524;
-  --muted-foreground: #a8a29e;
-  --accent: #b91c1c;
-  --accent-foreground: #fafaf9;
-  --destructive: #dc2626;
-  --destructive-foreground: #fafaf9;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.12);
-  --ring: #d4af37;
-  --sidebar: #121212;
-  --sidebar-foreground: #fafaf9;
-  --sidebar-primary: #d4af37;
-  --sidebar-primary-foreground: #1c1917;
-  --sidebar-accent: #292524;
-  --sidebar-accent-foreground: #fafaf9;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #d4af37;
+  --background: #050407;
+  --foreground: #EEE7E8;
+  --card: #151017;
+  --card-foreground: #EEE7E8;
+  --popover: #151017;
+  --popover-foreground: #EEE7E8;
+  --primary: #D9362B;
+  --primary-foreground: #EEE7E8;
+  --secondary: #2D111F;
+  --secondary-foreground: #EEE7E8;
+  --muted: #2D111F;
+  --muted-foreground: #B8A0A5;
+  --accent: #54213F;
+  --accent-foreground: #EEE7E8;
+  --destructive: #941B22;
+  --destructive-foreground: #EEE7E8;
+  --border: rgba(148, 27, 34, 0.28);
+  --input: rgba(148, 27, 34, 0.40);
+  --ring: #D9362B;
+  --sidebar: #151017;
+  --sidebar-foreground: #EEE7E8;
+  --sidebar-primary: #D9362B;
+  --sidebar-primary-foreground: #EEE7E8;
+  --sidebar-accent: #2D111F;
+  --sidebar-accent-foreground: #EEE7E8;
+  --sidebar-border: rgba(148, 27, 34, 0.28);
+  --sidebar-ring: #D9362B;
 }
 
 @theme inline {
