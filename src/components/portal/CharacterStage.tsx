@@ -260,6 +260,9 @@ const CSS_TEXT = `
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: cover;
+  /* Stage art is composed top-heavy (ceiling lamps + wall patch up top); anchor
+     to the top so a taller-than-3:2 image crops off the bottom floor, not the top. */
+  object-position: 50% 0%;
   /* wheel dolly: zoom past the character for depth */
   transform-origin: 26% 72%;
   transform: scale(calc(1 + var(--focus, 0) * 0.55));
