@@ -34,10 +34,10 @@ export default async function MyCutPage({
 
   const joined = summary.joinDate
     ? new Date(summary.joinDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })
-    : "—";
+    : "-";
 
   const facts: { label: string; value: string }[] = [
-    { label: "Rank", value: summary.rankName || "—" },
+    { label: "Rank", value: summary.rankName || "-" },
     { label: "Standing", value: summary.status },
     { label: "Patches", value: String(summary.patchCount) },
     { label: "Since", value: joined },

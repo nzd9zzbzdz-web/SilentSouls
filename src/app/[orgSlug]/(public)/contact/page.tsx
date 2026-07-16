@@ -33,7 +33,7 @@ export default async function ContactPage({
             <div>
               <p className="font-semibold text-foreground">Open Hours</p>
               <p className="text-sm text-muted-foreground">
-                Saturdays 9:00 AM – 2:00 PM
+                Saturdays 9:00 AM to 2:00 PM
                 <br />
                 Donation drop-offs welcome
               </p>
@@ -96,7 +96,7 @@ export default async function ContactPage({
             Send Message
           </button>
           <p className="text-xs text-muted-foreground">
-            Message delivery coming soon — for now, visit us on Saturdays.
+            Message delivery coming soon. For now, visit us on Saturdays.
           </p>
         </form>
       </div>

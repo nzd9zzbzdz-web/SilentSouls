@@ -180,7 +180,7 @@ export function MemberAdmin({
                     {member.displayName} · #{member.memberNumber}
                   </p>
                 </TableCell>
-                <TableCell>{rankById.get(member.rankId)?.name ?? "—"}</TableCell>
+                <TableCell>{rankById.get(member.rankId)?.name ?? "-"}</TableCell>
                 <TableCell className="capitalize">{member.status}</TableCell>
                 <TableCell>
                   <Badge variant={member.hasAccount ? "default" : "secondary"}>
@@ -223,7 +223,7 @@ export function MemberAdmin({
             <DialogDescription>
               {editing
                 ? "Rank changes are logged to the service record."
-                : "Creates the club record — send an invite afterwards to link an account."}
+                : "Creates the club record. Send an invite afterwards to link an account."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -383,7 +383,7 @@ export function MemberAdmin({
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Portal permissions — separate from club rank.
+                  Portal permissions, separate from club rank.
                 </p>
               </div>
             </div>

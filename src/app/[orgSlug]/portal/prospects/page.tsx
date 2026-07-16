@@ -133,7 +133,7 @@ export default async function ProspectsPage({
       )}
 
       <p className="text-xs text-muted-foreground">
-        Officer tools — task assignment, notes, and patch votes — arrive with the
+        Officer tools (task assignment, notes, and patch votes) arrive with the
         prospect management milestone.
       </p>
     </div>

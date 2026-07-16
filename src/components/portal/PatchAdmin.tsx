@@ -272,7 +272,7 @@ export function PatchAdmin({
                 </Select>
               </div>
               <div>
-                <Label htmlFor="patch-tier">Tier (1–5)</Label>
+                <Label htmlFor="patch-tier">Tier (1-5)</Label>
                 <Input
                   id="patch-tier"
                   type="number"

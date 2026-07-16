@@ -70,7 +70,7 @@ export default async function PublicGalleryPage({
             <ImageIcon className="mx-auto size-10 text-muted-foreground" aria-hidden />
             <p className="mt-4 font-medium text-card-foreground">Photos coming soon</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              We&apos;re gathering shots from our latest events — check back after the
+              We&apos;re gathering shots from our latest events. Check back after the
               next food drive.
             </p>
           </div>

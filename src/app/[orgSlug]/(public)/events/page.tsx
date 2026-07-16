@@ -28,7 +28,7 @@ export default async function PublicEventsPage({
     <div className="mx-auto max-w-4xl px-4 py-16">
       <DisplayHeading className="text-4xl text-foreground">Upcoming Events</DisplayHeading>
       <p className="mt-3 text-muted-foreground">
-        Join us — every event is open to the community.
+        Join us. Every event is open to the community.
       </p>
 
       {events.length === 0 ? (
@@ -36,7 +36,7 @@ export default async function PublicEventsPage({
           <Calendar className="mx-auto size-10 text-muted-foreground" aria-hidden />
           <p className="mt-4 font-medium text-card-foreground">No events scheduled right now</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Check back soon — our next community drive is always around the corner.
+            Check back soon. Our next community drive is always around the corner.
           </p>
         </div>
       ) : (

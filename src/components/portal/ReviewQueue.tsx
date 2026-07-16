@@ -57,8 +57,8 @@ export function ReviewQueue({
         const awards = result.data?.awardedPatchIds ?? [];
         toast.success(
           awards.length
-            ? `Approved — ${awards.length} patch${awards.length === 1 ? "" : "es"} awarded!`
-            : "Approved — stats updated",
+            ? `Approved. ${awards.length} patch${awards.length === 1 ? "" : "es"} awarded!`
+            : "Approved. Stats updated",
         );
         router.refresh();
       } else {
@@ -196,7 +196,7 @@ export function ReviewQueue({
             <DialogTitle>Deny this submission?</DialogTitle>
             <DialogDescription>
               {denyTarget &&
-                `"${denyTarget.memberName}" — ${denyTarget.typeName}. Tell them why so they can fix it.`}
+                `"${denyTarget.memberName}" · ${denyTarget.typeName}. Tell them why so they can fix it.`}
             </DialogDescription>
           </DialogHeader>
           <div>

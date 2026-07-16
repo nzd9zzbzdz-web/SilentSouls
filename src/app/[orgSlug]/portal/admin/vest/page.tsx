@@ -31,7 +31,7 @@ export default async function VestDesignerPage({
       <div>
         <DisplayHeading className="text-3xl text-primary">Vest Designer</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
-          Position the slots that patches land in. No code required — every change
+          Position the slots that patches land in. No code required. Every change
           applies to every member&rsquo;s cut.
         </p>
       </div>

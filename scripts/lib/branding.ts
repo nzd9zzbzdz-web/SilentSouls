@@ -75,5 +75,5 @@ export const publicBranding: Branding = {
   orgDisplayName: ORG_DISPLAY_NAME,
   tagline: "Brotherhood · Loyalty · Respect · Death",
   mission:
-    "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us — but so does honor, and no brother of ours ever rides alone.",
+    "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us, but so does honor, and no brother of ours ever rides alone.",
 };

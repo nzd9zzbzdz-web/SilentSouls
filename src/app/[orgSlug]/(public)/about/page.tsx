@@ -25,7 +25,7 @@ export default async function AboutPage({
         <p>
           Founded in 2023 by a group of riders who believed their community deserved
           better, the foundation began with a single food drive in Sandy Shores.
-          Today our volunteers organize programs across the state — from Paleto Bay
+          Today our volunteers organize programs across the state, from Paleto Bay
           to the heart of Los Santos.
         </p>
         <p>
@@ -39,7 +39,7 @@ export default async function AboutPage({
       <h2 className="mt-12 text-2xl font-semibold text-foreground">Our Values</h2>
       <ul className="mt-4 grid gap-4 sm:grid-cols-2">
         {[
-          ["Loyalty to Community", "The people of San Andreas come first — always."],
+          ["Loyalty to Community", "The people of San Andreas come first, always."],
           ["Respect", "Every neighbor, every volunteer, every story matters."],
           ["Commitment", "We finish what we start, and we keep our word."],
           ["Brotherhood", "No one rides alone. No one struggles alone."],

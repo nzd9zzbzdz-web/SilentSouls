@@ -47,7 +47,7 @@ export default async function PatchAdminPage({
         }))}
         members={members
           .filter((m) => !["exiled", "retired"].includes(m.status))
-          .map((m) => ({ id: m.id, label: `"${m.roadName}" — ${m.displayName}` }))}
+          .map((m) => ({ id: m.id, label: `"${m.roadName}" · ${m.displayName}` }))}
       />
     </div>
   );

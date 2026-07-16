@@ -169,7 +169,7 @@ export function CharacterStage({
         </DisplayHeading>
         <p className="charstage-role">
           {orgName}
-          {tagline ? ` — ${tagline}` : ""}
+          {tagline ? ` · ${tagline}` : ""}
         </p>
         <div className="charstage-rule" />
       </div>

@@ -61,7 +61,7 @@ export default async function ActivitiesPage({
                   }))}
                 witnesses={members
                   .filter((m) => m.id !== access.memberId && m.status !== "exiled")
-                  .map((m) => ({ id: m.id, label: `"${m.roadName}" — ${m.displayName}` }))}
+                  .map((m) => ({ id: m.id, label: `"${m.roadName}" · ${m.displayName}` }))}
               />
             ) : (
               <p className="text-sm text-muted-foreground">

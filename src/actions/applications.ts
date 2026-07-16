@@ -50,7 +50,7 @@ export async function submitApplication(
     // Already a member of this org? Nothing to apply for.
     const userSnap = await adminDb.collection("users").doc(uid).get();
     if (userSnap.data()?.memberships?.[orgId]) {
-      return { ok: false, error: "You're already a member — just sign in." };
+      return { ok: false, error: "You're already a member. Just sign in." };
     }
 
     const appRef = org.collection("applications").doc(uid);
@@ -61,8 +61,8 @@ export async function submitApplication(
       if (data && data.status !== "rejected") {
         throw new AppError(
           data.status === "approved"
-            ? "You're already a member — just sign in."
-            : "You've already applied — hang tight for a decision.",
+            ? "You're already a member. Just sign in."
+            : "You've already applied. Hang tight for a decision.",
         );
       }
       tx.set(appRef, {

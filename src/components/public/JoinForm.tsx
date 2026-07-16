@@ -34,7 +34,7 @@ export function JoinForm({ orgId }: { orgSlug: string; orgId: string }) {
       const code = (err as { code?: string })?.code ?? "";
       setError(
         code === "auth/email-already-in-use"
-          ? "An account with this email already exists. If you've already applied, hang tight — or sign in."
+          ? "An account with this email already exists. If you've already applied, hang tight, or sign in."
           : code === "auth/weak-password"
             ? "Password should be at least 6 characters."
             : code === "auth/invalid-email"

@@ -14,7 +14,7 @@ export const slotSchema = z.object({
     .trim()
     .min(1)
     .max(40)
-    .regex(/^[A-Z0-9_]+$/, "Slot names use A–Z, 0–9 and underscores"),
+    .regex(/^[A-Z0-9_]+$/, "Slot names use A-Z, 0-9 and underscores"),
   u: z.number().min(0).max(1),
   v: z.number().min(0).max(1),
   maxScale: z.number().min(0.2).max(2),

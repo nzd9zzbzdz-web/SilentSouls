@@ -105,7 +105,7 @@ export function ActivityForm({
           toast.error(result.error ?? "Submission failed");
         }
       } catch {
-        toast.error("Upload failed — try again");
+        toast.error("Upload failed. Try again");
       }
     });
   }

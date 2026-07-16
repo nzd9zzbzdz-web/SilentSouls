@@ -50,7 +50,7 @@ export function RecruitmentQueue({
     startTransition(async () => {
       const result = await approveApplication({ orgId, applicationId: item.id, role });
       if (result.ok) {
-        toast.success(`"${item.roadName}" approved — they're in`);
+        toast.success(`"${item.roadName}" approved. They're in`);
         router.refresh();
       } else {
         toast.error(result.error ?? "Approval failed");

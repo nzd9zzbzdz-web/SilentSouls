@@ -46,7 +46,7 @@ export default async function BrandingAdminPage({
           Branding
         </DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
-          Both faces of the organization — the clubhouse and the cover story. A
+          Both faces of the organization: the clubhouse and the cover story. A
           full branding editor arrives with the multi-tenant milestone; today these
           are managed in Firestore.
         </p>
@@ -54,7 +54,7 @@ export default async function BrandingAdminPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Portal — {portal?.orgDisplayName}</CardTitle>
+          <CardTitle>Portal · {portal?.orgDisplayName}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {portal?.tagline && (
@@ -87,7 +87,7 @@ export default async function BrandingAdminPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Public — {publicBranding?.orgDisplayName}</CardTitle>
+          <CardTitle>Public · {publicBranding?.orgDisplayName}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {publicBranding?.tagline && (

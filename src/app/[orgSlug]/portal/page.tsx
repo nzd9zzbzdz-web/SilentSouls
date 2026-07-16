@@ -143,7 +143,7 @@ export default async function DashboardPage({
                           <span className="font-semibold">
                             &ldquo;{who?.roadName ?? "Unknown"}&rdquo;
                           </span>{" "}
-                          — {type?.name ?? activity.typeId}
+                          · {type?.name ?? activity.typeId}
                         </p>
                         {when && (
                           <p className="text-xs text-muted-foreground">

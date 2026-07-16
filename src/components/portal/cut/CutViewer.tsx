@@ -124,7 +124,7 @@ function PatchToken({
         transform: "translate(-50%,-50%)",
         zIndex: p.z,
       }}
-      aria-label={`${p.label} — ${RARITY[rarity].label} patch`}
+      aria-label={`${p.label} · ${RARITY[rarity].label} patch`}
     >
       <span
         className="flex aspect-square w-full items-center justify-center rounded-full border-2 p-1 text-center transition-transform duration-150 group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-amber-300"
@@ -178,7 +178,7 @@ function Surface({
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(iso).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",

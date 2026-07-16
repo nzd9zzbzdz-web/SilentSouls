@@ -28,7 +28,7 @@ export default async function DonatePage({
     {
       icon: Wrench,
       title: "Skills & Time",
-      body: "Mechanics, cooks, tutors, drivers — your hands are worth more than money. Join a project crew.",
+      body: "Mechanics, cooks, tutors, drivers: your hands are worth more than money. Join a project crew.",
       cta: "Volunteer",
     },
   ];
@@ -41,7 +41,7 @@ export default async function DonatePage({
         </DisplayHeading>
         <p className="mt-4 text-lg text-muted-foreground">
           The foundation runs on the generosity of neighbors like you. Choose the
-          way that fits — every contribution moves the community forward.
+          way that fits. Every contribution moves the community forward.
         </p>
       </div>
 
@@ -68,7 +68,7 @@ export default async function DonatePage({
 
       <p className="mt-10 text-center text-sm text-muted-foreground">
         The {org.publicName} is a registered community organization in the state of
-        San Andreas. Donation processing coming soon — contact us to give today.
+        San Andreas. Donation processing coming soon. Contact us to give today.
       </p>
     </div>
   );

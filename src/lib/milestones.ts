@@ -28,7 +28,7 @@ export async function checkMilestones(
           .create({
             date: FieldValue.serverTimestamp(),
             title: "First Legendary Patch Awarded",
-            description: `The club's first legendary patch — ${patch.name} — has been earned.`,
+            description: `The club's first legendary patch, ${patch.name}, has been earned.`,
             kind: "milestone",
             milestoneKey: "first_legendary",
             icon: "trophy",

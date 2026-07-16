@@ -17,7 +17,7 @@ export default async function VolunteerResourcesPage({
     {
       icon: BookOpen,
       title: "Volunteer Handbook",
-      body: "Everything a new volunteer needs to know — expectations, safety guidelines, and program overviews.",
+      body: "Everything a new volunteer needs to know: expectations, safety guidelines, and program overviews.",
     },
     {
       icon: FileText,

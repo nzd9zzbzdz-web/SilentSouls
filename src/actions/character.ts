@@ -78,7 +78,7 @@ export async function uploadCharacterRender(
       }
     }
     if (!stored) {
-      return { ok: false, error: "Image too complex to store — try a smaller crop" };
+      return { ok: false, error: "Image too complex to store. Try a smaller crop" };
     }
 
     await memberRef.collection("assets").doc("character").set({

@@ -198,7 +198,7 @@ export default async function PatchWallPage({
                 </>
               ) : (
                 <p className="mt-3 text-xs italic text-muted-foreground">
-                  Awarded by leadership — earn it when it counts.
+                  Awarded by leadership. Earn it when it counts.
                 </p>
               )}
             </li>
@@ -219,7 +219,7 @@ export default async function PatchWallPage({
           </h2>
           {legends.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">
-              No legends yet. Some patches can&apos;t be chased — they find you.
+              No legends yet. Some patches can&apos;t be chased. They find you.
             </p>
           ) : (
             <ul className="mt-4 grid gap-4 md:grid-cols-2">

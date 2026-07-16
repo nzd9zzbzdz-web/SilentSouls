@@ -364,7 +364,7 @@ async function seed() {
 
   // Events: one portal church meeting, one public charity event
   await org.collection("events").doc("e-church-next").set({
-    title: "Church — Mandatory",
+    title: "Church: Mandatory",
     type: "church",
     startAt: Timestamp.fromDate(new Date("2026-07-12T20:00:00")),
     location: "The Clubhouse, Sandy Shores",
@@ -375,7 +375,7 @@ async function seed() {
     createdAt: Timestamp.now(),
   });
   await org.collection("events").doc("e-food-drive").set({
-    title: "Charity Event — Food Drive Cover",
+    title: "Charity Event: Food Drive Cover",
     type: "community",
     startAt: Timestamp.fromDate(new Date("2026-07-19T11:00:00")),
     location: "Legion Square, Los Santos",
@@ -402,7 +402,7 @@ async function seed() {
   await org.collection("timeline").doc("t-clubhouse").set({
     date: Timestamp.fromDate(new Date("2023-08-04")),
     title: "First Clubhouse Purchased",
-    description: "The Ravens put down roots — the Sandy Shores clubhouse becomes home.",
+    description: "The Ravens put down roots. The Sandy Shores clubhouse becomes home.",
     kind: "manual",
     icon: "home",
     createdBy: "system",

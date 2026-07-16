@@ -22,7 +22,7 @@ export default async function PublicHomePage({
   const creed = branding?.tagline ?? "Brotherhood · Loyalty · Respect · Death";
 
   const pillars = [
-    { img: "/brand/emblem-skull.webp", title: "About Us", body: "Ravens of Death MC was founded on the core values of loyalty, trust, and respect. We are brothers — nothing more, nothing less.", href: `${base}/about`, cta: "Read More" },
+    { img: "/brand/emblem-skull.webp", title: "About Us", body: "Ravens of Death MC was founded on the core values of loyalty, trust, and respect. We are brothers, nothing more, nothing less.", href: `${base}/about`, cta: "Read More" },
     { img: "/brand/emblem-winged.webp", title: "Brotherhood", body: "We ride together, we stand together, we bleed together. Our bond is unbreakable. Our brotherhood is forever.", href: `${base}/about`, cta: "Read More" },
     { img: "/brand/emblem-onepercent.webp", title: "Our Code", body: "We live by a code. It guides our actions and defines who we are. Disrespect the code, and you'll face the consequences.", href: `${base}/about`, cta: "Read More" },
     { img: "/brand/emblem-mc.webp", title: "Join the Club", body: "Think you have what it takes to be one of us? Loyalty is earned, not given. Start your journey here.", href: `${base}/join`, cta: "Apply Now" },
@@ -30,7 +30,7 @@ export default async function PublicHomePage({
 
   const news = [
     { tag: "Ride", title: "Sunday Run to Paleto Bay", date: "This weekend" },
-    { tag: "Church", title: "Monthly Church — Mandatory", date: "Next Friday" },
+    { tag: "Church", title: "Monthly Church: Mandatory", date: "Next Friday" },
     { tag: "Community", title: "Summer Food Drive, Legion Square", date: "This month" },
   ];
 
@@ -126,7 +126,7 @@ export default async function PublicHomePage({
 
             <p className="mt-7 max-w-lg text-lg leading-relaxed text-[#EEE7E8]">
               {branding?.mission ??
-                "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us — but so does honor, and no brother of ours ever rides alone."}
+                "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us, but so does honor, and no brother of ours ever rides alone."}
             </p>
             <div className="mt-10">
               <Link

@@ -92,7 +92,7 @@ export default async function EventsPage({
             <CardContent className="py-10 text-center">
               <Calendar className="mx-auto size-9 text-muted-foreground" aria-hidden />
               <p className="mt-3 text-sm text-muted-foreground">
-                Nothing on the calendar. Enjoy the quiet — it won&apos;t last.
+                Nothing on the calendar. Enjoy the quiet. It won&apos;t last.
               </p>
             </CardContent>
           </Card>

@@ -225,7 +225,7 @@ export function VestDesigner({
         </Button>
 
         <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          Vest artwork upload arrives with cloud Storage (paid plan). For now the schematic vest is the canvas — slot positions and rules are fully editable and drive every member&rsquo;s cut.
+          Vest artwork upload arrives with cloud Storage (paid plan). For now the schematic vest is the canvas. Slot positions and rules are fully editable and drive every member&rsquo;s cut.
         </p>
       </div>
     </div>

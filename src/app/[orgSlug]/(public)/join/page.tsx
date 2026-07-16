@@ -16,8 +16,8 @@ export default async function JoinPage({
     <div className="mx-auto max-w-2xl px-4 py-16">
       <DisplayHeading className="text-4xl text-foreground">Get Involved</DisplayHeading>
       <p className="mt-3 text-muted-foreground">
-        Want to ride with us? Send an application below. An officer will review it and reach out —
-        once you&rsquo;re approved you&rsquo;ll have access to the member portal.
+        Want to ride with us? Send an application below. An officer will review it and reach out.
+        Once you&rsquo;re approved you&rsquo;ll have access to the member portal.
       </p>
 
       <div className="mt-8">

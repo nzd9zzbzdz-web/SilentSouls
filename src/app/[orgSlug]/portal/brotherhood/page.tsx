@@ -15,11 +15,11 @@ const TIERS: { key: TierKey; label: string; blurb: string }[] = [
   { key: "officers", label: "Officers", blurb: "Those who carry the gavel." },
   { key: "patched", label: "Patched Members", blurb: "Full colors, earned." },
   { key: "prospects", label: "Prospects", blurb: "Earning their bottom rocker." },
-  { key: "hangarounds", label: "Hangarounds", blurb: "Around, not in — yet." },
+  { key: "hangarounds", label: "Hangarounds", blurb: "Around, but not in yet." },
 ];
 
 function fmtJoined(d?: Date): string {
-  return d ? d.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "—";
+  return d ? d.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "-";
 }
 
 function MemberCard({
@@ -88,7 +88,7 @@ function MemberCard({
             : "border-border text-muted-foreground",
         )}
       >
-        {rank?.name ?? "—"}
+        {rank?.name ?? "-"}
       </div>
 
       <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-3 text-xs text-muted-foreground">
@@ -154,7 +154,7 @@ export default async function BrotherhoodPage({
       <div className="texture-noise rounded-xl border border-primary/20 bg-card p-6 md:p-8">
         <DisplayHeading className="text-4xl text-primary">Brotherhood</DisplayHeading>
         <p className="mt-2 text-sm text-muted-foreground">
-          Every rider under the colors — the whole club, in order of the patch.
+          Every rider under the colors: the whole club, in order of the patch.
         </p>
         <dl className="mt-6 grid max-w-md grid-cols-3 gap-4">
           {standing.map((s) => (
