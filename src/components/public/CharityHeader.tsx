@@ -47,8 +47,8 @@ export function CharityHeader({
         <Image
           src="/brand/club-patch.webp"
           alt={name}
-          width={520}
-          height={600}
+          width={720}
+          height={1080}
           priority
           unoptimized
           className="h-32 w-auto object-contain drop-shadow-[0_10px_28px_rgba(0,0,0,0.7)] sm:h-40 md:h-52 lg:h-60"

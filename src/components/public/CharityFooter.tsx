@@ -19,8 +19,8 @@ export function CharityFooter({
             <Image
               src="/brand/club-patch.webp"
               alt=""
-              width={520}
-              height={600}
+              width={720}
+              height={1080}
               unoptimized
               aria-hidden
               className="h-32 w-auto object-contain"
