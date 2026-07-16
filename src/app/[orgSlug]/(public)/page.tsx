@@ -19,7 +19,7 @@ export default async function PublicHomePage({
   const base = `/${orgSlug}`;
 
   const [line1, line2] = splitName(org.name);
-  const creed = branding?.tagline ?? "Brotherhood · Loyalty · Respect · Silence";
+  const creed = branding?.tagline ?? "Brotherhood · Loyalty · Respect · Death";
 
   const pillars = [
     { img: "/brand/emblem-skull.webp", title: "About Us", body: "Ravens of Death MC was founded on the core values of loyalty, trust, and respect. We are brothers — nothing more, nothing less.", href: `${base}/about`, cta: "Read More" },
@@ -107,7 +107,7 @@ export default async function PublicHomePage({
         {/* Text — overlaid, pushed right of the left edge */}
         <div className="absolute inset-0 flex items-center">
           <div className="px-6 md:pl-32 md:pr-6 lg:pl-56">
-            <DisplayHeading className="text-6xl leading-[0.92] text-[#F5EFE1] drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)] md:text-7xl lg:text-8xl">
+            <DisplayHeading className="text-6xl leading-[0.92] text-[#EEE7E8] drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)] md:text-7xl lg:text-8xl">
               {line1}
               {line2 && <span className="mt-1 block">{line2}</span>}
             </DisplayHeading>
@@ -117,16 +117,16 @@ export default async function PublicHomePage({
               <OrnamentRule />
               <p
                 className="my-3.5 text-center text-base font-semibold uppercase tracking-[0.16em] md:text-lg"
-                style={{ color: "#E3BC4E" }}
+                style={{ color: "#D9362B" }}
               >
                 {creed.split(/\s*[·|]\s*/).join(" | ")}
               </p>
               <OrnamentRule />
             </div>
 
-            <p className="mt-7 max-w-lg text-lg leading-relaxed text-[#E4DCCB]">
+            <p className="mt-7 max-w-lg text-lg leading-relaxed text-[#EEE7E8]">
               {branding?.mission ??
-                "We are the silent ones. We ride in shadows, bound by loyalty and respect. Our souls may be silent, but our presence speaks louder than words."}
+                "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us — but so does honor, and no brother of ours ever rides alone."}
             </p>
             <div className="mt-10">
               <Link
@@ -142,7 +142,7 @@ export default async function PublicHomePage({
       </section>
 
       {/* ── Pillars ── */}
-      <section aria-labelledby="creed-heading" className="relative overflow-hidden bg-[#0a0806]">
+      <section aria-labelledby="creed-heading" className="relative overflow-hidden bg-[#050407]">
         {/* Skull illustration bleeds off the left; art fades to black on the right */}
         {/* The art's canvas is near-black (~#020202), darker than the section, so an
             opaque contain image reads as a rectangle. mix-blend-mode:lighten takes the
@@ -177,7 +177,7 @@ export default async function PublicHomePage({
                 <h3 className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-[#EEE7E8]">
                   {p.title}
                 </h3>
-                <p className="mt-3 max-w-[17rem] text-sm leading-relaxed text-[#9a8f79]">
+                <p className="mt-3 max-w-[17rem] text-sm leading-relaxed text-[#B8A0A5]">
                   {p.body}
                 </p>
                 <Link

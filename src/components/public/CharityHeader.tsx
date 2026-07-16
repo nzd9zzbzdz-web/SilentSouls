@@ -127,7 +127,7 @@ export function CharityHeader({
               <span
                 key={item.label}
                 aria-disabled
-                className="flex min-h-11 items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#6f6656]"
+                className="flex min-h-11 items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#B8A0A5]"
               >
                 {item.label}
               </span>
