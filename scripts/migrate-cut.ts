@@ -18,10 +18,11 @@ config({ path: [".env.local", ".env"] });
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { writeCutConfig } from "./lib/writeCutConfig";
+import { ORG_DISPLAY_NAME } from "./lib/branding";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "demo-brotherhood-portal";
 const ORG_ID = process.env.ORG_ID ?? "silent-souls";
-const ORG_NAME = process.env.ORG_NAME ?? "Silent Souls MC";
+const ORG_NAME = process.env.ORG_NAME ?? ORG_DISPLAY_NAME;
 const ORG_LOCATION = process.env.ORG_LOCATION ?? "San Andreas";
 
 if (!process.env.FIRESTORE_EMULATOR_HOST && !process.env.FIREBASE_SERVICE_ACCOUNT_B64 && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {

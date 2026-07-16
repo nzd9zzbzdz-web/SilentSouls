@@ -16,8 +16,15 @@ import {
   DEFAULT_RANKS,
 } from "../src/lib/constants";
 import { writeCutConfig } from "./lib/writeCutConfig";
+import {
+  ORG_DISPLAY_NAME,
+  ORG_LEGAL_NAME,
+  ORG_LOCATION,
+  ORG_PUBLIC_NAME,
+  portalBranding,
+  publicBranding,
+} from "./lib/branding";
 import type {
-  Branding,
   CutLayout,
   CutPlacement,
   Patch,
@@ -38,72 +45,6 @@ const auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 
 const ORG_ID = "silent-souls";
-
-// ── Branding (from the ui-ux-pro-max design systems) ───────────────────
-
-// Ravens of Death palette:
-//   Void Black #050407 · Raven Charcoal #151017 · Death Plum #2D111F
-//   Raven Purple #54213F · Blood Crimson #941B22 · Ember Red #D9362B
-//   Weathered Bone #B8A0A5 · Ash White #EEE7E8
-const portalBranding: Branding = {
-  colors: {
-    background: "#050407",
-    foreground: "#EEE7E8",
-    card: "#151017",
-    cardForeground: "#EEE7E8",
-    primary: "#D9362B",
-    primaryForeground: "#EEE7E8",
-    secondary: "#2D111F",
-    secondaryForeground: "#EEE7E8",
-    muted: "#2D111F",
-    mutedForeground: "#B8A0A5",
-    accent: "#54213F",
-    accentForeground: "#EEE7E8",
-    destructive: "#941B22",
-    border: "rgba(148,27,34,0.28)",
-    input: "rgba(148,27,34,0.40)",
-    ring: "#D9362B",
-  },
-  fonts: {
-    display: "var(--font-blackletter)",
-    body: "var(--font-inter)",
-    mono: "var(--font-jetbrains)",
-  },
-  orgDisplayName: "Ravens of Death MC",
-  tagline: "San Andreas",
-  characterStagePath: "/brand/character-stage.webp",
-};
-
-const publicBranding: Branding = {
-  colors: {
-    background: "#050407",
-    foreground: "#EEE7E8",
-    card: "#151017",
-    cardForeground: "#EEE7E8",
-    primary: "#D9362B",
-    primaryForeground: "#EEE7E8",
-    secondary: "#2D111F",
-    secondaryForeground: "#EEE7E8",
-    muted: "#2D111F",
-    mutedForeground: "#B8A0A5",
-    accent: "#54213F",
-    accentForeground: "#EEE7E8",
-    destructive: "#941B22",
-    border: "rgba(148,27,34,0.22)",
-    input: "rgba(148,27,34,0.32)",
-    ring: "#D9362B",
-  },
-  fonts: {
-    display: "var(--font-blackletter)",
-    body: "var(--font-inter)",
-  },
-  logoPath: "/brand/silent-souls-banner.webp",
-  heroImagePath: "/brand/silent-souls-hero.webp",
-  orgDisplayName: "Ravens of Death MC",
-  tagline: "Brotherhood · Loyalty · Respect · Death",
-  mission:
-    "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us — but so does honor, and no brother of ours ever rides alone.",
-};
 
 // ── Patches ────────────────────────────────────────────────────────────
 
@@ -293,8 +234,8 @@ async function seed() {
   await db.recursiveDelete(org);
 
   await org.set({
-    name: "Ravens of Death MC San Andreas",
-    publicName: "Ravens of Death Community Foundation",
+    name: ORG_LEGAL_NAME,
+    publicName: ORG_PUBLIC_NAME,
     slug: ORG_ID,
     status: "active",
     features: { gallery: true, votes: true, cut3d: false },
@@ -468,7 +409,7 @@ async function seed() {
   });
 
   // Digital Cut config (M8): vest surfaces, slots, rank visuals, patch rarity.
-  const cut = await writeCutConfig(db, ORG_ID, { orgName: "Ravens of Death MC", location: "San Andreas" });
+  const cut = await writeCutConfig(db, ORG_ID, { orgName: ORG_DISPLAY_NAME, location: ORG_LOCATION });
   console.log(
     `  cut: ${cut.vestSurfaces} vest surfaces, ${cut.rankVisuals} rank visuals, ${cut.patchesBackfilled} patches tagged`,
   );

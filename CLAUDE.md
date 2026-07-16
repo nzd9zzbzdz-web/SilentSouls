@@ -2,15 +2,16 @@
 
 # Brotherhood Portal Platform
 
-Multi-tenant GTA RP organization management platform. First tenant: **Silent Souls MC**
-(public face: "Silent Souls Community Foundation" — a deliberately legitimate-looking
-charity site; the real product is the private portal behind /volunteer-resources login).
+Multi-tenant GTA RP organization management platform. First tenant: **Ravens of Death MC**
+(public face: "Ravens of Death Community Foundation"; the real product is the private
+portal behind /volunteer-resources login). Renamed from "Silent Souls MC" 2026-07-15 —
+the org slug is still `silent-souls` and demo emails are still @silentsouls.rp.
 
 ## Running locally (everything on emulators — no Firebase account needed)
 
 ```powershell
 npm run emulators   # Firebase emulator suite (auth 9099, firestore 8080, storage 9199, UI 4000)
-npm run seed        # resets + seeds Silent Souls org, 6 members, 15 patches, demo data
+npm run seed        # DESTRUCTIVE: wipes + reseeds the org, 6 members, 15 patches, demo data
 npm run dev         # Next.js on :3000  (or use dev.cmd which fixes PATH)
 ```
 
@@ -38,7 +39,14 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   hide fields on a parent doc.
 - **No hardcoded brand colors/names in components.** Branding comes from
   `organizations/{orgId}/branding/{public|portal}` docs → `<BrandStyle>` injects
-  CSS vars scoped to `[data-surface]`. Silent Souls values are seed data only.
+  CSS vars scoped to `[data-surface]`. Brand values are seed data only.
+- **`scripts/lib/branding.ts` is the single source of truth** for org name +
+  portal/public branding. seed/bootstrap/apply-branding/update-public-branding/
+  migrate-cut all import it — never re-declare these values in a script (they
+  drifted once and silently rewrote the old club name/palette over a rebrand).
+- To rebrand a running instance WITHOUT wiping data (`npm run seed` recursiveDeletes
+  first): `npx tsx scripts/apply-branding.ts` — merge-only. Emulator data is
+  in-memory, so reapply after every restart.
 - Blackletter display font only via `<DisplayHeading>` / `var(--font-display)` —
   never in body text.
 - Cut layouts store normalized u/v (0..1) coords per vest surface — designed for a

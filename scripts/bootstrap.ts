@@ -21,6 +21,14 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 import { ACTIVITY_TYPE_SEEDS, DEFAULT_RANKS } from "../src/lib/constants";
 import { writeCutConfig } from "./lib/writeCutConfig";
+import {
+  ORG_DISPLAY_NAME,
+  ORG_LEGAL_NAME,
+  ORG_LOCATION,
+  ORG_PUBLIC_NAME,
+  portalBranding,
+  publicBranding,
+} from "./lib/branding";
 import type { Branding, Patch, StatKey } from "../src/lib/types";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "demo-brotherhood-portal";
@@ -45,33 +53,6 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT_B64 && !process.env.GOOGLE_APPLICATION
 const app = getApps()[0] ?? initializeApp({ projectId: PROJECT_ID });
 const auth = getAuth(app);
 const db: Firestore = getFirestore(app);
-
-// ── Branding (same values the demo seed uses) ──────────────────────────
-const portalBranding: Branding = {
-  colors: {
-    background: "#0A0A0B", foreground: "#FAFAF9", card: "#1C1917", cardForeground: "#FAFAF9",
-    primary: "#D4AF37", primaryForeground: "#1C1917", secondary: "#292524", secondaryForeground: "#FAFAF9",
-    muted: "#292524", mutedForeground: "#A8A29E", accent: "#B91C1C", accentForeground: "#FAFAF9",
-    destructive: "#DC2626", border: "rgba(255,255,255,0.08)", input: "rgba(255,255,255,0.12)", ring: "#D4AF37",
-  },
-  fonts: { display: "var(--font-blackletter)", body: "var(--font-inter)", mono: "var(--font-jetbrains)" },
-  orgDisplayName: "Silent Souls MC",
-  tagline: "San Andreas",
-};
-
-const publicBranding: Branding = {
-  colors: {
-    background: "#FFFFFF", foreground: "#164E63", card: "#FFFFFF", cardForeground: "#164E63",
-    primary: "#0891B2", primaryForeground: "#FFFFFF", secondary: "#ECFEFF", secondaryForeground: "#164E63",
-    muted: "#E8F1F6", mutedForeground: "#64748B", accent: "#EA580C", accentForeground: "#FFFFFF",
-    destructive: "#DC2626", border: "#A5F3FC", input: "#A5F3FC", ring: "#0891B2",
-  },
-  fonts: { display: "var(--font-garamond)", body: "var(--font-lato)" },
-  orgDisplayName: "Silent Souls Community Foundation",
-  tagline: "Lifting up San Andreas, one neighborhood at a time.",
-  mission:
-    "The Silent Souls Community Foundation is dedicated to strengthening the communities of San Andreas through food drives, youth mentorship, veteran support, and neighborhood restoration projects.",
-};
 
 // ── Patches (same definitions as the demo seed) ────────────────────────
 type PatchSeed = Omit<Patch, "id"> & { id: string };
@@ -98,7 +79,7 @@ const PATCHES: PatchSeed[] = [
   p("mentor", "Mentor", "leadership", "Sponsor 3 prospects into the club.", 2, { statKey: "recruitment", threshold: 3 }, "front", 0.5, 0.3),
   p("shot-caller", "Shot Caller", "leadership", "Complete 5 special assignments.", 2, { statKey: "specialAssignments", threshold: 5 }, "back", 0.5, 0.3),
   p("presidents-citation", "President's Citation", "recognition", "Awarded personally by the President for exceptional service.", 3, null, "front", 0.5, 0.68),
-  p("brotherhoods-honor", "Brotherhood's Honor", "recognition", "Awarded by club vote for embodying the spirit of the Souls.", 3, null, "front", 0.5, 0.78),
+  p("brotherhoods-honor", "Brotherhood's Honor", "recognition", "Awarded by club vote for embodying the spirit of the Ravens.", 3, null, "front", 0.5, 0.78),
   p("war-veteran", "War Veteran", "legendary", "Stood their ground when the club needed them most. Manual award.", 4, null, "back", 0.5, 0.45),
 ];
 
@@ -111,8 +92,8 @@ async function bootstrap() {
 
   if (!orgSnap.exists) {
     await org.set({
-      name: "Silent Souls MC San Andreas",
-      publicName: "Silent Souls Community Foundation",
+      name: ORG_LEGAL_NAME,
+      publicName: ORG_PUBLIC_NAME,
       slug: ORG_ID,
       status: "active",
       features: { gallery: true, votes: true, cut3d: false },
@@ -209,7 +190,7 @@ async function bootstrap() {
   console.log("  ✓ admin member record + membership + claims");
 
   // Digital Cut config (M8): vest surfaces, slots, rank visuals, patch rarity.
-  const cut = await writeCutConfig(db, ORG_ID, { orgName: "Silent Souls MC", location: "San Andreas" });
+  const cut = await writeCutConfig(db, ORG_ID, { orgName: ORG_DISPLAY_NAME, location: ORG_LOCATION });
   console.log(
     `  ✓ digital cut: ${cut.vestSurfaces} vest surfaces, ${cut.rankVisuals} rank visuals, ${cut.patchesBackfilled} patches tagged`,
   );

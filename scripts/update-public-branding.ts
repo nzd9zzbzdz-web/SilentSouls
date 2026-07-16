@@ -10,7 +10,7 @@ config({ path: [".env.local", ".env"] });
 
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import type { Branding } from "../src/lib/types";
+import { publicBranding } from "./lib/branding";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "demo-brotherhood-portal";
 const ORG_ID = process.env.ORG_ID ?? "silent-souls";
@@ -21,34 +21,6 @@ if (!process.env.FIRESTORE_EMULATOR_HOST && !process.env.GOOGLE_APPLICATION_CRED
 }
 
 const db = getFirestore(getApps()[0] ?? initializeApp({ projectId: PROJECT_ID }));
-
-const publicBranding: Branding = {
-  colors: {
-    background: "#0A0908",
-    foreground: "#EDE6D3",
-    card: "#141009",
-    cardForeground: "#EDE6D3",
-    primary: "#D4AF37",
-    primaryForeground: "#1A1408",
-    secondary: "#171308",
-    secondaryForeground: "#EDE6D3",
-    muted: "#171308",
-    mutedForeground: "#9C917A",
-    accent: "#B91C1C",
-    accentForeground: "#FAFAF9",
-    destructive: "#DC2626",
-    border: "rgba(212,175,55,0.14)",
-    input: "rgba(212,175,55,0.22)",
-    ring: "#D4AF37",
-  },
-  fonts: { display: "var(--font-blackletter)", body: "var(--font-inter)" },
-  logoPath: "/brand/silent-souls-banner.webp",
-  heroImagePath: "/brand/silent-souls-hero.webp",
-  orgDisplayName: "Silent Souls MC",
-  tagline: "Brotherhood · Loyalty · Respect · Silence",
-  mission:
-    "We are the silent ones. We ride in shadows, bound by loyalty and respect. Our souls may be silent, but our presence speaks louder than words.",
-};
 
 (async () => {
   const target = process.env.FIRESTORE_EMULATOR_HOST ? "EMULATOR" : "LIVE";
