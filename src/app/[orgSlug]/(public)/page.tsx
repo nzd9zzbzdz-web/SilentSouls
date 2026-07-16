@@ -5,7 +5,7 @@ import { ChevronRight, ScrollText } from "lucide-react";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 
-const GOLD = "#D4AF37";
+const EMBER = "#D9362B";
 
 export default async function PublicHomePage({
   params,
@@ -22,7 +22,7 @@ export default async function PublicHomePage({
   const creed = branding?.tagline ?? "Brotherhood · Loyalty · Respect · Silence";
 
   const pillars = [
-    { img: "/brand/emblem-skull.webp", title: "About Us", body: "Silent Souls MC was founded on the core values of loyalty, trust, and respect. We are brothers — nothing more, nothing less.", href: `${base}/about`, cta: "Read More" },
+    { img: "/brand/emblem-skull.webp", title: "About Us", body: "Ravens of Death MC was founded on the core values of loyalty, trust, and respect. We are brothers — nothing more, nothing less.", href: `${base}/about`, cta: "Read More" },
     { img: "/brand/emblem-winged.webp", title: "Brotherhood", body: "We ride together, we stand together, we bleed together. Our bond is unbreakable. Our brotherhood is forever.", href: `${base}/about`, cta: "Read More" },
     { img: "/brand/emblem-onepercent.webp", title: "Our Code", body: "We live by a code. It guides our actions and defines who we are. Disrespect the code, and you'll face the consequences.", href: `${base}/about`, cta: "Read More" },
     { img: "/brand/emblem-mc.webp", title: "Join the Club", body: "Think you have what it takes to be one of us? Loyalty is earned, not given. Start your journey here.", href: `${base}/join`, cta: "Apply Now" },
@@ -37,7 +37,7 @@ export default async function PublicHomePage({
   return (
     <>
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden border-b border-[#D4AF37]/15 bg-black">
+      <section className="relative overflow-hidden border-b border-[#941B22]/15 bg-black">
         {/* Motion styles: a slow push-in toward the road's vanishing point sells
             forward motion (we're following the pack), while the taillights pulse
             like live brake lights. Disabled for reduced-motion users. */}
@@ -91,7 +91,7 @@ export default async function PublicHomePage({
               className="absolute inset-0"
               style={{
                 background:
-                  "radial-gradient(120% 80% at 78% 18%, rgba(212,175,55,0.10), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(185,28,28,0.10), transparent 60%), linear-gradient(180deg,#0d0b08,#080706)",
+                  "radial-gradient(120% 80% at 78% 18%, rgba(84,33,63,0.10), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(217,54,43,0.10), transparent 60%), linear-gradient(180deg,#151017,#050407)",
               }}
               aria-hidden
             />
@@ -131,8 +131,8 @@ export default async function PublicHomePage({
             <div className="mt-10">
               <Link
                 href={`${base}/about`}
-                className="inline-flex min-h-12 items-center rounded-sm border px-10 text-sm font-semibold uppercase tracking-[0.22em] transition-colors duration-200 hover:bg-[#D4AF37]/10"
-                style={{ borderColor: GOLD, color: GOLD }}
+                className="inline-flex min-h-12 items-center rounded-sm border px-10 text-sm font-semibold uppercase tracking-[0.22em] transition-colors duration-200 hover:bg-[#D9362B]/10"
+                style={{ borderColor: EMBER, color: EMBER }}
               >
                 Learn More
               </Link>
@@ -163,7 +163,7 @@ export default async function PublicHomePage({
           <h2 id="creed-heading" className="sr-only">
             The club
           </h2>
-          <div className="grid gap-y-12 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-4 lg:gap-x-0 lg:gap-y-0 lg:divide-x lg:divide-[#D4AF37]/15">
+          <div className="grid gap-y-12 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-4 lg:gap-x-0 lg:gap-y-0 lg:divide-x lg:divide-[#941B22]/15">
             {pillars.map((p) => (
               <article key={p.title} className="flex flex-col items-center px-6 text-center">
                 <Image
@@ -174,7 +174,7 @@ export default async function PublicHomePage({
                   unoptimized
                   className="h-16 w-auto object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)] md:h-[4.75rem]"
                 />
-                <h3 className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-[#EDE6D3]">
+                <h3 className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-[#EEE7E8]">
                   {p.title}
                 </h3>
                 <p className="mt-3 max-w-[17rem] text-sm leading-relaxed text-[#9a8f79]">
@@ -183,7 +183,7 @@ export default async function PublicHomePage({
                 <Link
                   href={p.href}
                   className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em]"
-                  style={{ color: GOLD }}
+                  style={{ color: EMBER }}
                 >
                   {p.cta} <ChevronRight className="size-3.5" aria-hidden />
                 </Link>
@@ -194,19 +194,19 @@ export default async function PublicHomePage({
       </section>
 
       {/* ── Latest ── */}
-      <section aria-labelledby="news-heading" className="bg-[#080706]">
+      <section aria-labelledby="news-heading" className="bg-[#050407]">
         <div className="mx-auto max-w-6xl px-4 py-16">
           <div className="flex items-baseline justify-between">
             <h2
               id="news-heading"
               className="text-sm font-semibold uppercase tracking-[0.24em]"
-              style={{ color: GOLD }}
+              style={{ color: EMBER }}
             >
               Latest from the Club
             </h2>
             <Link
               href={`${base}/events`}
-              className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8f846d] hover:text-[#EDE6D3]"
+              className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B8A0A5] hover:text-[#EEE7E8]"
             >
               View all
             </Link>
@@ -216,28 +216,28 @@ export default async function PublicHomePage({
               <Link
                 key={n.title}
                 href={`${base}/events`}
-                className="group overflow-hidden rounded-lg border border-[#D4AF37]/12 bg-[#111009] transition-colors hover:border-[#D4AF37]/40"
+                className="group overflow-hidden rounded-lg border border-[#941B22]/12 bg-[#151017] transition-colors hover:border-[#941B22]/40"
               >
                 <div
                   className="flex aspect-[16/10] items-center justify-center"
                   style={{
                     background:
-                      "radial-gradient(120% 90% at 30% 10%, rgba(212,175,55,0.08), transparent), linear-gradient(160deg,#17130b,#0b0a07)",
+                      "radial-gradient(120% 90% at 30% 10%, rgba(84,33,63,0.08), transparent), linear-gradient(160deg,#2D111F,#050407)",
                   }}
                 >
-                  <ScrollText className="size-10 text-[#D4AF37]/25" aria-hidden />
+                  <ScrollText className="size-10 text-[#D9362B]/25" aria-hidden />
                 </div>
                 <div className="p-5">
                   <span
                     className="text-[0.6rem] font-semibold uppercase tracking-[0.16em]"
-                    style={{ color: GOLD }}
+                    style={{ color: EMBER }}
                   >
                     {n.tag}
                   </span>
-                  <p className="mt-1 font-semibold text-[#EDE6D3] group-hover:text-white">
+                  <p className="mt-1 font-semibold text-[#EEE7E8] group-hover:text-white">
                     {n.title}
                   </p>
-                  <p className="mt-1 text-xs text-[#8f846d]">{n.date}</p>
+                  <p className="mt-1 text-xs text-[#B8A0A5]">{n.date}</p>
                 </div>
               </Link>
             ))}
@@ -246,19 +246,19 @@ export default async function PublicHomePage({
       </section>
 
       {/* ── Closing ── */}
-      <section className="border-t border-[#D4AF37]/12 bg-[#0a0908]">
+      <section className="border-t border-[#941B22]/12 bg-[#050407]">
         <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-          <DisplayHeading as="h2" className="text-3xl text-[#EDE6D3] md:text-4xl">
+          <DisplayHeading as="h2" className="text-3xl text-[#EEE7E8] md:text-4xl">
             Loyalty is earned, not given.
           </DisplayHeading>
-          <p className="mx-auto mt-3 max-w-md text-[#8f846d]">
+          <p className="mx-auto mt-3 max-w-md text-[#B8A0A5]">
             The road is long and it isn&rsquo;t for everyone. If you think you belong
-            with the Souls, come prove it.
+            with the Ravens, come prove it.
           </p>
           <Link
             href={`${base}/join`}
-            className="mt-8 inline-flex min-h-11 items-center rounded-sm px-8 text-xs font-semibold uppercase tracking-[0.16em] text-[#1a1408] transition-opacity duration-200 hover:opacity-90"
-            style={{ background: GOLD }}
+            className="mt-8 inline-flex min-h-11 items-center rounded-sm px-8 text-xs font-semibold uppercase tracking-[0.16em] text-[#EEE7E8] transition-opacity duration-200 hover:opacity-90"
+            style={{ background: EMBER }}
           >
             Start Your Prospect Run
           </Link>
@@ -272,14 +272,14 @@ export default async function PublicHomePage({
 function OrnamentRule() {
   return (
     <div className="flex items-center gap-3" aria-hidden>
-      <span className="h-px flex-1" style={{ background: "rgba(212,175,55,0.45)" }} />
-      <span className="size-1.5 rotate-45" style={{ background: GOLD }} />
-      <span className="h-px flex-1" style={{ background: "rgba(212,175,55,0.45)" }} />
+      <span className="h-px flex-1" style={{ background: "rgba(84,33,63,0.45)" }} />
+      <span className="size-1.5 rotate-45" style={{ background: EMBER }} />
+      <span className="h-px flex-1" style={{ background: "rgba(84,33,63,0.45)" }} />
     </div>
   );
 }
 
-/** "Silent Souls MC" → ["Silent Souls", "MC"] for a two-line hero. */
+/** "Ravens of Death MC" → ["Ravens of Death", "MC"] for a two-line hero. */
 function splitName(name: string): [string, string | null] {
   const m = name.match(/^(.*?)\s+(MC.*)$/i);
   if (m) return [m[1], m[2]];

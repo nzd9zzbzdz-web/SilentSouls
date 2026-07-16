@@ -41,7 +41,7 @@ function MemberCard({
       className={cn(
         "group relative flex flex-col gap-4 rounded-xl border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5",
         officer
-          ? "border-primary/40 shadow-[0_0_0_1px_rgba(212,175,55,0.08)] hover:border-primary/70 hover:shadow-[0_10px_30px_-12px_rgba(212,175,55,0.35)]"
+          ? "border-primary/40 shadow-[0_0_0_1px_rgba(84,33,63,0.08)] hover:border-primary/70 hover:shadow-[0_10px_30px_-12px_rgba(84,33,63,0.35)]"
           : "border-border hover:border-primary/40",
       )}
     >
@@ -56,7 +56,7 @@ function MemberCard({
           className={cn(
             "grid size-14 shrink-0 place-items-center rounded-full text-lg font-bold uppercase tracking-tight",
             officer
-              ? "bg-gradient-to-b from-[#2a2213] to-[#141009] text-primary ring-2 ring-primary/60"
+              ? "bg-gradient-to-b from-[#2D111F] to-[#151017] text-primary ring-2 ring-primary/60"
               : "bg-secondary text-secondary-foreground ring-1 ring-border",
           )}
           style={{ fontFamily: "var(--font-display)" }}

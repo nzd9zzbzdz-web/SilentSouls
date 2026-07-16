@@ -12,12 +12,12 @@ export function VestBody() {
           clipPath: VEST_CLIP,
           background: "linear-gradient(160deg,#1c1913 0%,#14110c 45%,#0d0b07 100%)",
           boxShadow:
-            "inset 0 0 0 2px rgba(212,175,55,0.10), inset 0 8px 40px rgba(0,0,0,0.6)",
+            "inset 0 0 0 2px rgba(84,33,63,0.10), inset 0 8px 40px rgba(0,0,0,0.6)",
         }}
       />
       <div
         className="pointer-events-none absolute inset-[6%]"
-        style={{ clipPath: VEST_CLIP, boxShadow: "inset 0 0 0 1px rgba(212,175,55,0.14)" }}
+        style={{ clipPath: VEST_CLIP, boxShadow: "inset 0 0 0 1px rgba(84,33,63,0.14)" }}
       />
     </>
   );

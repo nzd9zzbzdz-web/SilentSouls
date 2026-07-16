@@ -129,7 +129,7 @@ export function VestDesigner({
                 className={cn(
                   "size-4 rotate-45 border-2 transition-shadow",
                   selected === i
-                    ? "border-primary bg-primary/40 shadow-[0_0_0_4px_rgba(212,175,55,0.25)]"
+                    ? "border-primary bg-primary/40 shadow-[0_0_0_4px_rgba(84,33,63,0.25)]"
                     : "border-primary/70 bg-primary/10",
                 )}
               />

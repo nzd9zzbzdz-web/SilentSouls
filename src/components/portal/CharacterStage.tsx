@@ -16,7 +16,7 @@ import type { PatchCategory } from "@/lib/types";
  * Cinematic member "character screen": full-body render on the org's stage
  * art, service stats in a framed panel, top patches in the diamond slots.
  *
- * Layout constants are tuned to the seeded Silent Souls stage art (3:2,
+ * Layout constants are tuned to the seeded Ravens of Death stage art (3:2,
  * spotlight left-of-center, four diamond frames down the left edge). Orgs
  * without stage art get a neutral gradient stage with CSS-drawn frames —
  * same positions, no image required. All color comes from branding CSS vars.

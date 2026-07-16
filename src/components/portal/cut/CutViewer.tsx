@@ -43,7 +43,7 @@ function GrantEl({ p }: { p: ResolvedPlacement }) {
         <div
           className="w-full rounded-full border px-3 py-1 uppercase tracking-[0.18em]"
           style={{
-            borderColor: "#D4AF37",
+            borderColor: "#D9362B",
             color: "#EBCB63",
             background: "linear-gradient(180deg,#231d12,#171308)",
             fontSize: "clamp(0.5rem,2.6vw,0.78rem)",
@@ -60,7 +60,7 @@ function GrantEl({ p }: { p: ResolvedPlacement }) {
       <div className={base} style={{ ...style, width: "30%", aspectRatio: "1 / 1.15" }}>
         <div
           className="grid h-full w-full rotate-45 place-items-center rounded-[14%] border-2"
-          style={{ borderColor: "#D4AF37", background: "radial-gradient(circle,#2a2213,#141009)" }}
+          style={{ borderColor: "#D9362B", background: "radial-gradient(circle,#2D111F,#151017)" }}
         >
           <Shield className="-rotate-45 size-1/2" style={{ color: "#EBCB63" }} aria-hidden />
         </div>
@@ -73,7 +73,7 @@ function GrantEl({ p }: { p: ResolvedPlacement }) {
         <div
           className="w-full rounded-md border px-2 py-0.5 uppercase tracking-[0.14em]"
           style={{
-            borderColor: "#D4AF37",
+            borderColor: "#D9362B",
             color: "#EBCB63",
             background: "linear-gradient(180deg,#231d12,#171308)",
             fontSize: "clamp(0.42rem,2vw,0.62rem)",

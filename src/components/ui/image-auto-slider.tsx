@@ -48,7 +48,7 @@ export const Component = ({ images = DEFAULT_IMAGES }: { images?: string[] }) =>
         }
       `}</style>
 
-      <div className="relative w-full overflow-hidden bg-[#080706] py-8">
+      <div className="relative w-full overflow-hidden bg-[#050407] py-8">
         <div className="ias-scroll-container w-full">
           <div className="ias-infinite-scroll flex w-max gap-6">
             {duplicatedImages.map((image, index) => (

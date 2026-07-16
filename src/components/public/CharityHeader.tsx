@@ -32,7 +32,7 @@ export function CharityHeader({
   const base = `/${orgSlug}`;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#D4AF37]/15 bg-[#0a0908]/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-[#941B22]/15 bg-[#050407]/95 backdrop-blur">
       {/* Oversized club patch pinned to the far-left edge of the header,
           overhanging the bar onto the hero. z-10 keeps it above the nav;
           lg:pl on the bar reserves room so links never slide under it. */}
@@ -63,7 +63,7 @@ export function CharityHeader({
                   key={item.label}
                   aria-disabled
                   title="Coming soon"
-                  className="flex min-h-11 cursor-default items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#9c917a]"
+                  className="flex min-h-11 cursor-default items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#B8A0A5]"
                 >
                   {item.label}
                 </span>
@@ -84,8 +84,8 @@ export function CharityHeader({
                 className={cn(
                   "flex min-h-11 items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] transition-colors duration-200",
                   active
-                    ? "text-[#D4AF37] underline decoration-[#D4AF37] decoration-2 underline-offset-[6px]"
-                    : "text-[#9c917a] hover:text-[#EDE6D3]",
+                    ? "text-[#D9362B] underline decoration-[#941B22] decoration-2 underline-offset-[6px]"
+                    : "text-[#B8A0A5] hover:text-[#EEE7E8]",
                 )}
               >
                 {item.label}
@@ -94,7 +94,7 @@ export function CharityHeader({
           })}
           <Link
             href={`${base}/volunteer-resources`}
-            className="ml-3 flex min-h-11 items-center rounded-sm border border-[#D4AF37]/70 px-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#D4AF37] transition-colors duration-200 hover:bg-[#D4AF37] hover:text-[#1a1408]"
+            className="ml-3 flex min-h-11 items-center rounded-sm border border-[#941B22]/70 px-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#D9362B] transition-colors duration-200 hover:bg-[#D9362B] hover:text-[#EEE7E8]"
           >
             Member Login
           </Link>
@@ -105,21 +105,21 @@ export function CharityHeader({
           onClick={() => setOpen(!open)}
           aria-expanded={open}
           aria-label={open ? "Close menu" : "Open menu"}
-          className="flex size-11 items-center justify-center rounded-sm text-[#EDE6D3] hover:bg-white/5 lg:hidden"
+          className="flex size-11 items-center justify-center rounded-sm text-[#EEE7E8] hover:bg-white/5 lg:hidden"
         >
           {open ? <X className="size-5" aria-hidden /> : <Menu className="size-5" aria-hidden />}
         </button>
       </div>
 
       {open && (
-        <nav aria-label="Mobile" className="relative z-20 border-t border-[#D4AF37]/15 bg-[#0a0908] px-4 pb-4 lg:hidden">
+        <nav aria-label="Mobile" className="relative z-20 border-t border-[#941B22]/15 bg-[#050407] px-4 pb-4 lg:hidden">
           {NAV.map((item) =>
             item.href !== undefined ? (
               <Link
                 key={item.label}
                 href={`${base}${item.href}`}
                 onClick={() => setOpen(false)}
-                className="flex min-h-11 items-center rounded-sm px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#EDE6D3] hover:bg-white/5"
+                className="flex min-h-11 items-center rounded-sm px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#EEE7E8] hover:bg-white/5"
               >
                 {item.label}
               </Link>
@@ -136,7 +136,7 @@ export function CharityHeader({
           <Link
             href={`${base}/volunteer-resources`}
             onClick={() => setOpen(false)}
-            className="mt-2 flex min-h-11 items-center justify-center rounded-sm border border-[#D4AF37]/70 px-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#D4AF37]"
+            className="mt-2 flex min-h-11 items-center justify-center rounded-sm border border-[#941B22]/70 px-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#D9362B]"
           >
             Member Login
           </Link>

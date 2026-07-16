@@ -23,7 +23,7 @@ const COLOR_VAR_MAP: Record<keyof Branding["colors"], string> = {
  * Injects an org's branding tokens as CSS variable overrides, scoped to a
  * [data-surface] subtree. Rendered server-side after globals.css, so these
  * win over the defaults. Zero hardcoded brand hex anywhere in components —
- * Silent Souls' colors are Firestore data.
+ * Ravens of Death colors are Firestore data.
  */
 export function BrandStyle({
   branding,

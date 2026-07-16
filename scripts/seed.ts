@@ -1,5 +1,5 @@
 /**
- * Seed the emulator (or a live project) with the Silent Souls MC organization.
+ * Seed the emulator (or a live project) with the Ravens of Death MC organization.
  *   npm run seed
  * Requires `firebase emulators:start` running (or live Admin credentials).
  */
@@ -41,53 +41,57 @@ const ORG_ID = "silent-souls";
 
 // ── Branding (from the ui-ux-pro-max design systems) ───────────────────
 
+// Ravens of Death palette:
+//   Void Black #050407 · Raven Charcoal #151017 · Death Plum #2D111F
+//   Raven Purple #54213F · Blood Crimson #941B22 · Ember Red #D9362B
+//   Weathered Bone #B8A0A5 · Ash White #EEE7E8
 const portalBranding: Branding = {
   colors: {
-    background: "#0A0A0B",
-    foreground: "#FAFAF9",
-    card: "#1C1917",
-    cardForeground: "#FAFAF9",
-    primary: "#D4AF37",
-    primaryForeground: "#1C1917",
-    secondary: "#292524",
-    secondaryForeground: "#FAFAF9",
-    muted: "#292524",
-    mutedForeground: "#A8A29E",
-    accent: "#B91C1C",
-    accentForeground: "#FAFAF9",
-    destructive: "#DC2626",
-    border: "rgba(255,255,255,0.08)",
-    input: "rgba(255,255,255,0.12)",
-    ring: "#D4AF37",
+    background: "#050407",
+    foreground: "#EEE7E8",
+    card: "#151017",
+    cardForeground: "#EEE7E8",
+    primary: "#D9362B",
+    primaryForeground: "#EEE7E8",
+    secondary: "#2D111F",
+    secondaryForeground: "#EEE7E8",
+    muted: "#2D111F",
+    mutedForeground: "#B8A0A5",
+    accent: "#54213F",
+    accentForeground: "#EEE7E8",
+    destructive: "#941B22",
+    border: "rgba(148,27,34,0.28)",
+    input: "rgba(148,27,34,0.40)",
+    ring: "#D9362B",
   },
   fonts: {
     display: "var(--font-blackletter)",
     body: "var(--font-inter)",
     mono: "var(--font-jetbrains)",
   },
-  orgDisplayName: "Silent Souls MC",
+  orgDisplayName: "Ravens of Death MC",
   tagline: "San Andreas",
   characterStagePath: "/brand/character-stage.webp",
 };
 
 const publicBranding: Branding = {
   colors: {
-    background: "#0A0908",
-    foreground: "#EDE6D3",
-    card: "#141009",
-    cardForeground: "#EDE6D3",
-    primary: "#D4AF37",
-    primaryForeground: "#1A1408",
-    secondary: "#171308",
-    secondaryForeground: "#EDE6D3",
-    muted: "#171308",
-    mutedForeground: "#9C917A",
-    accent: "#B91C1C",
-    accentForeground: "#FAFAF9",
-    destructive: "#DC2626",
-    border: "rgba(212,175,55,0.14)",
-    input: "rgba(212,175,55,0.22)",
-    ring: "#D4AF37",
+    background: "#050407",
+    foreground: "#EEE7E8",
+    card: "#151017",
+    cardForeground: "#EEE7E8",
+    primary: "#D9362B",
+    primaryForeground: "#EEE7E8",
+    secondary: "#2D111F",
+    secondaryForeground: "#EEE7E8",
+    muted: "#2D111F",
+    mutedForeground: "#B8A0A5",
+    accent: "#54213F",
+    accentForeground: "#EEE7E8",
+    destructive: "#941B22",
+    border: "rgba(148,27,34,0.22)",
+    input: "rgba(148,27,34,0.32)",
+    ring: "#D9362B",
   },
   fonts: {
     display: "var(--font-blackletter)",
@@ -95,10 +99,10 @@ const publicBranding: Branding = {
   },
   logoPath: "/brand/silent-souls-banner.webp",
   heroImagePath: "/brand/silent-souls-hero.webp",
-  orgDisplayName: "Silent Souls MC",
-  tagline: "Brotherhood · Loyalty · Respect · Silence",
+  orgDisplayName: "Ravens of Death MC",
+  tagline: "Brotherhood · Loyalty · Respect · Death",
   mission:
-    "We are the silent ones. We ride in shadows, bound by loyalty and respect. Our souls may be silent, but our presence speaks louder than words.",
+    "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us — but so does honor, and no brother of ours ever rides alone.",
 };
 
 // ── Patches ────────────────────────────────────────────────────────────
@@ -140,7 +144,7 @@ const PATCHES: PatchSeed[] = [
   p("mentor", "Mentor", "leadership", "Sponsor 3 prospects into the club.", 2, { statKey: "recruitment", threshold: 3 }, "front", 0.5, 0.3),
   p("shot-caller", "Shot Caller", "leadership", "Complete 5 special assignments.", 2, { statKey: "specialAssignments", threshold: 5 }, "back", 0.5, 0.3),
   p("presidents-citation", "President's Citation", "recognition", "Awarded personally by the President for exceptional service.", 3, null, "front", 0.5, 0.68),
-  p("brotherhoods-honor", "Brotherhood's Honor", "recognition", "Awarded by club vote for embodying the spirit of the Souls.", 3, null, "front", 0.5, 0.78),
+  p("brotherhoods-honor", "Brotherhood's Honor", "recognition", "Awarded by club vote for embodying the spirit of the Ravens.", 3, null, "front", 0.5, 0.78),
   p("war-veteran", "War Veteran", "legendary", "Stood their ground when the club needed them most. Manual award.", 4, null, "back", 0.5, 0.45),
 ];
 
@@ -289,8 +293,8 @@ async function seed() {
   await db.recursiveDelete(org);
 
   await org.set({
-    name: "Silent Souls MC San Andreas",
-    publicName: "Silent Souls Community Foundation",
+    name: "Ravens of Death MC San Andreas",
+    publicName: "Ravens of Death Community Foundation",
     slug: ORG_ID,
     status: "active",
     features: { gallery: true, votes: true, cut3d: false },
@@ -438,7 +442,7 @@ async function seed() {
     visibility: "public",
     publicTitle: "Summer Community Food Drive",
     publicDescription:
-      "Join the Silent Souls Community Foundation at Legion Square for our quarterly food drive. All donations go directly to families in need across Los Santos.",
+      "Join the Ravens of Death Community Foundation at Legion Square for our quarterly food drive. All donations go directly to families in need across Los Santos.",
     activityTypeId: "charity-event",
     createdBy: "system",
     createdAt: Timestamp.now(),
@@ -457,14 +461,14 @@ async function seed() {
   await org.collection("timeline").doc("t-clubhouse").set({
     date: Timestamp.fromDate(new Date("2023-08-04")),
     title: "First Clubhouse Purchased",
-    description: "The Souls put down roots — the Sandy Shores clubhouse becomes home.",
+    description: "The Ravens put down roots — the Sandy Shores clubhouse becomes home.",
     kind: "manual",
     icon: "home",
     createdBy: "system",
   });
 
   // Digital Cut config (M8): vest surfaces, slots, rank visuals, patch rarity.
-  const cut = await writeCutConfig(db, ORG_ID, { orgName: "Silent Souls MC", location: "San Andreas" });
+  const cut = await writeCutConfig(db, ORG_ID, { orgName: "Ravens of Death MC", location: "San Andreas" });
   console.log(
     `  cut: ${cut.vestSurfaces} vest surfaces, ${cut.rankVisuals} rank visuals, ${cut.patchesBackfilled} patches tagged`,
   );

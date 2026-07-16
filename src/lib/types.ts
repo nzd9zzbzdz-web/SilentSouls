@@ -28,8 +28,8 @@ export type MemberStats = Partial<Record<StatKey, number>>;
 
 export interface Organization {
   id: string;
-  name: string; // "Silent Souls MC"
-  publicName: string; // "Silent Souls Community Foundation"
+  name: string; // "Ravens of Death MC"
+  publicName: string; // "Ravens of Death Community Foundation"
   slug: string;
   status: "active" | "suspended";
   features: Record<string, boolean>;

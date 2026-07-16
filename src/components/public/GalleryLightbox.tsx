@@ -47,12 +47,12 @@ export function GalleryLightbox({ photos }: { photos: Photo[] }) {
             type="button"
             onClick={() => setOpenIndex(i)}
             aria-label={`View ${photo.caption || "photo"} larger`}
-            className="group block overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-[#D4AF37]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+            className="group block overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-[#941B22]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D9362B]"
           >
             <div className="relative aspect-[4/3] overflow-hidden">
               <Image
                 src={photo.src}
-                alt={photo.caption || "Silent Souls MC photo"}
+                alt={photo.caption || "Ravens of Death MC photo"}
                 fill
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -116,7 +116,7 @@ export function GalleryLightbox({ photos }: { photos: Photo[] }) {
           {/* Large stationary image — click on it does not close */}
           <img
             src={active.src}
-            alt={active.caption || "Silent Souls MC photo"}
+            alt={active.caption || "Ravens of Death MC photo"}
             onClick={(e) => e.stopPropagation()}
             className="max-h-[82vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
           />
