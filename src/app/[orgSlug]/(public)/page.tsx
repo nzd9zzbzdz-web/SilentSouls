@@ -6,6 +6,11 @@ import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 
 const EMBER = "#D9362B";
+// Committed hero clip (text-free so the headline overlays on top). Referenced
+// directly rather than via a branding doc so it ships with the deploy — the
+// public branding read is Firestore-only with no fallback, so a branding field
+// would stay invisible in prod until that doc was separately updated.
+const HERO_VIDEO = "/brand/ravens-hero.mp4";
 
 export default async function PublicHomePage({
   params,
@@ -38,64 +43,24 @@ export default async function PublicHomePage({
     <>
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-[#941B22]/15 bg-black">
-        {/* Motion styles: a slow push-in toward the road's vanishing point sells
-            forward motion (we're following the pack), while the taillights pulse
-            like live brake lights. Disabled for reduced-motion users. */}
-        <style>{`
-          @keyframes hero-ride {
-            from { transform: scale(1.02); }
-            to   { transform: scale(1.13); }
-          }
-          .hero-motion {
-            transform-origin: 60% 36%;
-            animation: hero-ride 24s ease-in-out infinite alternate;
-            will-change: transform;
-          }
-          @keyframes hero-taillights {
-            0%, 100% { opacity: 0.30; }
-            45%      { opacity: 0.72; }
-          }
-          .hero-taillights {
-            background:
-              radial-gradient(30% 16% at 52% 84%, rgba(255,45,25,0.35), transparent 70%),
-              radial-gradient(22% 14% at 86% 74%, rgba(255,45,25,0.30), transparent 70%),
-              radial-gradient(18% 12% at 40% 70%, rgba(255,45,25,0.22), transparent 70%);
-            mix-blend-mode: screen;
-            animation: hero-taillights 2.8s ease-in-out infinite;
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .hero-motion, .hero-taillights { animation: none; }
-          }
-        `}</style>
-        {/* Backdrop locked to the image's own aspect so the full photo shows,
+        {/* Full-bleed hero video. Muted + looping so browsers allow autoplay;
+            playsInline keeps it inline on iOS. The branded hero image is the
+            poster, so a frame shows instantly while the clip loads (and stands
+            in if the video can't play). Kept to the clip's aspect on desktop,
             capped so it can't blow up on an ultrawide screen. */}
         <div className="relative w-full min-h-[440px] overflow-hidden sm:min-h-0 sm:aspect-[2400/1026] sm:max-h-[760px]">
-          {branding?.heroImagePath ? (
-            <>
-              <div className="hero-motion absolute inset-0">
-                <Image
-                  src={branding.heroImagePath}
-                  alt=""
-                  fill
-                  priority
-                  sizes="100vw"
-                  className="object-cover"
-                  style={{ objectPosition: "center 42%" }}
-                />
-              </div>
-              {/* Live brake-light glow layered over the pack's taillights */}
-              <div className="hero-taillights pointer-events-none absolute inset-0" aria-hidden />
-            </>
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(120% 80% at 78% 18%, rgba(84,33,63,0.10), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(217,54,43,0.10), transparent 60%), linear-gradient(180deg,#151017,#050407)",
-              }}
-              aria-hidden
-            />
-          )}
+          <video
+            className="absolute inset-0 h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={branding?.heroImagePath}
+            aria-hidden
+          >
+            <source src={HERO_VIDEO} type="video/mp4" />
+          </video>
         </div>
 
         {/* Legibility scrim */}
