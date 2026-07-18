@@ -3,6 +3,7 @@ import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { BrandStyle } from "@/components/theme/BrandStyle";
 import { CharityHeader } from "@/components/public/CharityHeader";
 import { CharityFooter } from "@/components/public/CharityFooter";
+import { MusicPlayer } from "@/components/public/MusicPlayer";
 
 export default async function PublicLayout({
   children,
@@ -40,6 +41,7 @@ export default async function PublicLayout({
         name={branding.orgDisplayName}
         tagline={branding.tagline}
       />
+      <MusicPlayer src="/music/ravens-anthem.mp3" label="Club Anthem" />
     </div>
   );
 }
