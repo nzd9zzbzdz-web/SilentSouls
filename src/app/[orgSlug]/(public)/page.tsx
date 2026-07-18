@@ -43,14 +43,20 @@ export default async function PublicHomePage({
     <>
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-[#941B22]/15 bg-black">
-        {/* Full-bleed hero video. Muted + looping so browsers allow autoplay;
-            playsInline keeps it inline on iOS. The branded hero image is the
-            poster, so a frame shows instantly while the clip loads (and stands
-            in if the video can't play). Kept to the clip's aspect on desktop,
-            capped so it can't blow up on an ultrawide screen. */}
-        <div className="relative w-full min-h-[440px] overflow-hidden sm:min-h-0 sm:aspect-[2400/1026] sm:max-h-[760px]">
+        {/* Hero video. Muted + looping so browsers allow autoplay; playsInline
+            keeps it inline on iOS. The branded hero image is the poster, so a
+            frame shows instantly while the clip loads. object-contain shows the
+            WHOLE clip (16:9) with no cropping; since the banner is wider, the
+            sides are filled by the dark brand gradient below rather than bars. */}
+        <div
+          className="relative w-full min-h-[440px] overflow-hidden sm:min-h-0 sm:aspect-[2400/1026] sm:max-h-[760px]"
+          style={{
+            background:
+              "radial-gradient(120% 80% at 78% 18%, rgba(84,33,63,0.16), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(217,54,43,0.12), transparent 60%), linear-gradient(180deg,#151017,#050407)",
+          }}
+        >
           <video
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain"
             autoPlay
             muted
             loop
