@@ -1,37 +1,10 @@
-import fs from "node:fs";
-import path from "node:path";
 import { notFound } from "next/navigation";
 import { Image as ImageIcon } from "lucide-react";
 import { getOrgBySlug } from "@/lib/tenant";
+import { getGalleryPhotos } from "@/lib/gallery";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Component as ImageAutoSlider } from "@/components/ui/image-auto-slider";
 import { GalleryLightbox } from "@/components/public/GalleryLightbox";
-
-const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
-
-// Reads photos dropped into public/gallery. Files are committed with the repo,
-// so this resolves the same set at build time and on the server. Caption is
-// derived from the filename (strip an optional ordering prefix like "01-").
-function getGalleryPhotos(): { src: string; caption: string }[] {
-  const dir = path.join(process.cwd(), "public", "gallery");
-  let files: string[];
-  try {
-    files = fs.readdirSync(dir);
-  } catch {
-    return [];
-  }
-  return files
-    .filter((f) => IMAGE_EXT.has(path.extname(f).toLowerCase()))
-    .sort()
-    .map((f) => ({
-      src: `/gallery/${f}`,
-      caption: path
-        .basename(f, path.extname(f))
-        .replace(/^\d+[-_\s]*/, "")
-        .replace(/[-_]+/g, " ")
-        .trim(),
-    }));
-}
 
 export default async function PublicGalleryPage({
   params,
@@ -42,7 +15,7 @@ export default async function PublicGalleryPage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
 
-  const photos = getGalleryPhotos();
+  const photos = await getGalleryPhotos();
 
   return (
     <div className="py-16">

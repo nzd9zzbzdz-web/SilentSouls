@@ -1,21 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import type { GalleryPhoto } from "@/lib/gallery";
 
-type Photo = { src: string; caption: string };
-
-export function GalleryLightbox({ photos }: { photos: Photo[] }) {
+export function GalleryLightbox({ photos }: { photos: GalleryPhoto[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const isOpen = openIndex !== null;
 
   const close = useCallback(() => setOpenIndex(null), []);
   const show = useCallback(
     (dir: 1 | -1) =>
-      setOpenIndex((i) =>
-        i === null ? i : (i + dir + photos.length) % photos.length,
-      ),
+      setOpenIndex((i) => {
+        if (i === null) return i;
+        setLoaded(false);
+        return (i + dir + photos.length) % photos.length;
+      }),
     [photos.length],
   );
 
@@ -36,30 +38,51 @@ export function GalleryLightbox({ photos }: { photos: Photo[] }) {
     };
   }, [isOpen, close, show]);
 
+  // Swipe left/right on touch devices.
+  const touchStartX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartX.current;
+    touchStartX.current = null;
+    if (start === null || photos.length < 2) return;
+    const dx = (e.changedTouches[0]?.clientX ?? start) - start;
+    if (Math.abs(dx) > 45) show(dx < 0 ? 1 : -1);
+  };
+
   const active = openIndex !== null ? photos[openIndex] : null;
 
   return (
     <>
-      <div className="mx-auto grid max-w-6xl gap-4 px-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Masonry: photos keep their natural aspect ratio, so portraits are
+          never cropped. CSS columns flow items top-to-bottom, then wrap. */}
+      <div className="mx-auto max-w-6xl gap-4 px-4 [column-fill:_balance] sm:columns-2 lg:columns-3">
         {photos.map((photo, i) => (
           <button
             key={photo.src}
             type="button"
-            onClick={() => setOpenIndex(i)}
+            onClick={() => {
+              setLoaded(false);
+              setOpenIndex(i);
+            }}
             aria-label={`View ${photo.caption || "photo"} larger`}
-            className="group block overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-[#941B22]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D9362B]"
+            className="group mb-4 block w-full break-inside-avoid overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-[#941B22]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D9362B]"
           >
-            <div className="relative aspect-[4/3] overflow-hidden">
+            <div className="overflow-hidden">
               <Image
                 src={photo.src}
                 alt={photo.caption || "Ravens of Death MC photo"}
-                fill
+                width={photo.width}
+                height={photo.height}
+                placeholder="blur"
+                blurDataURL={photo.blurDataURL}
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                className="h-auto w-full transition-transform duration-500 group-hover:scale-105"
               />
             </div>
             {photo.caption && (
-              <span className="block px-3 py-2 text-sm capitalize text-muted-foreground">
+              <span className="block px-3 py-2 text-sm text-muted-foreground">
                 {photo.caption}
               </span>
             )}
@@ -73,6 +96,8 @@ export function GalleryLightbox({ photos }: { photos: Photo[] }) {
           aria-modal="true"
           aria-label={active.caption || "Photo"}
           onClick={close}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
         >
           {/* Close */}
@@ -113,18 +138,41 @@ export function GalleryLightbox({ photos }: { photos: Photo[] }) {
             </>
           )}
 
-          {/* Large stationary image — click on it does not close */}
-          <img
-            src={active.src}
-            alt={active.caption || "Ravens of Death MC photo"}
+          {/* Large image — optimized + blur-up while loading. Click does not close. */}
+          <div
+            className="relative flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[82vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
-          />
-          {active.caption && (
-            <p className="mt-4 text-center text-sm capitalize text-white/70">
-              {active.caption}
-            </p>
-          )}
+          >
+            {!loaded && (
+              <div
+                aria-hidden
+                className="absolute size-10 animate-spin rounded-full border-2 border-white/30 border-t-white"
+              />
+            )}
+            <Image
+              key={active.src}
+              src={active.src}
+              alt={active.caption || "Ravens of Death MC photo"}
+              width={active.width}
+              height={active.height}
+              placeholder="blur"
+              blurDataURL={active.blurDataURL}
+              sizes="92vw"
+              onLoad={() => setLoaded(true)}
+              className={`max-h-[82vh] w-auto max-w-[92vw] rounded-lg object-contain shadow-2xl transition-opacity duration-300 ${
+                loaded ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          </div>
+
+          <div className="mt-4 flex items-center gap-3 text-sm text-white/70">
+            {active.caption && <span>{active.caption}</span>}
+            {photos.length > 1 && (
+              <span className="tabular-nums text-white/50">
+                {openIndex! + 1} / {photos.length}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </>
