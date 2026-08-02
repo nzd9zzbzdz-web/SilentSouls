@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   deleteMapMarker,
   deleteMapTerritory,
+  moveMapMarker,
   saveMapMarker,
   saveMapTerritory,
 } from "@/actions/map";
@@ -214,15 +215,9 @@ export function ClubMap({
 
   function persistMarkerMove(m: ClubMapMarker, p: MapPoint) {
     startTransition(async () => {
-      const result = await saveMapMarker({
-        orgId,
-        markerId: m.id,
-        label: m.label,
-        style: m.style,
-        description: m.description || undefined,
-        u: p.u,
-        v: p.v,
-      });
+      // Position-only mutation — never resend label/style/description from this
+      // client's (possibly stale) snapshot; see moveMapMarker.
+      const result = await moveMapMarker({ orgId, markerId: m.id, u: p.u, v: p.v });
       if (result.ok) {
         toast.success(`"${m.label}" moved`);
       } else {
@@ -232,14 +227,16 @@ export function ClubMap({
     });
   }
 
-  function confirmDeleteMarker(m: { id: string; label: string }) {
-    if (!window.confirm(`Delete the pin "${m.label}"?`)) return;
+  /** Confirm + delete. Returns false when the user cancels the confirm. */
+  function confirmDeleteMarker(m: { id: string; label: string }): boolean {
+    if (!window.confirm(`Delete the pin "${m.label}"?`)) return false;
     startTransition(async () => {
       const result = await deleteMapMarker({ orgId, markerId: m.id });
       if (result.ok) toast.success("Pin deleted");
       else toast.error(result.error ?? "Delete failed");
       router.refresh();
     });
+    return true;
   }
 
   function confirmDeleteTerritory(t: ClubMapTerritory) {
@@ -380,6 +377,10 @@ export function ClubMap({
       }
     };
     map.on("click", onClick);
+    // Double-clicking while aiming a vertex/pin must not zoom the map (and a
+    // double-click would otherwise also register two stray vertices' clicks).
+    if (placeMode || drawMode) map.doubleClickZoom.disable();
+    else map.doubleClickZoom.enable();
     return () => {
       map.off("click", onClick);
     };
@@ -401,9 +402,14 @@ export function ClubMap({
         popupAnchor: [0, -14],
         html: `<span class="club-pin-dot" style="background:${style.color}">${style.glyph}</span>`,
       });
+      // Like the turf polygons below: pins must not swallow clicks (or be
+      // draggable) while the user is placing a pin or tracing a boundary —
+      // Leaflet markers don't bubble clicks to the map.
+      const modeArmed = placeMode || drawMode;
       const marker = L.marker(toLatLng(m), {
         icon,
-        draggable: editable,
+        interactive: !modeArmed,
+        draggable: editable && !modeArmed,
         title: m.label,
       });
       marker.bindPopup(() => markerPopup(m));
@@ -415,10 +421,11 @@ export function ClubMap({
       }
       marker.addTo(layer);
     }
-    // Repaint only when data/filters/permissions change — not on every render,
-    // so an in-flight drag save doesn't snap the pin back to its stale coords.
+    // Repaint only when data/filters/permissions/modes change — not on every
+    // render, so an in-flight drag save doesn't snap the pin back to its stale
+    // coords.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, visibleMarkers, editable, compact, canManage]);
+  }, [ready, visibleMarkers, editable, compact, canManage, placeMode, drawMode]);
 
   // ── Paint turf zones ──
   useEffect(() => {
@@ -438,7 +445,9 @@ export function ClubMap({
       });
       polygon.on("mouseover", () => polygon.setStyle({ fillOpacity: 0.35 }));
       polygon.on("mouseout", () => polygon.setStyle({ fillOpacity: 0.18 }));
-      polygon.bindTooltip(t.crewName.toUpperCase(), {
+      // Tooltip content MUST be a DOM node: Leaflet assigns string content via
+      // innerHTML, which would turn a user-authored crew name into stored XSS.
+      polygon.bindTooltip(el("span", "", t.crewName.toUpperCase()), {
         permanent: true,
         direction: "center",
         className: "turf-label",
@@ -642,8 +651,9 @@ export function ClubMap({
           onClose={() => setMarkerDraft(null)}
           canManage={!compact && canManage}
           onDelete={(m) => {
-            setMarkerDraft(null);
-            confirmDeleteMarker(m);
+            // Confirm FIRST — cancelling must return to the dialog with the
+            // user's in-progress edits intact.
+            if (confirmDeleteMarker(m)) setMarkerDraft(null);
           }}
         />
       )}
@@ -654,7 +664,25 @@ export function ClubMap({
           key={territoryDraft.territoryId ?? `new:${territoryDraft.points.length}`}
           orgId={orgId}
           draft={territoryDraft}
-          onClose={() => setTerritoryDraft(null)}
+          onSaved={() => setTerritoryDraft(null)}
+          onDismiss={(draft) => {
+            // Esc/overlay/X must not throw away a traced boundary — put the
+            // vertices back into draw mode so the officer can finish or cancel
+            // deliberately.
+            setTerritoryDraft(null);
+            redrawTargetRef.current = draft.territoryId
+              ? {
+                  id: draft.territoryId,
+                  crewName: draft.crewName,
+                  label: draft.label,
+                  color: draft.color,
+                  points: draft.points,
+                }
+              : null;
+            setPlaceMode(false);
+            setDrawPoints(draft.points);
+            setDrawMode(true);
+          }}
         />
       )}
 
@@ -783,15 +811,14 @@ function MarkerDialog({
             <Label>Pin style</Label>
             <div
               className="grid grid-cols-3 gap-1.5 sm:grid-cols-4"
-              role="radiogroup"
+              role="group"
               aria-label="Pin style"
             >
               {MAP_PIN_STYLES.map((s) => (
                 <button
                   key={s.key}
                   type="button"
-                  role="radio"
-                  aria-checked={style === s.key}
+                  aria-pressed={style === s.key}
                   onClick={() => setStyle(s.key)}
                   className={`flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-md border px-1 py-1.5 text-[0.65rem] transition-colors ${
                     style === s.key
@@ -843,11 +870,13 @@ function MarkerDialog({
 function TerritoryDialog({
   orgId,
   draft,
-  onClose,
+  onSaved,
+  onDismiss,
 }: {
   orgId: string;
   draft: TerritoryDraft;
-  onClose: () => void;
+  onSaved: () => void;
+  onDismiss: (draft: TerritoryDraft) => void;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -867,7 +896,7 @@ function TerritoryDialog({
       });
       if (result.ok) {
         toast.success(draft.territoryId ? "Turf updated" : "Turf claimed");
-        onClose();
+        onSaved();
         router.refresh();
       } else {
         toast.error(result.error ?? "Could not save the turf zone");
@@ -878,7 +907,7 @@ function TerritoryDialog({
   const preview = crewName.trim() ? (color ?? autoCrewColor(crewName.trim())) : null;
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && onDismiss(draft)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{draft.territoryId ? "Edit turf zone" : "Claim turf"}</DialogTitle>
@@ -909,13 +938,12 @@ function TerritoryDialog({
             <Label>Zone color</Label>
             <div
               className="flex flex-wrap items-center gap-1.5"
-              role="radiogroup"
+              role="group"
               aria-label="Zone color"
             >
               <button
                 type="button"
-                role="radio"
-                aria-checked={color === null}
+                aria-pressed={color === null}
                 onClick={() => setColor(null)}
                 className={`flex min-h-8 items-center rounded-full border px-3 text-xs ${
                   color === null
@@ -929,8 +957,7 @@ function TerritoryDialog({
                 <button
                   key={c}
                   type="button"
-                  role="radio"
-                  aria-checked={color === c}
+                  aria-pressed={color === c}
                   aria-label={`Color ${c}`}
                   onClick={() => setColor(c)}
                   className={`size-8 rounded-full border-2 ${

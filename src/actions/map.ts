@@ -7,10 +7,12 @@ import { getMember } from "@/lib/queries";
 import {
   deleteMapMarkerSchema,
   deleteMapTerritorySchema,
+  moveMapMarkerSchema,
   saveMapMarkerSchema,
   saveMapTerritorySchema,
   type DeleteMapMarkerInput,
   type DeleteMapTerritoryInput,
+  type MoveMapMarkerInput,
   type SaveMapMarkerInput,
   type SaveMapTerritoryInput,
 } from "@/lib/schemas/map";
@@ -88,6 +90,42 @@ export async function saveMapMarker(
 
     revalidateMap();
     return { ok: true, data: { markerId } };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+/**
+ * Drag-to-move: updates position ONLY. A full-payload update here would let a
+ * stale client snapshot silently revert another member's label/style edits.
+ */
+export async function moveMapMarker(raw: MoveMapMarkerInput): Promise<ActionResult> {
+  const parsed = moveMapMarkerSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid move" };
+  }
+  const { orgId, markerId, u, v } = parsed.data;
+
+  try {
+    const access = await requireOrgRole(orgId, "member");
+    const denied = await assertPatched(access, orgId);
+    if (denied) return { ok: false, error: denied };
+
+    const ref = orgRef(orgId).collection("mapMarkers").doc(markerId);
+    const snap = await ref.get();
+    if (!snap.exists) return { ok: false, error: "That pin no longer exists" };
+    await ref.update({ u, v, updatedAt: FieldValue.serverTimestamp() });
+
+    await orgRef(orgId).collection("auditLogs").add({
+      actorUid: access.user.uid,
+      action: "map.marker.move",
+      targetPath: `organizations/${orgId}/mapMarkers/${markerId}`,
+      detail: String(snap.get("label") ?? ""),
+      at: FieldValue.serverTimestamp(),
+    });
+
+    revalidateMap();
+    return { ok: true };
   } catch (e) {
     return failure(e);
   }
