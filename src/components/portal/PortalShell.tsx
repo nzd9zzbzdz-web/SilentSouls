@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Map as MapIcon,
   Palette,
   PenTool,
   Shield,
@@ -43,6 +44,7 @@ import type { SystemRole } from "@/lib/types";
 
 const MAIN_NAV = [
   { href: "", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/map", label: "Club Map", icon: MapIcon },
   { href: "/brotherhood", label: "Brotherhood", icon: Users },
   { href: "/prospects", label: "Prospects", icon: UserPlus },
   { href: "/activities", label: "Activities", icon: Activity },

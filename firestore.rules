@@ -153,6 +153,15 @@ service cloud.firestore {
         allow read: if isMember(orgId);
         allow write: if false;
       }
+      match /mapMarkers/{markerId} {
+        // Club Map intel pins — club-visible; mutations via server actions only.
+        allow read: if isMember(orgId);
+        allow write: if false;
+      }
+      match /mapTerritories/{territoryId} {
+        allow read: if isMember(orgId);
+        allow write: if false;
+      }
       match /auditLogs/{logId} {
         allow read: if isOrgAdmin(orgId);
         allow write: if false;

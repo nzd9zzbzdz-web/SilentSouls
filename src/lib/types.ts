@@ -374,6 +374,36 @@ export interface TimelineEntry {
   createdBy: string; // uid or 'system'
 }
 
+// ── Club Map (tactical territory map) ─────────────────────────────────
+// Coordinates are normalized u/v (0..1, u left→right, v top→bottom) against
+// the map image surface — the same convention as cut layouts. Never pixels.
+
+export interface MapPoint {
+  u: number; // 0..1 across the map
+  v: number; // 0..1 top→bottom
+}
+
+export interface MapMarker extends MapPoint {
+  id: string;
+  label: string;
+  style: string; // pin-style key from MAP_PIN_STYLES
+  description?: string;
+  createdByMemberId: string | null; // null ⇒ super admin without a member record
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
+}
+
+export interface MapTerritory {
+  id: string;
+  crewName: string; // free text — "Ravens of Death", "Lost MC", …
+  label?: string; // optional zone nickname ("North docks turf")
+  color: string | null; // hex override; null ⇒ autoCrewColor(crewName)
+  points: MapPoint[]; // polygon vertices, min 3
+  createdByMemberId: string | null;
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
+}
+
 export interface AuditLog {
   id: string;
   actorUid: string;

@@ -1,0 +1,77 @@
+import { notFound } from "next/navigation";
+import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components/portal/map/ClubMap";
+import { requireOrgRole } from "@/lib/auth/session";
+import { getOrgBySlug } from "@/lib/tenant";
+import { orgRef } from "@/lib/firebase/admin";
+import { getMember, listMembers } from "@/lib/queries";
+import type { MapMarker, MapTerritory } from "@/lib/types";
+
+export default async function ClubMapPage({
+  params,
+}: {
+  params: Promise<{ orgSlug: string }>;
+}) {
+  const { orgSlug } = await params;
+  const org = await getOrgBySlug(orgSlug);
+  if (!org) notFound();
+  const access = await requireOrgRole(org.id, "member");
+
+  // Pins: patched members and up. Zones + deletes: officers.
+  const viewer = access.memberId ? await getMember(org.id, access.memberId) : null;
+  const canManage = access.isSuper || access.role !== "member";
+  const canEditPins = canManage || viewer?.status === "patched";
+
+  const [markerSnap, territorySnap, members] = await Promise.all([
+    orgRef(org.id).collection("mapMarkers").orderBy("createdAt", "desc").limit(500).get(),
+    orgRef(org.id).collection("mapTerritories").orderBy("createdAt", "desc").limit(100).get(),
+    listMembers(org.id),
+  ]);
+  const roadNameById = new Map(members.map((m) => [m.id, m.roadName]));
+
+  const markers: ClubMapMarker[] = markerSnap.docs.map((d) => {
+    const m = d.data() as Omit<MapMarker, "id">;
+    return {
+      id: d.id,
+      label: m.label,
+      style: m.style,
+      description: m.description ?? "",
+      u: m.u,
+      v: m.v,
+      droppedBy: m.createdByMemberId
+        ? (roadNameById.get(m.createdByMemberId) ?? null)
+        : null,
+    };
+  });
+
+  const territories: ClubMapTerritory[] = territorySnap.docs.map((d) => {
+    const t = d.data() as Omit<MapTerritory, "id">;
+    return {
+      id: d.id,
+      crewName: t.crewName,
+      label: t.label ?? "",
+      color: t.color ?? null,
+      points: t.points ?? [],
+    };
+  });
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div>
+        <DisplayHeading className="text-3xl text-primary">Club Map</DisplayHeading>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {canEditPins
+            ? "Drop intel pins and track turf across San Andreas. The whole club sees this map."
+            : "Club intel across San Andreas. Patched members keep this map current."}
+        </p>
+      </div>
+      <ClubMap
+        orgId={org.id}
+        markers={markers}
+        territories={territories}
+        canEditPins={Boolean(canEditPins)}
+        canManage={canManage}
+      />
+    </div>
+  );
+}

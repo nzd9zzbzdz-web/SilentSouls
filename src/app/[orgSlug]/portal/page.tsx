@@ -1,11 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Activity as ActivityIcon, Award, ClipboardCheck, TrendingUp } from "lucide-react";
+import {
+  Activity as ActivityIcon,
+  Award,
+  ClipboardCheck,
+  Map as MapIcon,
+  TrendingUp,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components/portal/map/ClubMap";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
+import { orgRef } from "@/lib/firebase/admin";
+import type { MapMarker, MapTerritory } from "@/lib/types";
 import {
   countPending,
   getMember,
@@ -29,12 +38,37 @@ export default async function DashboardPage({
   const access = await requireOrgRole(org.id, "member");
 
   const member = access.memberId ? await getMember(org.id, access.memberId) : null;
-  const [patches, types, recent, pendingCount] = await Promise.all([
-    listPatches(org.id),
-    listActivityTypes(org.id),
-    listActivities(org.id, { limit: 8 }),
-    access.role !== "member" ? countPending(org.id) : Promise.resolve(0),
-  ]);
+  const [patches, types, recent, pendingCount, markerSnap, territorySnap] =
+    await Promise.all([
+      listPatches(org.id),
+      listActivityTypes(org.id),
+      listActivities(org.id, { limit: 8 }),
+      access.role !== "member" ? countPending(org.id) : Promise.resolve(0),
+      orgRef(org.id).collection("mapMarkers").orderBy("createdAt", "desc").limit(200).get(),
+      orgRef(org.id).collection("mapTerritories").orderBy("createdAt", "desc").limit(50).get(),
+    ]);
+  const mapMarkers: ClubMapMarker[] = markerSnap.docs.map((d) => {
+    const m = d.data() as Omit<MapMarker, "id">;
+    return {
+      id: d.id,
+      label: m.label,
+      style: m.style,
+      description: m.description ?? "",
+      u: m.u,
+      v: m.v,
+      droppedBy: null, // compact embed skips attribution
+    };
+  });
+  const mapTerritories: ClubMapTerritory[] = territorySnap.docs.map((d) => {
+    const t = d.data() as Omit<MapTerritory, "id">;
+    return {
+      id: d.id,
+      crewName: t.crewName,
+      label: t.label ?? "",
+      color: t.color ?? null,
+      points: t.points ?? [],
+    };
+  });
   const awards = access.memberId
     ? await listMemberAwards(org.id, access.memberId)
     : [];
@@ -106,6 +140,32 @@ export default async function DashboardPage({
           </div>
         </section>
       )}
+
+      {/* Territory map — the club's eye on San Andreas (view-only embed) */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <MapIcon className="size-4 text-primary" aria-hidden />
+            Territory Map
+          </CardTitle>
+          <Link
+            href={`/${orgSlug}/portal/map`}
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Open full map →
+          </Link>
+        </CardHeader>
+        <CardContent>
+          <ClubMap
+            orgId={org.id}
+            markers={mapMarkers}
+            territories={mapTerritories}
+            canEditPins={false}
+            canManage={false}
+            compact
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent activity */}

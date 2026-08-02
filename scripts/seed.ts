@@ -408,6 +408,50 @@ async function seed() {
     createdBy: "system",
   });
 
+  // Club Map: intel pins + turf zones (normalized u/v against the map image).
+  const mapMarkers: Array<{
+    id: string; label: string; style: string; description: string;
+    u: number; v: number; createdByMemberId: string;
+  }> = [
+    { id: "mk-clubhouse", label: "The Clubhouse", style: "clubhouse", description: "Home. Sandy Shores. Colors on the wall, prospects on the door.", u: 0.63, v: 0.4, createdByMemberId: "m-reaper" },
+    { id: "mk-sheriff", label: "Sandy Shores Sheriff", style: "cops", description: "BCSO substation — they watch the clubhouse from here. Assume eyes.", u: 0.6, v: 0.38, createdByMemberId: "m-six" },
+    { id: "mk-grapeseed", label: "Rival hangout — Grapeseed", style: "rival", description: "Lost MC drink at the farmhouse most nights. Do not ride through alone.", u: 0.68, v: 0.32, createdByMemberId: "m-thorn" },
+    { id: "mk-paleto", label: "Paleto fuel stop", style: "run", description: "Standard rally point on the northern run. Regroup before the coast road.", u: 0.42, v: 0.14, createdByMemberId: "m-six" },
+    { id: "mk-legion", label: "Legion Square meet", style: "meet", description: "Neutral ground for city sit-downs. Public, cameras everywhere — behave.", u: 0.42, v: 0.75, createdByMemberId: "m-reaper" },
+  ];
+  for (const mk of mapMarkers) {
+    const { id, ...data } = mk;
+    await org.collection("mapMarkers").doc(id).set({
+      ...data,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+  }
+  await org.collection("mapTerritories").doc("turf-ravens").set({
+    crewName: ORG_DISPLAY_NAME,
+    label: "Sandy Shores turf",
+    color: null, // auto color from crew name
+    points: [
+      { u: 0.55, v: 0.33 }, { u: 0.72, v: 0.33 },
+      { u: 0.74, v: 0.45 }, { u: 0.57, v: 0.47 },
+    ],
+    createdByMemberId: "m-reaper",
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+  await org.collection("mapTerritories").doc("turf-lost").set({
+    crewName: "Lost MC",
+    label: "East Los Santos",
+    color: null,
+    points: [
+      { u: 0.48, v: 0.72 }, { u: 0.6, v: 0.73 },
+      { u: 0.61, v: 0.82 }, { u: 0.49, v: 0.83 },
+    ],
+    createdByMemberId: "m-thorn",
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+
   // Digital Cut config (M8): vest surfaces, slots, rank visuals, patch rarity.
   const cut = await writeCutConfig(db, ORG_ID, { orgName: ORG_DISPLAY_NAME, location: ORG_LOCATION });
   console.log(
