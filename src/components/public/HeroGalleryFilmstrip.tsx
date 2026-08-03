@@ -23,7 +23,17 @@ export function HeroGalleryFilmstrip({ photos }: { photos: GalleryPhoto[] }) {
   const aspectSum = photos.reduce((sum, p) => sum + p.width / p.height, 0);
   const duration = Math.max(30, Math.round(aspectSum * 6));
 
-  const strip = [...photos, ...photos];
+  // Fisher–Yates on a COPY: in prod `photos` is the module-cached array shared
+  // with the Media page, which must keep its curated order. Shuffling before
+  // the duplication keeps both strip halves identical, so the -50% loop wrap
+  // stays seamless; the order changes per server render, not mid-loop.
+  const shuffled = [...photos];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  const strip = [...shuffled, ...shuffled];
 
   // The negative margin must be on EVERY item (first included): the strip then
   // stays perfectly periodic, so the -50% wrap lands on an identical frame.
