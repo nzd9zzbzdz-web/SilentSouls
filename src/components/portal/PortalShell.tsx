@@ -3,13 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Activity,
-  Award,
-  Calendar,
   ClipboardCheck,
-  History,
-  Image as ImageIcon,
-  Landmark,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -17,12 +11,10 @@ import {
   Palette,
   PenTool,
   Shield,
-  Shirt,
   SlidersHorizontal,
   UserCheck,
   UserPlus,
   Users,
-  Vote,
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,19 +34,14 @@ import {
 } from "@/components/ui/sidebar";
 import type { SystemRole } from "@/lib/types";
 
+// Tabs hidden until their features are rolled out to the club (Activities,
+// Patch Wall, My Cut, Events, Church, Votes, Timeline, Gallery — routes still
+// exist; restore entries from git history as each one launches).
 const MAIN_NAV = [
   { href: "", label: "Dashboard", icon: LayoutDashboard },
   { href: "/map", label: "Club Map", icon: MapIcon },
   { href: "/brotherhood", label: "Brotherhood", icon: Users },
   { href: "/prospects", label: "Prospects", icon: UserPlus },
-  { href: "/activities", label: "Activities", icon: Activity },
-  { href: "/patch-wall", label: "Patch Wall", icon: Award },
-  { href: "/my-cut", label: "My Cut", icon: Shirt },
-  { href: "/events", label: "Events", icon: Calendar },
-  { href: "/church", label: "Church", icon: Landmark },
-  { href: "/votes", label: "Votes", icon: Vote },
-  { href: "/timeline", label: "Timeline", icon: History },
-  { href: "/gallery", label: "Gallery", icon: ImageIcon },
 ];
 
 const OFFICER_NAV = [
