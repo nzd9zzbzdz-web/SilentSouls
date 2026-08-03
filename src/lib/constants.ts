@@ -1,4 +1,4 @@
-import type { RapSheetEntry, StatKey } from "./types";
+import type { StatKey } from "./types";
 
 // Slugs that can never be org slugs (static route segments win in App Router,
 // but we validate at org creation too).
@@ -19,16 +19,35 @@ export const PROFILE_STAT_ORDER: { key: StatKey; label: string }[] = [
   { key: "specialAssignments", label: "Special Assignments" },
 ];
 
-// Character-screen rap sheet shown when a member has none of their own yet.
-// Rows are org-overridable per member via member.rapSheet.
-export const DEFAULT_RAP_SHEET: RapSheetEntry[] = [
-  { label: "Crimes Committed", value: "0" },
-  { label: "Heists Completed", value: "0" },
-  { label: "Police Gunned Down", value: "0", danger: true },
-  { label: "Jail Time Served", value: "0 mo" },
-  { label: "Times Arrested", value: "0" },
-  { label: "Dirty Money Earned", value: "$0" },
+/**
+ * The character screen's Criminal Record, in display order. Every row reads a
+ * stat that members log and officers approve, so the panel moves on its own —
+ * `format` turns the raw count into the row's display string.
+ */
+export const CRIMINAL_RECORD_ROWS: {
+  label: string;
+  statKey: StatKey;
+  danger?: boolean;
+  format?: (n: number) => string;
+}[] = [
+  { label: "Crimes Committed", statKey: "crimesCommitted" },
+  { label: "Heists Completed", statKey: "heistsCompleted" },
+  { label: "Police Gunned Down", statKey: "policeGunnedDown", danger: true },
+  { label: "Jail Time Served", statKey: "jailTimeMonths", format: (n) => `${n} mo` },
+  { label: "Times Arrested", statKey: "timesArrested" },
+  { label: "Dirty Money Earned", statKey: "dirtyMoneyEarned", format: formatDirtyMoney },
 ];
+
+/** $0 · $12.5K · $2.4M — keeps six figures from blowing out the panel. */
+export function formatDirtyMoney(n: number): string {
+  if (n >= 1_000_000) return `$${trimZero(n / 1_000_000)}M`;
+  if (n >= 1_000) return `$${trimZero(n / 1_000)}K`;
+  return `$${n.toLocaleString("en-US")}`;
+}
+
+function trimZero(n: number): string {
+  return n.toFixed(1).replace(/\.0$/, "");
+}
 
 // Character render fallback — brand-neutral shadow figure shipped in public/.
 export const CHARACTER_SILHOUETTE = "/brand/members/silhouette.webp";
@@ -51,6 +70,12 @@ export const STAT_LABELS: Record<StatKey, string> = {
   charityEvents: "Charity Events",
   mentoring: "Mentoring",
   specialAssignments: "Special Assignments",
+  crimesCommitted: "Crimes Committed",
+  heistsCompleted: "Heists Completed",
+  policeGunnedDown: "Police Gunned Down",
+  jailTimeMonths: "Jail Time Served",
+  timesArrested: "Times Arrested",
+  dirtyMoneyEarned: "Dirty Money Earned",
 };
 
 // Default club ranks (org-configurable; seeded per org).
@@ -89,6 +114,30 @@ export const ACTIVITY_TYPE_SEEDS: {
   { name: "Charity Event", statKey: "charityEvents", requiresProof: true, allowQuantity: false, icon: "hand-heart" },
   { name: "Mentoring", statKey: "mentoring", requiresProof: false, allowQuantity: false, icon: "graduation-cap" },
   { name: "Special Assignment", statKey: "specialAssignments", requiresProof: true, allowQuantity: false, icon: "star" },
+];
+
+/**
+ * Criminal record activities — these drive CRIMINAL_RECORD_ROWS on the
+ * character screen. Quantity-bearing ones take the raw amount (months served,
+ * dollars earned) rather than a count of submissions.
+ *
+ * Ids are explicit rather than slugged from the name: the seeder's slug helper
+ * strips non-letters, which would mangle the unit hints in these names.
+ */
+export const CRIMINAL_ACTIVITY_TYPE_SEEDS: {
+  id: string;
+  name: string;
+  statKey: StatKey;
+  requiresProof: boolean;
+  allowQuantity: boolean;
+  icon: string;
+}[] = [
+  { id: "crime-committed", name: "Crime Committed", statKey: "crimesCommitted", requiresProof: false, allowQuantity: true, icon: "skull" },
+  { id: "heist-completed", name: "Heist Completed", statKey: "heistsCompleted", requiresProof: true, allowQuantity: false, icon: "banknote" },
+  { id: "police-gunned-down", name: "Police Gunned Down", statKey: "policeGunnedDown", requiresProof: true, allowQuantity: true, icon: "crosshair" },
+  { id: "jail-time-served", name: "Jail Time Served (months)", statKey: "jailTimeMonths", requiresProof: false, allowQuantity: true, icon: "lock" },
+  { id: "arrested", name: "Arrested", statKey: "timesArrested", requiresProof: false, allowQuantity: false, icon: "handcuffs" },
+  { id: "dirty-money-earned", name: "Dirty Money Earned ($)", statKey: "dirtyMoneyEarned", requiresProof: true, allowQuantity: true, icon: "dollar-sign" },
 ];
 
 export const PORTAL_NAV = [

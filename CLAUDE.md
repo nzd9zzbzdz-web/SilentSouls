@@ -47,6 +47,13 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
 - To rebrand a running instance WITHOUT wiping data (`npm run seed` recursiveDeletes
   first): `npx tsx scripts/apply-branding.ts` — merge-only. Emulator data is
   in-memory, so reapply after every restart.
+- The character screen's **Criminal Record is derived from `member.stats`** via
+  `CRIMINAL_RECORD_ROWS` — members log those rows as ordinary activities and an
+  officer approves, same pipeline as a club run. `member.rapSheet` is the dead
+  hand-authored predecessor; nothing reads it. To make a live instance match:
+  `npx tsx scripts/migrate-criminal-record.ts` (add `--dry` to preview) — adds
+  the six activity types and folds any old rapSheet values into stats,
+  merge-only and idempotent.
 - Blackletter display font only via `<DisplayHeading>` / `var(--font-display)` —
   never in body text.
 - Cut layouts store normalized u/v (0..1) coords per vest surface — designed for a

@@ -13,6 +13,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 import {
   ACTIVITY_TYPE_SEEDS,
+  CRIMINAL_ACTIVITY_TYPE_SEEDS,
   DEFAULT_RANKS,
 } from "../src/lib/constants";
 import { writeCutConfig } from "./lib/writeCutConfig";
@@ -28,7 +29,6 @@ import type {
   CutLayout,
   CutPlacement,
   Patch,
-  RapSheetEntry,
   StatKey,
 } from "../src/lib/types";
 
@@ -103,70 +103,71 @@ interface MemberSeed {
   joinDate: string; // ISO
   sponsorId?: string;
   stats: Partial<Record<StatKey, number>>;
-  rapSheet: RapSheetEntry[]; // character-screen criminal record
   rapStatus: string; // character-screen status line
 }
 
-// Character-screen rap sheet rows, in display order.
+// Criminal record stats, in character-screen display order. These are ordinary
+// stats now — members log them and officers approve, same as a club run — so
+// the seed just puts a plausible history on the books.
 const rap = (
   crimes: number,
   heists: number,
   police: number,
-  jail: string,
+  jailMonths: number,
   arrests: number,
-  money: string,
-): RapSheetEntry[] => [
-  { label: "Crimes Committed", value: String(crimes) },
-  { label: "Heists Completed", value: String(heists) },
-  { label: "Police Gunned Down", value: String(police), danger: true },
-  { label: "Jail Time Served", value: jail },
-  { label: "Times Arrested", value: String(arrests) },
-  { label: "Dirty Money Earned", value: money },
-];
+  dirtyMoney: number,
+): Partial<Record<StatKey, number>> => ({
+  crimesCommitted: crimes,
+  heistsCompleted: heists,
+  policeGunnedDown: police,
+  jailTimeMonths: jailMonths,
+  timesArrested: arrests,
+  dirtyMoneyEarned: dirtyMoney,
+});
 
 const MEMBERS: MemberSeed[] = [
   {
     id: "m-reaper", displayName: "Marcus Cole", roadName: "Reaper",
     email: "reaper@silentsouls.rp", rankName: "President", role: "admin",
     status: "patched", memberNumber: 1, joinDate: "2023-02-11",
-    rapSheet: rap(187, 12, 34, "96 mo", 23, "$2.4M"), rapStatus: "At Large",
-    stats: { clubRuns: 61, churchAttendance: 48, operations: 22, territoryDefense: 14, recruitment: 4, specialAssignments: 9, communityOutreach: 18, charityEvents: 12, securityDetail: 11, territoryPatrol: 20 },
+    rapStatus: "At Large",
+    stats: { ...rap(187, 12, 34, 96, 23, 2_400_000), clubRuns: 61, churchAttendance: 48, operations: 22, territoryDefense: 14, recruitment: 4, specialAssignments: 9, communityOutreach: 18, charityEvents: 12, securityDetail: 11, territoryPatrol: 20 },
   },
   {
     id: "m-six", displayName: "Danny Alvarez", roadName: "Six",
     email: "six@silentsouls.rp", rankName: "Sergeant-at-Arms", role: "officer",
     status: "patched", memberNumber: 3, joinDate: "2023-04-02",
-    rapSheet: rap(154, 9, 41, "54 mo", 17, "$1.1M"), rapStatus: "At Large",
-    stats: { clubRuns: 44, churchAttendance: 39, operations: 17, territoryDefense: 11, recruitment: 2, specialAssignments: 6, securityDetail: 16, territoryPatrol: 12, communityOutreach: 7 },
+    rapStatus: "At Large",
+    stats: { ...rap(154, 9, 41, 54, 17, 1_100_000), clubRuns: 44, churchAttendance: 39, operations: 17, territoryDefense: 11, recruitment: 2, specialAssignments: 6, securityDetail: 16, territoryPatrol: 12, communityOutreach: 7 },
   },
   {
     id: "m-thorn", displayName: "Rosa Delgado", roadName: "Thorn",
     email: "thorn@silentsouls.rp", rankName: "Road Captain", role: "officer",
     status: "patched", memberNumber: 5, joinDate: "2023-07-19",
-    rapSheet: rap(121, 7, 12, "30 mo", 11, "$860K"), rapStatus: "At Large",
-    stats: { clubRuns: 52, churchAttendance: 31, operations: 12, territoryDefense: 8, recruitment: 1, specialAssignments: 4, territoryPatrol: 17, communityOutreach: 9, charityEvents: 6 },
+    rapStatus: "At Large",
+    stats: { ...rap(121, 7, 12, 30, 11, 860_000), clubRuns: 52, churchAttendance: 31, operations: 12, territoryDefense: 8, recruitment: 1, specialAssignments: 4, territoryPatrol: 17, communityOutreach: 9, charityEvents: 6 },
   },
   {
     id: "m-ledger", displayName: "Jimmy Okafor", roadName: "Ledger",
     email: "ledger@silentsouls.rp", rankName: "Patched Member", role: "member",
     status: "patched", memberNumber: 9, joinDate: "2024-03-08",
-    rapSheet: rap(64, 15, 3, "18 mo", 6, "$3.8M"), rapStatus: "At Large",
-    stats: { clubRuns: 23, churchAttendance: 19, operations: 6, territoryDefense: 3, communityOutreach: 11, charityEvents: 8, securityDetail: 5 },
+    rapStatus: "At Large",
+    stats: { ...rap(64, 15, 3, 18, 6, 3_800_000), clubRuns: 23, churchAttendance: 19, operations: 6, territoryDefense: 3, communityOutreach: 11, charityEvents: 8, securityDetail: 5 },
   },
   {
     id: "m-static", displayName: "Tasha Reyes", roadName: "Static",
     email: "static@silentsouls.rp", rankName: "Patched Member", role: "member",
     status: "patched", memberNumber: 11, joinDate: "2024-09-30",
-    rapSheet: rap(43, 4, 7, "8 mo", 5, "$310K"), rapStatus: "At Large",
-    stats: { clubRuns: 14, churchAttendance: 12, operations: 3, territoryPatrol: 6, communityOutreach: 4 },
+    rapStatus: "At Large",
+    stats: { ...rap(43, 4, 7, 8, 5, 310_000), clubRuns: 14, churchAttendance: 12, operations: 3, territoryPatrol: 6, communityOutreach: 4 },
   },
   {
     id: "m-patch", displayName: "Eli Munoz", roadName: "Patch",
     email: "patch@silentsouls.rp", rankName: "Prospect", role: "member",
     status: "prospect", memberNumber: 14, joinDate: "2026-02-14", sponsorId: "m-six",
-    rapSheet: rap(12, 1, 0, "0 mo", 2, "$18K"), rapStatus: "On Probation",
+    rapStatus: "On Probation",
     // one club run away from Road Warrior — perfect for the golden-path demo
-    stats: { clubRuns: 9, churchAttendance: 3, prospectTasks: 2, territoryPatrol: 4 },
+    stats: { ...rap(12, 1, 0, 0, 2, 18_000), clubRuns: 9, churchAttendance: 3, prospectTasks: 2, territoryPatrol: 4 },
   },
 ];
 
@@ -263,10 +264,17 @@ async function seed() {
     });
   }
 
-  // Activity types
-  for (const [i, t] of ACTIVITY_TYPE_SEEDS.entries()) {
-    const id = t.name.toLowerCase().replace(/[^a-z]+/g, "-");
-    await org.collection("activityTypes").doc(id).set({
+  // Activity types — club work first, then the criminal record types that
+  // drive the character screen's panel.
+  const activityTypes = [
+    ...ACTIVITY_TYPE_SEEDS.map((t) => ({
+      ...t,
+      id: t.name.toLowerCase().replace(/[^a-z]+/g, "-"),
+    })),
+    ...CRIMINAL_ACTIVITY_TYPE_SEEDS,
+  ];
+  for (const [i, t] of activityTypes.entries()) {
+    await org.collection("activityTypes").doc(t.id).set({
       name: t.name,
       statKey: t.statKey,
       requiresProof: t.requiresProof,
@@ -312,7 +320,6 @@ async function seed() {
       displayName: m.displayName,
       roadName: m.roadName,
       photoPath: characterArt(m.id),
-      rapSheet: m.rapSheet,
       rapStatus: m.rapStatus,
       rankId: rankIdByName.get(m.rankName),
       status: m.status,

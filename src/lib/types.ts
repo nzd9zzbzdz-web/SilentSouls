@@ -18,6 +18,14 @@ export const STAT_KEYS = [
   "charityEvents",
   "mentoring",
   "specialAssignments",
+  // Criminal record — the rows on the character screen. Logged and approved
+  // like any other activity, so the panel is always live rather than typed in.
+  "crimesCommitted",
+  "heistsCompleted",
+  "policeGunnedDown",
+  "jailTimeMonths",
+  "timesArrested",
+  "dirtyMoneyEarned",
 ] as const;
 
 export type StatKey = (typeof STAT_KEYS)[number];
@@ -101,7 +109,14 @@ export type MemberStatus =
   | "retired"
   | "exiled";
 
-/** One line on the character screen's record panel. RP flavor, org-authored. */
+/**
+ * One line on the character screen's record panel.
+ *
+ * @deprecated The Criminal Record is now derived from `stats` via
+ * CRIMINAL_RECORD_ROWS, so approved activity logs drive it. Kept so existing
+ * hand-authored docs still parse; `scripts/migrate-criminal-record.ts` folds
+ * their values into `stats`. Nothing reads this field.
+ */
 export interface RapSheetEntry {
   label: string; // "Crimes Committed"
   value: string; // "187", "96 mo", "$2.4M" — freeform; pure numbers count up
@@ -114,7 +129,7 @@ export interface Member {
   displayName: string;
   roadName: string;
   photoPath?: string;
-  /** Character-screen rap sheet; when present it replaces the activity stats. */
+  /** @deprecated Legacy hand-authored rap sheet — see {@link RapSheetEntry}. */
   rapSheet?: RapSheetEntry[];
   /** Character-screen status line, e.g. "At Large", "Incarcerated". */
   rapStatus?: string;

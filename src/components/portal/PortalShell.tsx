@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   ClipboardCheck,
   LayoutDashboard,
   ListChecks,
@@ -34,13 +35,14 @@ import {
 } from "@/components/ui/sidebar";
 import type { SystemRole } from "@/lib/types";
 
-// Tabs hidden until their features are rolled out to the club (Activities,
-// Patch Wall, My Cut, Events, Church, Votes, Timeline, Gallery — routes still
-// exist; restore entries from git history as each one launches).
+// Tabs hidden until their features are rolled out to the club (Patch Wall,
+// My Cut, Events, Church, Votes, Timeline, Gallery — routes still exist;
+// restore entries from git history as each one launches).
 const MAIN_NAV = [
   { href: "", label: "Dashboard", icon: LayoutDashboard },
   { href: "/map", label: "Club Map", icon: MapIcon },
   { href: "/brotherhood", label: "Brotherhood", icon: Users },
+  { href: "/activities", label: "Log Activity", icon: Activity },
   { href: "/prospects", label: "Prospects", icon: UserPlus },
 ];
 

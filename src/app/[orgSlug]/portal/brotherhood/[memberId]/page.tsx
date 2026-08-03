@@ -12,8 +12,8 @@ import {
 } from "@/lib/queries";
 import {
   CHARACTER_SILHOUETTE,
+  CRIMINAL_RECORD_ROWS,
   DEFAULT_CHARACTER_STAGE,
-  DEFAULT_RAP_SHEET,
 } from "@/lib/constants";
 import type { Timestamp } from "firebase-admin/firestore";
 
@@ -75,14 +75,18 @@ export default async function MemberDetailPage({
       };
     });
 
-  // Every profile gets a Criminal Record — the member's own rap sheet when
-  // they have one, the zeroed default otherwise (new members start clean).
-  const rapSheet = member.rapSheet?.length ? member.rapSheet : DEFAULT_RAP_SHEET;
-  const panelStats = rapSheet.map((e) => ({
-    label: e.label,
-    value: /^\d+$/.test(e.value) ? Number(e.value) : e.value,
-    danger: e.danger,
-  }));
+  // Every profile gets a Criminal Record, built from the stats that approved
+  // activity logs move. New members start clean at zero rather than blank.
+  // Plain counts stay numeric so the panel counts them up on load; formatted
+  // rows (jail time, dirty money) render as their display string.
+  const panelStats = CRIMINAL_RECORD_ROWS.map((row) => {
+    const value = member.stats?.[row.statKey] ?? 0;
+    return {
+      label: row.label,
+      value: row.format ? row.format(value) : value,
+      danger: row.danger,
+    };
+  });
 
   return (
     <div className="mx-auto max-w-6xl">
