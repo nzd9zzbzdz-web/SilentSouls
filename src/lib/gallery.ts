@@ -38,6 +38,14 @@ const CURATION: { file: string; title: string }[] = [
   { file: "The Kid 2.png", title: "The Kid" },
   { file: "Winter Vetrov.png", title: "Winter Vetrov" },
   { file: "Winter and Morrigan.png", title: "Winter & Morrigan" },
+  { file: "Promo 1.png", title: "Club Promo" },
+  { file: "Promo 2.png", title: "Club Promo" },
+  { file: "Club Promo Shat.png", title: "Club Promo" },
+  { file: "Club Promo Shat 2.png", title: "Club Promo" },
+  { file: "Beach Gus.png", title: "Gus at the Beach" },
+  { file: "Beach Gus 2.png", title: "Gus at the Beach" },
+  { file: "Prez Pier.png", title: "Prez on the Pier" },
+  { file: "Xander Paleto.png", title: "Xander in Paleto" },
 ];
 
 // Caption for files not in CURATION: strip an ordering prefix like "01-" and
