@@ -4,7 +4,7 @@ import { getOrgBySlug } from "@/lib/tenant";
 import { getGalleryPhotos } from "@/lib/gallery";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Component as ImageAutoSlider } from "@/components/ui/image-auto-slider";
-import { GalleryLightbox } from "@/components/public/GalleryLightbox";
+import { GalleryGrid } from "@/components/public/GalleryGrid";
 
 export default async function PublicGalleryPage({
   params,
@@ -34,7 +34,7 @@ export default async function PublicGalleryPage({
           </div>
 
           <div className="mt-12">
-            <GalleryLightbox photos={photos} />
+            <GalleryGrid photos={photos} />
           </div>
         </>
       ) : (
