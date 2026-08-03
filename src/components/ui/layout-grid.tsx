@@ -1,13 +1,17 @@
 "use client";
 
-// Aceternity-style LayoutGrid, adapted for this codebase:
-// - React 19: the global `JSX.Element` type is gone → React.ReactNode.
-// - Thumbnails render through next/image (the gallery PNGs are ~2.5MB each;
-//   raw <img> would ship the originals) inside a layoutId'd motion wrapper.
-// - The expanded card + backdrop are `fixed`, not `absolute`: the source demo
-//   assumed a screen-tall grid, but with a long scrolling grid an absolutely
-//   centered card lands mid-container, off-viewport.
-// - bg-white → bg-card, and Escape closes the expanded card.
+// Aceternity LayoutGrid — faithful port of the source demo: screen-filling
+// bento cards, click-to-expand IN PLACE (the card morphs to a half-screen
+// panel centered over the grid), caption sliding up from the bottom edge.
+// Deliberate deviations from the source, all invisible to the eye:
+// - React 19 removed the global JSX namespace → content is React.ReactNode.
+// - Thumbnails go through next/image inside the layoutId wrapper (the gallery
+//   PNGs are ~2.5MB originals; motion.img would ship them raw).
+// - bg-white → bg-card so the pre-load flash matches the dark theme.
+// - Enter/Space expand a focused card, Escape collapses.
+// Use one <LayoutGrid> per ~4 cards inside a screen-tall wrapper (as the demo
+// does): the expanded card centers within the grid container, so containers
+// taller than a screen would center it off-viewport.
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
@@ -50,7 +54,7 @@ export const LayoutGrid = ({ cards }: { cards: LayoutGridCard[] }) => {
   }, [selected]);
 
   return (
-    <div className="relative mx-auto grid w-full max-w-6xl grid-cols-1 gap-4 px-4 auto-rows-[13rem] md:auto-rows-[15rem] md:grid-flow-dense md:grid-cols-3">
+    <div className="relative mx-auto grid h-full w-full max-w-7xl grid-cols-1 gap-4 p-10 md:grid-cols-3">
       {cards.map((card, i) => (
         <div key={i} className={cn(card.className, "")}>
           <motion.div
@@ -68,7 +72,7 @@ export const LayoutGrid = ({ cards }: { cards: LayoutGridCard[] }) => {
               card.className,
               "relative cursor-pointer overflow-hidden",
               selected?.id === card.id
-                ? "fixed inset-0 z-50 m-auto flex h-1/2 w-full flex-col flex-wrap items-center justify-center rounded-lg md:w-1/2"
+                ? "absolute inset-0 z-50 m-auto flex h-1/2 w-full flex-col flex-wrap items-center justify-center rounded-lg md:w-1/2"
                 : lastSelected?.id === card.id
                   ? "z-40 h-full w-full rounded-xl bg-card"
                   : "h-full w-full rounded-xl bg-card",
@@ -83,10 +87,10 @@ export const LayoutGrid = ({ cards }: { cards: LayoutGridCard[] }) => {
       <motion.div
         onClick={handleOutsideClick}
         className={cn(
-          "fixed left-0 top-0 z-10 h-full w-full bg-black opacity-0",
-          selected?.id !== undefined ? "pointer-events-auto" : "pointer-events-none",
+          "absolute left-0 top-0 z-10 h-full w-full bg-black opacity-0",
+          selected ? "pointer-events-auto" : "pointer-events-none",
         )}
-        animate={{ opacity: selected ? 0.55 : 0 }}
+        animate={{ opacity: selected ? 0.3 : 0 }}
         aria-hidden
       />
     </div>
@@ -100,7 +104,7 @@ const ImageComponent = ({ card }: { card: LayoutGridCard }) => {
         src={card.thumbnail}
         alt={card.label ?? ""}
         fill
-        sizes="(max-width: 768px) 100vw, 50vw"
+        sizes="(max-width: 768px) 100vw, 66vw"
         placeholder={card.blurDataURL ? "blur" : "empty"}
         blurDataURL={card.blurDataURL}
         className="object-cover object-top transition duration-200"
