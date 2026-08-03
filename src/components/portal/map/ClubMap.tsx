@@ -331,7 +331,11 @@ export function ClubMap({
         crs: L.CRS.Simple,
         minZoom: -2,
         maxZoom: 3,
-        zoomSnap: 0.25,
+        // Continuous zoom: fitBounds lands on the EXACT scale where the island
+        // fills the stage. Any snap > 0 rounds down and shrinks the artwork
+        // (0.25-snap left it at half size in a typical viewport).
+        zoomSnap: 0,
+        zoomDelta: 0.5,
         attributionControl: false,
         maxBounds: BOUNDS,
         maxBoundsViscosity: 0.8,
@@ -596,15 +600,30 @@ export function ClubMap({
         </div>
       )}
 
-      {/* Map stage */}
-      <div className="overflow-hidden rounded-lg border border-border">
+      {/* Map stage. `isolate` opens a new stacking context so Leaflet's
+          z-index-400 panes can't paint over body-level overlays (the pin
+          dialog is z-50 — without isolation the map covers it). Non-compact:
+          the stage matches the island artwork's portrait aspect and is
+          centered, sized to fill the viewport height — no dead letterbox
+          bands left and right of the image. */}
+      <div
+        className={
+          compact
+            ? "isolate overflow-hidden rounded-lg border border-border"
+            : "isolate mx-auto w-full overflow-hidden rounded-lg border border-border"
+        }
+        style={
+          compact
+            ? undefined
+            : { maxWidth: `min(100%, calc(78vh * ${MAP_ASPECT}))` }
+        }
+      >
         <div
           ref={containerRef}
           role="application"
           aria-label="Club territory map"
-          className={
-            compact ? "h-80 w-full bg-background" : "h-[68vh] min-h-96 w-full bg-background"
-          }
+          className={compact ? "h-80 w-full bg-background" : "w-full bg-background"}
+          style={compact ? undefined : { aspectRatio: String(MAP_ASPECT) }}
         />
       </div>
 

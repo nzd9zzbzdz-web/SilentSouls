@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { orgRef } from "@/lib/firebase/admin";
 import { BrandStyle } from "@/components/theme/BrandStyle";
+import { BodySurface } from "@/components/theme/BodySurface";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { Toaster } from "@/components/ui/sonner";
 import type { Member, Rank } from "@/lib/types";
@@ -55,6 +56,7 @@ export default async function PortalLayout({
       style={{ fontFamily: "var(--font-body)" }}
     >
       <BrandStyle branding={branding} surface="portal" />
+      <BodySurface surface="portal" dark />
       <PortalShell
         orgSlug={orgSlug}
         orgName={branding.orgDisplayName}

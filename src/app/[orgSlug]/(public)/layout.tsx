@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { BrandStyle } from "@/components/theme/BrandStyle";
+import { BodySurface } from "@/components/theme/BodySurface";
 import { CharityHeader } from "@/components/public/CharityHeader";
 import { CharityFooter } from "@/components/public/CharityFooter";
 import { MusicPlayer } from "@/components/public/MusicPlayer";
@@ -26,6 +27,7 @@ export default async function PublicLayout({
       style={{ fontFamily: "var(--font-body)" }}
     >
       <BrandStyle branding={branding} surface="public" />
+      <BodySurface surface="public" />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
