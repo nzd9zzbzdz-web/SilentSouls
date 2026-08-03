@@ -3,13 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, ScrollText } from "lucide-react";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
+import { getGalleryPhotos } from "@/lib/gallery";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { HeroGalleryFilmstrip } from "@/components/public/HeroGalleryFilmstrip";
 
 const EMBER = "#D9362B";
-// Committed hero clip (text-free so the headline overlays on top). Referenced
-// directly rather than via a branding doc so it ships with the deploy — the
-// public branding read is Firestore-only with no fallback, so a branding field
-// would stay invisible in prod until that doc was separately updated.
+// Committed hero clip (text-free so the headline overlays on top) — fallback
+// backdrop when public/gallery has no photos. Referenced directly rather than
+// via a branding doc so it ships with the deploy — the public branding read is
+// Firestore-only with no fallback, so a branding field would stay invisible in
+// prod until that doc was separately updated.
 const HERO_VIDEO = "/brand/ravens-hero.mp4";
 
 export default async function PublicHomePage({
@@ -21,6 +24,7 @@ export default async function PublicHomePage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
   const branding = await getBranding(org.id, "public");
+  const photos = await getGalleryPhotos();
   const base = `/${orgSlug}`;
 
   const [line1, line2] = splitName(org.name);
@@ -43,11 +47,10 @@ export default async function PublicHomePage({
     <>
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-[#941B22]/15 bg-black">
-        {/* Hero video. Muted + looping so browsers allow autoplay; playsInline
-            keeps it inline on iOS. The branded hero image is the poster, so a
-            frame shows instantly while the clip loads. object-contain shows the
-            WHOLE clip (16:9) with no cropping; since the banner is wider, the
-            sides are filled by the dark brand gradient below rather than bars. */}
+        {/* Gallery filmstrip backdrop: club photos auto-scroll across the full
+            banner width, each at its natural aspect ratio (full banner height,
+            width follows) so nothing is cropped or stretched. Falls back to the
+            hero clip if public/gallery is empty. */}
         <div
           className="relative w-full min-h-[440px] overflow-hidden sm:min-h-0 sm:aspect-[2400/1026] sm:max-h-[760px]"
           style={{
@@ -55,18 +58,22 @@ export default async function PublicHomePage({
               "radial-gradient(120% 80% at 78% 18%, rgba(84,33,63,0.16), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(217,54,43,0.12), transparent 60%), linear-gradient(180deg,#151017,#050407)",
           }}
         >
-          <video
-            className="absolute inset-0 h-full w-full object-contain"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            poster={branding?.heroImagePath}
-            aria-hidden
-          >
-            <source src={HERO_VIDEO} type="video/mp4" />
-          </video>
+          {photos.length > 0 ? (
+            <HeroGalleryFilmstrip photos={photos} />
+          ) : (
+            <video
+              className="absolute inset-0 h-full w-full object-contain"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={branding?.heroImagePath}
+              aria-hidden
+            >
+              <source src={HERO_VIDEO} type="video/mp4" />
+            </video>
+          )}
         </div>
 
         {/* Legibility scrim */}
