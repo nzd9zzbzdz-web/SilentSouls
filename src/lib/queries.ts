@@ -65,6 +65,66 @@ export const listMemberAwards = cache(
   },
 );
 
+/** Every award in the org, grouped by member — one read for a whole roster. */
+export const listAwardsByMember = cache(
+  async (orgId: string): Promise<Map<string, AwardedPatch[]>> => {
+    const snap = await orgRef(orgId).collection("awardedPatches").get();
+    const byMember = new Map<string, AwardedPatch[]>();
+    for (const d of snap.docs) {
+      const award = { id: d.id, ...(d.data() as Omit<AwardedPatch, "id">) };
+      const list = byMember.get(award.memberId);
+      if (list) list.push(award);
+      else byMember.set(award.memberId, [award]);
+    }
+    return byMember;
+  },
+);
+
+/**
+ * Which members have an uploaded character render, without pulling the
+ * renders themselves — the stored data URLs run up to ~900KB each, so the
+ * roster only asks whether the doc exists and links to /api/.../render.
+ */
+export async function listMembersWithRender(
+  orgId: string,
+  memberIds: string[],
+): Promise<Set<string>> {
+  const results = await Promise.all(
+    memberIds.map(async (memberId) => {
+      // .select() with no fields returns doc ids only — no image egress.
+      const snap = await orgRef(orgId)
+        .collection("members")
+        .doc(memberId)
+        .collection("assets")
+        .select()
+        .get();
+      return snap.docs.some((d) => d.id === "character") ? memberId : null;
+    }),
+  );
+  return new Set(results.filter((id): id is string => id !== null));
+}
+
+/** The stored character render data URL, or null. Served by the render route. */
+export const getCharacterRender = cache(
+  async (
+    orgId: string,
+    memberId: string,
+  ): Promise<{ dataUrl: string; updatedAtMs: number } | null> => {
+    const snap = await orgRef(orgId)
+      .collection("members")
+      .doc(memberId)
+      .collection("assets")
+      .doc("character")
+      .get();
+    const data = snap.data();
+    if (!snap.exists || typeof data?.dataUrl !== "string") return null;
+    return {
+      dataUrl: data.dataUrl,
+      updatedAtMs: data.updatedAt?.toMillis?.() ?? 0,
+    };
+  },
+);
+
 export async function listActivities(
   orgId: string,
   opts: { memberId?: string; status?: Activity["status"]; limit?: number } = {},
