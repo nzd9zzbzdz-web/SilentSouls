@@ -7,7 +7,13 @@ import type { GalleryPhoto } from "@/lib/gallery";
  * narrow, landscapes wide) so nothing is cropped or stretched. The strip is
  * duplicated once and translated -50% for a seamless CSS-only loop — no JS,
  * so this stays a server component (same pattern as image-auto-slider).
+ *
+ * Adjacent photos crossfade: each image is masked so its left/right FEATHER
+ * pixels fade to transparent, and every item overlaps its neighbor by FEATHER
+ * via a uniform negative margin — A fades out exactly where B fades in.
  */
+const FEATHER = 64;
+
 export function HeroGalleryFilmstrip({ photos }: { photos: GalleryPhoto[] }) {
   if (photos.length === 0) return null;
 
@@ -18,6 +24,12 @@ export function HeroGalleryFilmstrip({ photos }: { photos: GalleryPhoto[] }) {
   const duration = Math.max(30, Math.round(aspectSum * 6));
 
   const strip = [...photos, ...photos];
+
+  // The negative margin must be on EVERY item (first included): the strip then
+  // stays perfectly periodic, so the -50% wrap lands on an identical frame.
+  // The first image's feathered lead-in sits in the container's clipped
+  // overflow, never on screen.
+  const edgeFade = `linear-gradient(90deg, transparent 0, #000 ${FEATHER}px, #000 calc(100% - ${FEATHER}px), transparent 100%)`;
 
   return (
     <>
@@ -32,8 +44,11 @@ export function HeroGalleryFilmstrip({ photos }: { photos: GalleryPhoto[] }) {
       `}</style>
       <div className="absolute inset-0 overflow-hidden" aria-hidden>
         <div
-          className="hgf-strip flex h-full w-max items-center gap-3"
-          style={{ animation: `hgf-scroll ${duration}s linear infinite` }}
+          className="hgf-strip flex h-full w-max items-center"
+          style={{
+            animation: `hgf-scroll ${duration}s linear infinite`,
+            willChange: "transform",
+          }}
         >
           {strip.map((p, i) => (
             <Image
@@ -47,6 +62,11 @@ export function HeroGalleryFilmstrip({ photos }: { photos: GalleryPhoto[] }) {
               placeholder="blur"
               blurDataURL={p.blurDataURL}
               className="h-full w-auto flex-shrink-0"
+              style={{
+                marginLeft: -FEATHER,
+                maskImage: edgeFade,
+                WebkitMaskImage: edgeFade,
+              }}
             />
           ))}
         </div>
