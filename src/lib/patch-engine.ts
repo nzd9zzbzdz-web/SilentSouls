@@ -17,21 +17,15 @@ export interface EngineResult {
   awardedPatchIds: string[];
 }
 
-/**
- * Every patch in the org, plus the active requirement-bearing subset. Fetched
- * once outside the transaction (patches change rarely). The full map is what
- * lets `supersede` recognise a lower tier already sitting on the cut even when
- * that tier has since been retired.
- */
-async function getPatchIndex(
-  orgId: string,
-): Promise<{ candidates: Patch[]; byId: Map<string, Patch> }> {
-  const snap = await orgRef(orgId).collection("patches").get();
-  const all = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Patch, "id">) }));
-  return {
-    candidates: all.filter((p) => p.active && p.requirement !== null),
-    byId: new Map(all.map((p) => [p.id, p])),
-  };
+/** Active, requirement-bearing patches — fetched outside the transaction (they change rarely). */
+async function getCandidatePatches(orgId: string): Promise<Patch[]> {
+  const snap = await orgRef(orgId)
+    .collection("patches")
+    .where("active", "==", true)
+    .get();
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<Patch, "id">) }))
+    .filter((p) => p.requirement !== null);
 }
 
 /** Nudge v downward until the spot isn't occupied (simple collision avoidance). */
@@ -49,43 +43,12 @@ function placeOnCut(
 }
 
 /**
- * Strip the lower rungs of a patch's ladder off the cut.
- *
- * Threshold patches come in ladders of five per stat, and a member keeps every
- * tier they earn — but the vest only has room for where they got to. Awarding
- * Dealer removes Corner Boy and Slinger from the cut; the awards themselves are
- * untouched and still show in the trophy case on the profile.
- *
- * Returns false when the member already wears a HIGHER tier of the same ladder,
- * which is the manual-award case: an officer granting a tier someone has already
- * climbed past shouldn't demote their cut.
+ * Emblems are earned like patches but never worn. The criminal-record ladders
+ * run five tiers across eleven stats, so placing them would bury a vest
+ * fifty-five deep — they live as levels on the member's profile instead.
  */
-function supersedeLadder(
-  layout: CutLayout,
-  byId: Map<string, Patch>,
-  incoming: Patch,
-): boolean {
-  const req = incoming.requirement;
-  if (!req) return true; // manual-only patch — no ladder, always place
-
-  for (const surface of ["front", "back"] as const) {
-    for (const placed of layout.surfaces[surface]) {
-      if (placed.kind !== "patch") continue;
-      const other = byId.get(placed.refId);
-      if (other?.requirement?.statKey !== req.statKey) continue;
-      if (other.requirement.threshold > req.threshold) return false;
-    }
-  }
-
-  for (const surface of ["front", "back"] as const) {
-    layout.surfaces[surface] = layout.surfaces[surface].filter((placed) => {
-      if (placed.kind !== "patch") return true;
-      const other = byId.get(placed.refId);
-      if (other?.requirement?.statKey !== req.statKey) return true;
-      return other.requirement.threshold >= req.threshold;
-    });
-  }
-  return true;
+function isWorn(patch: Patch): boolean {
+  return patch.emblem !== true;
 }
 
 const EMPTY_LAYOUT: CutLayout = {
@@ -105,7 +68,7 @@ export async function approveActivityTx(
   reviewerUid: string,
   reviewNote?: string,
 ): Promise<EngineResult> {
-  const { candidates, byId } = await getPatchIndex(orgId);
+  const candidates = await getCandidatePatches(orgId);
   const org = orgRef(orgId);
   const activityRef = org.collection("activities").doc(activityId);
 
@@ -132,14 +95,13 @@ export async function approveActivityTx(
       org.collection("awardedPatches").doc(`${activity.memberId}_${p.id}`),
     );
     const awardSnaps = await Promise.all(awardRefs.map((r) => tx.get(r)));
-    // Ascending by threshold so cut placement walks the ladder in order and the
-    // highest tier crossed is the one left wearing the spot.
-    const newAwards = relevant
-      .filter((_, i) => !awardSnaps[i].exists)
-      .sort((a, b) => a.requirement!.threshold - b.requirement!.threshold);
+    const newAwards = relevant.filter((_, i) => !awardSnaps[i].exists);
+    // Emblems are awarded but never worn, so a batch of pure emblems must not
+    // drag the cut into the transaction at all.
+    const newWorn = newAwards.filter(isWorn);
 
     const cutRef = org.collection("cutLayouts").doc(activity.memberId);
-    const cutSnap = newAwards.length ? await tx.get(cutRef) : null;
+    const cutSnap = newWorn.length ? await tx.get(cutRef) : null;
 
     // ── writes ──
     tx.update(activityRef, {
@@ -155,19 +117,21 @@ export async function approveActivityTx(
       lastActivityAt: FieldValue.serverTimestamp(),
     });
 
-    if (newAwards.length) {
+    for (const p of newAwards) {
+      tx.set(org.collection("awardedPatches").doc(`${activity.memberId}_${p.id}`), {
+        memberId: activity.memberId,
+        patchId: p.id,
+        awardedAt: FieldValue.serverTimestamp(),
+        awardedBy: "system",
+        activityId,
+      });
+    }
+
+    if (newWorn.length) {
       const layout: CutLayout = cutSnap?.exists
         ? (cutSnap.data() as CutLayout)
         : structuredClone(EMPTY_LAYOUT);
-      for (const p of newAwards) {
-        tx.set(org.collection("awardedPatches").doc(`${activity.memberId}_${p.id}`), {
-          memberId: activity.memberId,
-          patchId: p.id,
-          awardedAt: FieldValue.serverTimestamp(),
-          awardedBy: "system",
-          activityId,
-        });
-        if (!supersedeLadder(layout, byId, p)) continue;
+      for (const p of newWorn) {
         const placement = placeOnCut(layout, {
           kind: "patch",
           refId: p.id,
@@ -221,7 +185,6 @@ export async function manualAwardTx(
   reason: string,
 ): Promise<boolean> {
   const org = orgRef(orgId);
-  const { byId } = await getPatchIndex(orgId);
   const awarded = await adminDb.runTransaction(async (tx) => {
     const patchSnap = await tx.get(org.collection("patches").doc(patchId));
     if (!patchSnap.exists) throw new EngineError("patch_not_found");
@@ -248,12 +211,11 @@ export async function manualAwardTx(
     });
     tx.update(memberRef, { patchCount: (member.patchCount ?? 0) + 1 });
 
-    const layout: CutLayout = cutSnap.exists
-      ? (cutSnap.data() as CutLayout)
-      : structuredClone(EMPTY_LAYOUT);
-    // A hand-granted ladder tier obeys the same rule as an earned one: it takes
-    // the ladder's spot on the cut unless the member already wears a higher tier.
-    if (supersedeLadder(layout, byId, patch)) {
+    // Hand-granting an emblem still awards it — it just doesn't go on the cut.
+    if (isWorn(patch)) {
+      const layout: CutLayout = cutSnap.exists
+        ? (cutSnap.data() as CutLayout)
+        : structuredClone(EMPTY_LAYOUT);
       const placement = placeOnCut(layout, {
         kind: "patch",
         refId: patch.id,

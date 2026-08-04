@@ -46,6 +46,7 @@ interface PatchRow {
   requirement: { statKey: StatKey; threshold: number } | null;
   manual: boolean;
   active: boolean;
+  emblem: boolean;
   surface: "front" | "back";
   u: number;
   v: number;
@@ -69,6 +70,7 @@ const EMPTY_FORM = {
   statKey: "clubRuns" as StatKey,
   threshold: 10,
   active: true,
+  emblem: false,
   surface: "front" as "front" | "back",
 };
 
@@ -105,6 +107,7 @@ export function PatchAdmin({
       statKey: patch.requirement?.statKey ?? "clubRuns",
       threshold: patch.requirement?.threshold ?? 10,
       active: patch.active,
+      emblem: patch.emblem,
       surface: patch.surface,
     });
     setEditorOpen(true);
@@ -123,6 +126,7 @@ export function PatchAdmin({
           ? { statKey: form.statKey, threshold: form.threshold }
           : null,
         active: form.active,
+        emblem: form.emblem,
         defaultPlacement: {
           surface: form.surface,
           u: 0.5,
@@ -348,30 +352,51 @@ export function PatchAdmin({
             )}
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="patch-surface">Cut placement</Label>
-                <Select
-                  value={form.surface}
-                  onValueChange={(v) => setForm({ ...form, surface: v as "front" | "back" })}
-                >
-                  <SelectTrigger id="patch-surface" className="mt-1 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="front">Front of vest</SelectItem>
-                    <SelectItem value="back">Back of vest</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* An emblem is never placed, so asking where to put it is noise. */}
+              {form.emblem ? (
+                <div className="flex min-h-11 items-end pb-2">
+                  <p className="text-xs text-muted-foreground">
+                    Emblems aren&apos;t worn on the cut — they show as a levelled
+                    ladder on the member&apos;s profile.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="patch-surface">Cut placement</Label>
+                  <Select
+                    value={form.surface}
+                    onValueChange={(v) => setForm({ ...form, surface: v as "front" | "back" })}
+                  >
+                    <SelectTrigger id="patch-surface" className="mt-1 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="front">Front of vest</SelectItem>
+                      <SelectItem value="back">Back of vest</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="flex min-h-11 flex-col justify-end gap-2 pb-2 text-sm">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <Checkbox
+                    checked={form.active}
+                    onCheckedChange={(checked) =>
+                      setForm({ ...form, active: checked === true })
+                    }
+                  />
+                  Active
+                </label>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <Checkbox
+                    checked={form.emblem}
+                    onCheckedChange={(checked) =>
+                      setForm({ ...form, emblem: checked === true })
+                    }
+                  />
+                  Emblem (not worn on the cut)
+                </label>
               </div>
-              <label className="flex min-h-11 cursor-pointer items-end gap-2 pb-2 text-sm">
-                <Checkbox
-                  checked={form.active}
-                  onCheckedChange={(checked) =>
-                    setForm({ ...form, active: checked === true })
-                  }
-                />
-                Active
-              </label>
             </div>
           </div>
 

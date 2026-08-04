@@ -41,6 +41,7 @@ export default async function PatchAdminPage({
           requirement: p.requirement,
           manual: p.manual,
           active: p.active,
+          emblem: p.emblem === true,
           surface: p.defaultPlacement.surface,
           u: p.defaultPlacement.u,
           v: p.defaultPlacement.v,

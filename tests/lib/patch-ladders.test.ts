@@ -5,7 +5,11 @@
  */
 import { describe, expect, it } from "vitest";
 import { composeLadders, remainingLabel } from "@/lib/patch-ladders";
-import { CRIMINAL_PATCH_SEEDS, PATCH_LADDERS } from "@/lib/constants";
+import {
+  CRIMINAL_PATCH_SEEDS,
+  CRIMINAL_RECORD_ROWS,
+  PATCH_LADDERS,
+} from "@/lib/constants";
 import type { AwardedPatch, Patch, StatKey } from "@/lib/types";
 
 function patch(id: string, statKey: StatKey, threshold: number, active = true): Patch {
@@ -18,6 +22,7 @@ function patch(id: string, statKey: StatKey, threshold: number, active = true): 
     requirement: { statKey, threshold },
     manual: false,
     active,
+    emblem: true,
     defaultPlacement: { surface: "back", u: 0.5, v: 0.5, scale: 0.8, rotationDeg: 0 },
   };
 }
@@ -123,6 +128,19 @@ describe("composeLadders", () => {
     const ladders = composeLadders({ patches: [manual], awards: [], stats: {} });
     expect(ladders).toEqual([]);
   });
+
+  it("skips patches worn on the cut — the tab is emblems only", () => {
+    // Road Warrior and Faithful are threshold-driven too, but they belong on
+    // the Patch Wall; a two-rung club ladder next to a five-rung emblem one
+    // reads as a broken ladder.
+    const worn: Patch = { ...patch("road-warrior", "clubRuns", 10), emblem: false };
+    const ladders = composeLadders({
+      patches: [...LADDER, worn],
+      awards: [],
+      stats: { clubRuns: 50 },
+    });
+    expect(ladders.map((l) => l.statKey)).toEqual(["drugSales"]);
+  });
 });
 
 describe("PATCH_LADDERS seed data", () => {
@@ -147,9 +165,15 @@ describe("PATCH_LADDERS seed data", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("gives each ladder its own spot on the cut", () => {
-    const spots = PATCH_LADDERS.map((l) => `${l.surface}:${l.u}:${l.v}`);
-    expect(new Set(spots).size).toBe(spots.length);
+  it("marks every ladder tier as an emblem", () => {
+    // The whole point: fifty-five of these must never reach a cut.
+    expect(CRIMINAL_PATCH_SEEDS.every((p) => p.emblem === true)).toBe(true);
+  });
+
+  it("covers exactly the criminal record rows, in panel order", () => {
+    expect(PATCH_LADDERS.map((l) => l.statKey)).toEqual(
+      CRIMINAL_RECORD_ROWS.map((r) => r.statKey),
+    );
   });
 
   it("preserves the id and threshold of every patch that shipped before the ladders", () => {

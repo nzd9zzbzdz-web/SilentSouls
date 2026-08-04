@@ -16,8 +16,10 @@ export interface SyncResult {
   created: string[]; // names of activity types added
   alreadyPresent: number;
   retired: number; // club types pulled from the submit dropdown
-  patchesAdded: string[]; // criminal patches now earnable
+  patchesAdded: string[]; // criminal emblems now earnable
   patchesRetired: number; // patches whose stat is no longer loggable
+  emblemsMarked: number; // pre-split criminal patches flagged as emblems
+  cutsCleaned: number; // cuts that had emblems stripped off them
   membersMigrated: number; // legacy rap sheets folded into stats
 }
 
@@ -91,9 +93,22 @@ export async function syncDefaultActivityTypes(
     }
 
     const patchesAdded: string[] = [];
+    const emblemIds = new Set<string>();
+    let emblemsMarked = 0;
     for (const patch of CRIMINAL_PATCH_SEEDS) {
+      emblemIds.add(patch.id);
       const ref = org.collection("patches").doc(patch.id);
-      if ((await ref.get()).exists) continue;
+      const snap = await ref.get();
+      if (snap.exists) {
+        // The first eight criminal patches shipped before emblems existed and
+        // are worn on real cuts. Flag them so the engine stops placing them —
+        // merge-only, so an admin's edits to name/threshold survive.
+        if (snap.data()?.emblem !== true) {
+          await ref.set({ emblem: true }, { merge: true });
+          emblemsMarked += 1;
+        }
+        continue;
+      }
       await ref.set({
         name: patch.name,
         category: patch.category,
@@ -103,6 +118,7 @@ export async function syncDefaultActivityTypes(
         requirement: patch.requirement,
         manual: false,
         active: true,
+        emblem: true,
         defaultPlacement: {
           surface: patch.surface,
           u: patch.u,
@@ -112,6 +128,30 @@ export async function syncDefaultActivityTypes(
         },
       });
       patchesAdded.push(patch.name);
+    }
+
+    // Emblems already sitting on a cut from before the split have to come off,
+    // or a member keeps wearing patches the engine will never place again.
+    // The award docs are untouched — the emblem stays earned, it just isn't worn.
+    let cutsCleaned = 0;
+    const layouts = await org.collection("cutLayouts").get();
+    for (const doc of layouts.docs) {
+      const layout = doc.data() as {
+        surfaces?: Record<string, { kind?: string; refId?: string }[]>;
+      };
+      const surfaces = layout.surfaces ?? {};
+      let removed = 0;
+      const cleaned: Record<string, unknown[]> = {};
+      for (const [surface, placements] of Object.entries(surfaces)) {
+        cleaned[surface] = (placements ?? []).filter((p) => {
+          const drop = p.kind === "patch" && p.refId != null && emblemIds.has(p.refId);
+          if (drop) removed += 1;
+          return !drop;
+        });
+      }
+      if (removed === 0) continue;
+      await doc.ref.set({ surfaces: cleaned }, { merge: true });
+      cutsCleaned += 1;
     }
 
     // Legacy rap sheets → stats, so profiles don't reset to zero.
@@ -129,7 +169,13 @@ export async function syncDefaultActivityTypes(
     }
 
     const changed =
-      missing.length + retired + patchesAdded.length + patchesRetired + membersMigrated;
+      missing.length +
+      retired +
+      patchesAdded.length +
+      patchesRetired +
+      emblemsMarked +
+      cutsCleaned +
+      membersMigrated;
     if (changed > 0) {
       await writeAuditLog(orgId, {
         actorUid: access.user.uid,
@@ -138,6 +184,7 @@ export async function syncDefaultActivityTypes(
         detail:
           `+${missing.length} type(s), -${retired} retired, ` +
           `+${patchesAdded.length} patch(es), -${patchesRetired} retired, ` +
+          `${emblemsMarked} marked emblem, ${cutsCleaned} cut(s) cleaned, ` +
           `${membersMigrated} rap sheet(s) migrated`,
       });
     }
@@ -155,6 +202,8 @@ export async function syncDefaultActivityTypes(
         retired,
         patchesAdded,
         patchesRetired,
+        emblemsMarked,
+        cutsCleaned,
         membersMigrated,
       },
     };

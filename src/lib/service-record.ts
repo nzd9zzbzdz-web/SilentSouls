@@ -76,16 +76,17 @@ function row(
 }
 
 /**
- * Threshold patches ship as five-rung ladders per stat, so a working member
- * earns dozens of them — listing every rung turns a career timeline into a
- * patch dump and buries joining, being patched in, and promotions.
+ * Emblems ship as five-rung ladders across eleven stats, so a working member
+ * earns dozens — listing every rung turns a career timeline into an achievement
+ * feed and buries joining, being patched in, and promotions.
  *
- * Only the top rung of each ladder earns a row here: the milestone, not every
- * step toward it. The same rule the cut follows, and no history is lost — the
- * Patches tab on the profile shows every rung with the date it landed.
+ * Only the top rung of each emblem ladder earns a row: the level reached, not
+ * every step toward it. No history is lost — the Emblems tab on the profile
+ * shows every rung with the date it landed.
  *
- * Manual awards (President's Citation, War Veteran) have no ladder and always
- * get their own row; those are the ones with a story behind them.
+ * Patches are left alone. There are few of them, they're worn on the cut, and
+ * each one is its own milestone — Road Warrior doesn't stop counting because
+ * Iron Rider followed it.
  */
 function milestoneAwards(
   awards: AwardedPatch[],
@@ -95,16 +96,17 @@ function milestoneAwards(
   const standalone: AwardedPatch[] = [];
 
   for (const award of awards) {
-    const requirement = patchById.get(award.patchId)?.requirement;
-    if (!requirement) {
+    const patch = patchById.get(award.patchId);
+    if (patch?.emblem !== true || !patch.requirement) {
       standalone.push(award);
       continue;
     }
-    const held = topByStat.get(requirement.statKey);
+    const { statKey, threshold } = patch.requirement;
+    const held = topByStat.get(statKey);
     const heldThreshold = held
       ? (patchById.get(held.patchId)?.requirement?.threshold ?? 0)
       : -1;
-    if (requirement.threshold > heldThreshold) topByStat.set(requirement.statKey, award);
+    if (threshold > heldThreshold) topByStat.set(statKey, award);
   }
 
   return [...standalone, ...topByStat.values()];

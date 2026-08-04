@@ -35,19 +35,27 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   cookie presence only — firebase-admin cannot run there.
 - Patch awards use composite doc ids `memberId_patchId` ⇒ idempotent. The engine
   (`src/lib/patch-engine.ts`) is a single transaction: ALL reads before writes.
-- **Threshold patches come in five-rung ladders, one per criminal-record stat.**
-  `PATCH_LADDERS` in constants is the source; `CRIMINAL_PATCH_SEEDS` (55 entries)
-  is derived from it — never hand-list a tier. A ladder owns ONE spot on the cut
-  and `supersedeLadder` swaps the worn rung in place on both the approval and
-  manual-award paths (`scripts/seed.ts` repeats the rule in `buildCutLayout`);
-  without it a veteran wears every rung stacked. Superseded rungs stay *earned* —
-  they leave the vest, not the record. Same reason `composeServiceRecord` shows
-  only a ladder's top rung: the full climb lives on the profile's Patches tab
-  (`composeLadders`, `src/lib/patch-ladders.ts`), which builds ladders from the
-  org's own patch docs so admin edits and org-authored patches slot in.
-  Ladder progress is measured across the current segment, never from zero.
-  The 8 pre-ladder patches keep their id/threshold/category/rarity — awards
-  already granted must not change meaning.
+- **Emblems are patch docs that are never worn** (`patch.emblem === true`).
+  The criminal record ships as five-rung ladders, one per `CRIMINAL_RECORD_ROWS`
+  stat — 55 emblems, which would bury a vest. They are earned by the same
+  engine, counted in `patchCount`, and shown as levels on the profile's
+  **Emblems** tab; the cut never places them (`isWorn` in the engine, on both
+  the approval and manual-award paths; `scripts/seed.ts` repeats the rule in
+  `buildCutLayout`). Absent flag ⇒ worn, so every pre-emblem patch is unchanged.
+  - `PATCH_LADDERS` in constants is the source; `CRIMINAL_PATCH_SEEDS` (55) is
+    derived from it — never hand-list a tier. Emblems carry no real cut
+    coordinates (`EMBLEM_PLACEMENT` is inert; `Patch` just requires the field).
+  - `composeLadders` (`src/lib/patch-ladders.ts`) builds ladders from the org's
+    OWN patch docs filtered to emblems, so admin edits and org-authored emblems
+    slot in. Progress is measured across the current segment, never from zero.
+  - Patch Wall = what you wear (club + manual patches) with an emblem summary
+    linking to the profile. `composeServiceRecord` collapses each emblem ladder
+    to its top rung but leaves worn patches alone — Road Warrior doesn't stop
+    counting because Iron Rider followed it.
+  - The 8 pre-ladder criminal patches keep their id/threshold/category/rarity;
+    awards already granted must not change meaning. `syncDefaultActivityTypes`
+    is the migration for live orgs — it flags them `emblem` (merge-only) and
+    strips emblems off existing `cutLayouts`. Idempotent; awards untouched.
 - Officer-only data lives in **subcollections** (`members/*/notes`) — rules can't
   hide fields on a parent doc.
 - **No hardcoded brand colors/names in components.** Branding comes from

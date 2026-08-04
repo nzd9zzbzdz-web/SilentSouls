@@ -176,27 +176,25 @@ export const RETIRED_PATCH_IDS = [
 ];
 
 /**
- * Criminal-record patch ladders — one per row of CRIMINAL_RECORD_ROWS, five
+ * Criminal-record emblem ladders — one per row of CRIMINAL_RECORD_ROWS, five
  * tiers each. Every tier is driven by a stat members log and officers approve,
  * so the whole ladder moves on the existing pipeline; the patch engine already
  * awards every threshold crossed in a single pass, so jumping several tiers at
  * once works without special-casing.
  *
- * A ladder owns ONE spot on the cut (`surface`/`u`/`v`, shared by all five
- * tiers) — the engine supersedes lower tiers in place, so a veteran wears eleven
- * patches at their highest level rather than fifty-five stacked near-duplicates.
- * The earlier tiers stay earned; they live in the trophy case on the profile.
+ * These are EMBLEMS, not patches: earned like a patch, shown as a levelled
+ * ladder on the member's profile, never placed on the cut. Fifty-five of them
+ * would bury a vest, and levelling up an emblem is a different feeling from
+ * being handed a patch — so `emblem: true` on every seed below, and no cut
+ * coordinates to invent.
  *
- * The eight patches that shipped before this ladder existed keep their original
- * id, threshold, description, category and rarity, so awards already granted
- * still resolve and nobody's patch quietly changes meaning. `legacy: true` marks
+ * The eight that shipped before the ladders existed keep their original id,
+ * threshold, description, category and rarity, so awards already granted still
+ * resolve and nobody's patch quietly changes meaning. `legacy: true` marks
  * them — it is documentation, nothing reads it.
  */
 export const PATCH_LADDERS: {
   statKey: StatKey;
-  surface: "front" | "back";
-  u: number;
-  v: number;
   tiers: {
     id: string;
     name: string;
@@ -208,7 +206,7 @@ export const PATCH_LADDERS: {
   }[];
 }[] = [
   {
-    statKey: "crimesCommitted", surface: "front", u: 0.3, v: 0.72,
+    statKey: "crimesCommitted",
     tiers: [
       { id: "petty-thief", name: "Petty Thief", description: "Commit 25 crimes.", threshold: 25 },
       { id: "troublemaker", name: "Troublemaker", description: "Commit 150 crimes.", threshold: 150 },
@@ -218,7 +216,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "felonies", surface: "front", u: 0.5, v: 0.3,
+    statKey: "felonies",
     tiers: [
       { id: "convicted", name: "Convicted", description: "Commit 5 felonies.", threshold: 5 },
       { id: "repeat-offender", name: "Repeat Offender", description: "Commit 25 felonies.", threshold: 25 },
@@ -228,7 +226,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "heistsCompleted", surface: "back", u: 0.7, v: 0.72,
+    statKey: "heistsCompleted",
     tiers: [
       { id: "first-job", name: "First Job", description: "Pull 3 heists.", threshold: 3 },
       { id: "made-man", name: "Made Man", description: "Pull 10 heists.", threshold: 10, rarity: "epic", legacy: true },
@@ -238,7 +236,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "drugSales", surface: "back", u: 0.3, v: 0.62,
+    statKey: "drugSales",
     tiers: [
       { id: "corner-boy", name: "Corner Boy", description: "Move 1,000 drug sales.", threshold: 1_000, legacy: true },
       { id: "slinger", name: "Slinger", description: "Move 5,000 drug sales.", threshold: 5_000 },
@@ -248,7 +246,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "drugsCooked", surface: "back", u: 0.7, v: 0.62,
+    statKey: "drugsCooked",
     tiers: [
       { id: "line-cook", name: "Line Cook", description: "Cook 100 batches.", threshold: 100 },
       { id: "the-cook", name: "The Cook", description: "Cook 500 batches.", threshold: 500, legacy: true },
@@ -258,7 +256,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "gunsManufactured", surface: "back", u: 0.3, v: 0.72,
+    statKey: "gunsManufactured",
     tiers: [
       { id: "tinkerer", name: "Tinkerer", description: "Manufacture 10 guns.", threshold: 10 },
       { id: "gunsmith", name: "Gunsmith", description: "Manufacture 50 guns.", threshold: 50, legacy: true },
@@ -268,7 +266,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "dirtyMoneyEarned", surface: "front", u: 0.3, v: 0.62,
+    statKey: "dirtyMoneyEarned",
     tiers: [
       { id: "hustler", name: "Hustler", description: "Earn $100K in dirty money.", threshold: 100_000, category: "service" },
       { id: "earner", name: "Earner", description: "Earn $1M in dirty money.", threshold: 1_000_000, category: "service", legacy: true },
@@ -278,7 +276,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "dirtyMoneyCleaned", surface: "front", u: 0.7, v: 0.62,
+    statKey: "dirtyMoneyCleaned",
     tiers: [
       { id: "cash-wash", name: "Cash Wash", description: "Wash $50K through the books.", threshold: 50_000, category: "service" },
       { id: "bookkeeper", name: "Bookkeeper", description: "Wash $250K through the books.", threshold: 250_000, category: "service" },
@@ -288,7 +286,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "policeGunnedDown", surface: "front", u: 0.7, v: 0.72,
+    statKey: "policeGunnedDown",
     tiers: [
       { id: "shots-fired", name: "Shots Fired", description: "Put down 5 police.", threshold: 5 },
       { id: "badge-hunter", name: "Badge Hunter", description: "Put down 25 police.", threshold: 25 },
@@ -298,7 +296,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "timesArrested", surface: "back", u: 0.5, v: 0.82,
+    statKey: "timesArrested",
     tiers: [
       { id: "booked", name: "Booked", description: "Get arrested 5 times.", threshold: 5 },
       { id: "frequent-flyer", name: "Frequent Flyer", description: "Get arrested 20 times.", threshold: 20 },
@@ -308,7 +306,7 @@ export const PATCH_LADDERS: {
     ],
   },
   {
-    statKey: "jailTimeMonths", surface: "back", u: 0.5, v: 0.3,
+    statKey: "jailTimeMonths",
     tiers: [
       { id: "held-overnight", name: "Held Overnight", description: "Serve 6 months inside.", threshold: 6, category: "leadership" },
       { id: "done-a-bit", name: "Done a Bit", description: "Serve 60 months inside.", threshold: 60, category: "leadership" },
@@ -318,6 +316,20 @@ export const PATCH_LADDERS: {
     ],
   },
 ];
+
+/**
+ * Placement stored on an emblem seed. Inert: the engine never places an emblem
+ * on a cut, and the seeder skips them too. It exists only because `Patch`
+ * requires a `defaultPlacement`, and one obviously-neutral value beats
+ * scattering invented coordinates that read as if they mean something.
+ */
+const EMBLEM_PLACEMENT = {
+  surface: "front" as const,
+  u: 0.5,
+  v: 0.5,
+  scale: 0.8,
+  rotationDeg: 0,
+};
 
 /**
  * The ladders flattened into patch seeds — what the seeder writes and what
@@ -332,6 +344,7 @@ export const CRIMINAL_PATCH_SEEDS: {
   tier: number;
   rarity: "common" | "rare" | "epic" | "legendary";
   requirement: { statKey: StatKey; threshold: number };
+  emblem: true;
   surface: "front" | "back";
   u: number;
   v: number;
@@ -352,9 +365,10 @@ export const CRIMINAL_PATCH_SEEDS: {
         | "epic"
         | "legendary"),
     requirement: { statKey: ladder.statKey, threshold: t.threshold },
-    surface: ladder.surface,
-    u: ladder.u,
-    v: ladder.v,
+    emblem: true as const,
+    surface: EMBLEM_PLACEMENT.surface,
+    u: EMBLEM_PLACEMENT.u,
+    v: EMBLEM_PLACEMENT.v,
   })),
 );
 

@@ -122,11 +122,17 @@ describe("composeServiceRecord", () => {
     expect(items.map((i) => i.kind)).toEqual(["promotion", "patch", "joined"]);
   });
 
-  it("shows only the top rung of a patch ladder", () => {
-    // Threshold patches ship five-to-a-stat, so every rung would bury the rest
-    // of the timeline. The Patches tab keeps the full climb.
+  it("shows only the top rung of an emblem ladder", () => {
+    // Emblems ship five-to-a-stat, so every rung would bury the rest of the
+    // timeline. The Emblems tab keeps the full climb.
     const rung = (id: string, name: string, threshold: number): Patch =>
-      ({ id, name, description: "", requirement: { statKey: "drugSales", threshold } }) as Patch;
+      ({
+        id,
+        name,
+        description: "",
+        emblem: true,
+        requirement: { statKey: "drugSales", threshold },
+      }) as Patch;
 
     const items = composeServiceRecord({
       ...base,
@@ -147,9 +153,15 @@ describe("composeServiceRecord", () => {
     expect(patchRows[0].title).toBe('Earned the "Dealer" patch');
   });
 
-  it("keeps every ladder and every manual award separate", () => {
+  it("keeps every emblem ladder and every manual award separate", () => {
     const rung = (id: string, name: string, statKey: string, threshold: number): Patch =>
-      ({ id, name, description: "", requirement: { statKey, threshold } }) as Patch;
+      ({
+        id,
+        name,
+        description: "",
+        emblem: true,
+        requirement: { statKey, threshold },
+      }) as Patch;
 
     const items = composeServiceRecord({
       ...base,
@@ -172,6 +184,34 @@ describe("composeServiceRecord", () => {
       'Earned the "War Veteran" patch',
       'Earned the "First Job" patch',
       'Earned the "Slinger" patch',
+    ]);
+  });
+
+  it("never collapses patches worn on the cut", () => {
+    // Road Warrior doesn't stop counting because Iron Rider followed it.
+    const clubPatch = (id: string, name: string, threshold: number): Patch =>
+      ({
+        id,
+        name,
+        description: "",
+        requirement: { statKey: "clubRuns", threshold },
+      }) as Patch;
+
+    const items = composeServiceRecord({
+      ...base,
+      awards: [
+        award("a1", "rw", "2026-02-01T00:00:00Z"),
+        award("a2", "ir", "2026-03-01T00:00:00Z"),
+      ],
+      patchById: new Map([
+        ["rw", clubPatch("rw", "Road Warrior", 10)],
+        ["ir", clubPatch("ir", "Iron Rider", 50)],
+      ]),
+    });
+
+    expect(items.filter((i) => i.kind === "patch").map((i) => i.title)).toEqual([
+      'Earned the "Iron Rider" patch',
+      'Earned the "Road Warrior" patch',
     ]);
   });
 });

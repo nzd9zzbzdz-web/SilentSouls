@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { CharacterArtUploader } from "@/components/portal/CharacterArtUploader";
 import { type StagePatch } from "@/components/portal/CharacterStage";
 import { CharacterPoseEditor } from "@/components/portal/CharacterPoseEditor";
-import { PatchLadders } from "@/components/portal/PatchLadders";
+import { EmblemLadders } from "@/components/portal/EmblemLadders";
 import { ServiceRecord } from "@/components/portal/ServiceRecord";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { composeLadders } from "@/lib/patch-ladders";
@@ -109,8 +109,9 @@ export default async function MemberDetailPage({
     career,
   });
 
-  // Patch progression: every threshold-driven patch grouped into a ladder per
+  // Emblem progression: the criminal record grouped into a five-rung ladder per
   // stat, so the tab reads as levels climbed rather than a flat list of names.
+  // Emblems never reach the cut — this tab is the only place they live.
   const ladders = composeLadders({ patches, awards, stats: member.stats });
 
   return (
@@ -146,8 +147,8 @@ export default async function MemberDetailPage({
       <Tabs defaultValue="service" className="mt-8 gap-4">
         <TabsList>
           <TabsTrigger value="service">Service Record</TabsTrigger>
-          <TabsTrigger value="patches">
-            Patches
+          <TabsTrigger value="emblems">
+            Emblems
             <span className="font-stat ml-1.5 text-xs text-muted-foreground">
               {ladders.reduce((n, l) => n + l.earnedCount, 0)}
             </span>
@@ -169,8 +170,8 @@ export default async function MemberDetailPage({
           />
         </TabsContent>
 
-        <TabsContent value="patches">
-          <PatchLadders
+        <TabsContent value="emblems">
+          <EmblemLadders
             ladders={ladders}
             roadName={member.roadName}
             isSelf={access.memberId === memberId}

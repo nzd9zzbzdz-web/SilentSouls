@@ -14,6 +14,8 @@ export const patchSchema = z.object({
     })
     .nullable(),
   active: z.boolean().default(true),
+  // Emblems are earned like patches but never placed on the cut.
+  emblem: z.boolean().default(false),
   defaultPlacement: z.object({
     surface: z.enum(["front", "back"]),
     u: z.number().min(0).max(1),

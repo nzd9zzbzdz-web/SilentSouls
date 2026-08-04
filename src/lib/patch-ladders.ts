@@ -2,14 +2,17 @@ import { CRIMINAL_RECORD_ROWS, PATCH_LADDERS, STAT_LABELS } from "@/lib/constant
 import type { AwardedPatch, Patch, StatKey } from "@/lib/types";
 
 /**
- * View model for the Patches tab on a member's profile: every threshold-driven
- * patch grouped into a ladder per stat, so progression reads as levels rather
- * than a flat wall of names.
+ * View model for the Patches tab on a member's profile: every criminal-record
+ * emblem grouped into a ladder per stat, so progression reads as levels — the
+ * feel of levelling an emblem in a game rather than a flat wall of names.
+ *
+ * Emblems only (`patch.emblem === true`). Patches worn on the cut have their
+ * own home on the Patch Wall; this tab is the achievement system.
  *
  * The ladders are built from the org's OWN patch docs, not from PATCH_LADDERS —
  * an admin who retunes a threshold or renames a tier should see that on the
- * profile, and an org-authored patch on the same stat slots into the ladder for
- * free. PATCH_LADDERS only decides the order the ladders appear in.
+ * profile, and an org-authored emblem on the same stat slots into the ladder
+ * for free. PATCH_LADDERS only decides the order the ladders appear in.
  *
  * Free of `server-only` and firebase-admin so the profile page, the patch wall
  * and tests can all share one definition of "what level is this member at".
@@ -76,9 +79,13 @@ export function composeLadders({
 
   const byStat = new Map<StatKey, Patch[]>();
   for (const patch of patches) {
-    // Retired patches still show if the member earned one — the award is real
-    // history — but an unearned retired tier is dead weight on the ladder.
+    // Emblems only. Club patches (Road Warrior, Faithful) are threshold-driven
+    // too, but they are worn on the cut and belong on the Patch Wall — mixing
+    // them in would put two-rung ladders next to five-rung ones.
+    if (patch.emblem !== true) continue;
     if (!patch.requirement) continue;
+    // Retired emblems still show if the member earned one — the award is real
+    // history — but an unearned retired tier is dead weight on the ladder.
     if (!patch.active && !awardedAtById.has(patch.id)) continue;
     const list = byStat.get(patch.requirement.statKey);
     if (list) list.push(patch);

@@ -194,4 +194,85 @@ describe("syncDefaultActivityTypes", () => {
     expect(stats.heistsCompleted).toBe(2); // approved log wins over the typed value
     expect(stats.clubRuns).toBe(5); // untouched
   });
+
+  describe("emblem migration", () => {
+    /**
+     * The live org ran the pre-emblem build: eight criminal patches exist
+     * without the flag and are sitting on real cuts. The sync is the only way
+     * those orgs get fixed — no CLI, no credentials — so it has to both flag
+     * the docs and take them back off the vest.
+     */
+    async function seedPreEmblemState() {
+      // Two criminal patches as they shipped: no `emblem` field.
+      for (const id of ["corner-boy", "the-cook"]) {
+        const seed = CRIMINAL_PATCH_SEEDS.find((p) => p.id === id)!;
+        await orgRef(ORG).collection("patches").doc(id).set({
+          name: seed.name,
+          category: seed.category,
+          description: seed.description,
+          tier: seed.tier,
+          requirement: seed.requirement,
+          manual: false,
+          active: true,
+          defaultPlacement: { surface: "back", u: 0.3, v: 0.62, scale: 0.8, rotationDeg: 0 },
+        });
+      }
+      await orgRef(ORG).collection("cutLayouts").doc("m1").set({
+        surfaces: {
+          front: [
+            { kind: "rankTab", refId: "rank", surface: "front", u: 0.5, v: 0.16, scale: 1, rotationDeg: 0, zIndex: 1, mirrored: false },
+            { kind: "patch", refId: "road-warrior", surface: "front", u: 0.3, v: 0.42, scale: 0.8, rotationDeg: 0, zIndex: 2, mirrored: false },
+          ],
+          back: [
+            { kind: "patch", refId: "corner-boy", surface: "back", u: 0.3, v: 0.62, scale: 0.8, rotationDeg: 0, zIndex: 1, mirrored: false },
+            { kind: "patch", refId: "the-cook", surface: "back", u: 0.7, v: 0.62, scale: 0.8, rotationDeg: 0, zIndex: 2, mirrored: false },
+          ],
+        },
+        updatedAt: Timestamp.now(),
+      });
+    }
+
+    it("flags pre-emblem criminal patches without touching their content", async () => {
+      await seedPreEmblemState();
+      const res = await syncDefaultActivityTypes(ORG);
+
+      expect(res.data!.emblemsMarked).toBe(2);
+      const doc = (await orgRef(ORG).collection("patches").doc("corner-boy").get()).data()!;
+      expect(doc.emblem).toBe(true);
+      expect(doc.name).toBe("Corner Boy"); // merge, not overwrite
+      expect(doc.requirement.threshold).toBe(1_000);
+    });
+
+    it("strips emblems off existing cuts and leaves real patches alone", async () => {
+      await seedPreEmblemState();
+      const res = await syncDefaultActivityTypes(ORG);
+
+      expect(res.data!.cutsCleaned).toBe(1);
+      const cut = (await orgRef(ORG).collection("cutLayouts").doc("m1").get()).data()!;
+      expect(cut.surfaces.back).toEqual([]);
+      // The rank tab and the club patch survive.
+      expect(cut.surfaces.front.map((p: { refId: string }) => p.refId)).toEqual([
+        "rank",
+        "road-warrior",
+      ]);
+    });
+
+    it("is idempotent — a second run changes nothing", async () => {
+      await seedPreEmblemState();
+      await syncDefaultActivityTypes(ORG);
+      const second = await syncDefaultActivityTypes(ORG);
+
+      expect(second.data!.emblemsMarked).toBe(0);
+      expect(second.data!.cutsCleaned).toBe(0);
+      expect(second.data!.patchesAdded).toHaveLength(0);
+    });
+
+    it("installs every new emblem already flagged", async () => {
+      const res = await syncDefaultActivityTypes(ORG);
+      expect(res.data!.patchesAdded).toHaveLength(CRIMINAL_PATCH_SEEDS.length);
+
+      const snap = await orgRef(ORG).collection("patches").get();
+      expect(snap.docs.every((d) => d.data().emblem === true)).toBe(true);
+    });
+  });
 });

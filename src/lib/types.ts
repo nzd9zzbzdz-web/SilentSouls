@@ -232,6 +232,14 @@ export interface Patch {
   requirement: PatchRequirement | null; // null ⇒ manual-only
   manual: boolean;
   active: boolean;
+  /**
+   * Achievement emblem, not a patch worn on the cut. Emblems are earned the
+   * same way (threshold on a stat, awarded by the engine) and show in the
+   * Patches tab on a member's profile, but the cut never places them —
+   * criminal-record ladders would bury the vest fifty-five deep.
+   * Absent ⇒ false, so every patch that predates emblems is still worn.
+   */
+  emblem?: boolean;
   defaultPlacement: CutPlacementBase; // legacy direct u/v; kept as fallback when no slot resolves
 }
 

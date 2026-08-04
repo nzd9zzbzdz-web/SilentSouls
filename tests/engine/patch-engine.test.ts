@@ -41,8 +41,9 @@ async function resetOrg() {
     active: true,
     defaultPlacement: { surface: "back", u: 0.5, v: 0.5, scale: 1, rotationDeg: 0 },
   });
-  // A three-rung ladder on one stat — enough to exercise superseding without
-  // restating all five tiers the real criminal-record ladders ship with.
+  // A three-rung emblem ladder on one stat — enough to prove emblems are
+  // awarded but never worn, without restating all five tiers the real
+  // criminal-record ladders ship with.
   const ladder = [
     { id: "rung-1", threshold: 5 },
     { id: "rung-2", threshold: 10 },
@@ -57,7 +58,7 @@ async function resetOrg() {
       requirement: { statKey: "heistsCompleted", threshold: rung.threshold },
       manual: false,
       active: true,
-      // Every rung shares one spot — the ladder owns it, the top tier wears it.
+      emblem: true,
       defaultPlacement: { surface: "back", u: 0.7, v: 0.72, scale: 0.8, rotationDeg: 0 },
     });
   }
@@ -156,7 +157,7 @@ describe("approveActivityTx", () => {
   });
 });
 
-describe("ladder superseding", () => {
+describe("emblems", () => {
   /** refIds of patches currently placed on a surface of m1's cut. */
   async function wornOn(surface: "front" | "back"): Promise<string[]> {
     const cut = await orgRef(ORG).collection("cutLayouts").doc("m1").get();
@@ -180,55 +181,40 @@ describe("ladder superseding", () => {
     return approveActivityTx(ORG, id, "reviewer-uid");
   }
 
-  it("awards every rung crossed but wears only the top one", async () => {
+  it("awards every rung crossed and wears none of them", async () => {
     const result = await logHeists("h1", 12); // clears rungs 1 and 2 at once
     expect(result.awardedPatchIds.sort()).toEqual(["rung-1", "rung-2"]);
 
-    // Both awards are real history...
+    // Both awards are real — they just never reach the vest.
     for (const id of ["rung-1", "rung-2"]) {
       const award = await orgRef(ORG).collection("awardedPatches").doc(`m1_${id}`).get();
       expect(award.exists).toBe(true);
     }
-    // ...but the cut shows where they got to, not every step.
-    expect(await wornOn("back")).toEqual(["rung-2"]);
-  });
-
-  it("replaces the worn rung when the next one lands later", async () => {
-    await logHeists("h1", 6); // rung 1
-    expect(await wornOn("back")).toEqual(["rung-1"]);
-
-    await logHeists("h2", 5); // 11 total ⇒ rung 2
-    expect(await wornOn("back")).toEqual(["rung-2"]);
-
-    // The superseded rung stays earned — it just isn't on the vest.
-    const old = await orgRef(ORG).collection("awardedPatches").doc("m1_rung-1").get();
-    expect(old.exists).toBe(true);
+    expect(await wornOn("back")).toEqual([]);
     const member = await orgRef(ORG).collection("members").doc("m1").get();
-    expect(member.data()?.patchCount).toBe(2);
+    expect(member.data()?.patchCount).toBe(2); // still counted as earned
   });
 
-  it("leaves other ladders alone when one supersedes", async () => {
+  it("never creates a cut for a member who has only earned emblems", async () => {
+    await logHeists("h1", 12);
+    const cut = await orgRef(ORG).collection("cutLayouts").doc("m1").get();
+    expect(cut.exists).toBe(false);
+  });
+
+  it("still places patches that are not emblems", async () => {
     await approveActivityTx(ORG, "a1", "reviewer-uid"); // clubRuns patch, front
     await logHeists("h1", 12);
     expect(await wornOn("front")).toEqual(["test-patch"]);
-    expect(await wornOn("back")).toEqual(["rung-2"]);
+    expect(await wornOn("back")).toEqual([]);
   });
 
-  it("does not demote the cut when a lower rung is awarded by hand", async () => {
-    await logHeists("h1", 12); // wearing rung 2
-    const awarded = await manualAwardTx(ORG, "m1", "rung-1", "prez-uid", "Backdated.");
-    expect(awarded).toBe(false); // already held
+  it("does not wear a hand-granted emblem either", async () => {
+    const awarded = await manualAwardTx(ORG, "m1", "rung-3", "prez-uid", "Earned it.");
+    expect(awarded).toBe(true);
 
-    await orgRef(ORG).collection("awardedPatches").doc("m1_rung-1").delete();
-    const regranted = await manualAwardTx(ORG, "m1", "rung-1", "prez-uid", "Backdated.");
-    expect(regranted).toBe(true);
-    expect(await wornOn("back")).toEqual(["rung-2"]); // still the higher rung
-  });
-
-  it("wears a hand-granted rung that outranks what the member has", async () => {
-    await logHeists("h1", 6); // rung 1
-    await manualAwardTx(ORG, "m1", "rung-3", "prez-uid", "Earned it the hard way.");
-    expect(await wornOn("back")).toEqual(["rung-3"]);
+    const award = await orgRef(ORG).collection("awardedPatches").doc("m1_rung-3").get();
+    expect(award.data()?.reason).toBe("Earned it.");
+    expect(await wornOn("back")).toEqual([]);
   });
 });
 

@@ -1,17 +1,18 @@
-import { Award, Check, Lock } from "lucide-react";
+import { Check, Gem, Lock } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { remainingLabel, type Ladder, type LadderTier } from "@/lib/patch-ladders";
 
 /**
- * The Patches tab on a member's profile: one ladder per stat, five rungs each,
- * showing where they got to and what the next one costs.
+ * The Emblems tab on a member's profile: one ladder per criminal-record stat,
+ * five rungs each, showing the level they reached and what the next one costs.
  *
- * Deliberately not the Patch Wall. The wall is a catalogue of everything the
- * club offers; this is one member's climb, so it leads with the levels they
- * hold and keeps the unearned rungs visible but quiet.
+ * Emblems are not patches — nothing here goes on the cut. This is the
+ * achievement system, so it reads like levelling one: rungs light up in the
+ * rarity colour as they land, the next one sits dashed and waiting, the rest
+ * stay dark.
  *
- * Every rung is a threshold on a stat that members log and officers approve, so
- * nothing here is hand-maintained — the ladders move when the record does.
+ * Every rung is a threshold on a stat members log and officers approve, so
+ * nothing is hand-maintained — the ladders move when the record does.
  */
 
 const RARITY_COLOR: Record<string, string> = {
@@ -127,7 +128,7 @@ function LadderRow({ ladder }: { ladder: Ladder }) {
   );
 }
 
-export function PatchLadders({
+export function EmblemLadders({
   ladders,
   roadName,
   isSelf,
@@ -141,13 +142,13 @@ export function PatchLadders({
 
   return (
     <section
-      aria-label="Patches"
+      aria-label="Emblems"
       className="texture-noise rounded-xl border border-primary/20 bg-card p-6 md:p-8"
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <DisplayHeading as="h2" className="text-2xl text-primary md:text-3xl">
-            Patches
+            Emblems
           </DisplayHeading>
           <p className="mt-1 text-sm text-muted-foreground">
             {isSelf
@@ -156,7 +157,7 @@ export function PatchLadders({
           </p>
         </div>
         <p className="font-stat flex items-center gap-2 text-sm text-foreground">
-          <Award className="size-4 text-primary" aria-hidden />
+          <Gem className="size-4 text-primary" aria-hidden />
           <span className="text-primary">{earned}</span> of {total} earned
         </p>
       </div>
@@ -164,7 +165,7 @@ export function PatchLadders({
       {ladders.length === 0 ? (
         <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
           <Lock className="size-4" aria-hidden />
-          No patches configured yet.
+          No emblems configured yet.
         </p>
       ) : (
         <ul className="mt-6 grid gap-4 lg:grid-cols-2">
