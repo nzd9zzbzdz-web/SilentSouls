@@ -84,8 +84,7 @@ describe("criminal record wiring", () => {
     const id = await submit("heist-completed", "heistsCompleted", 1);
     const result = await approveActivityTx(ORG, id, "officer-uid");
 
-    expect(result.statKey).toBe("heistsCompleted");
-    expect(result.newStatValue).toBe(5);
+    expect(result.stats).toEqual([{ statKey: "heistsCompleted", newValue: 5 }]);
     expect((await statsOf()).heistsCompleted).toBe(5);
   });
 

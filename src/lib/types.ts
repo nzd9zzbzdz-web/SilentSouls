@@ -114,6 +114,7 @@ export interface ActivityType {
   id: string;
   name: string;
   statKey: StatKey;
+  /** Advisory only — the form suggests attaching proof but never blocks on it. */
   requiresProof: boolean;
   allowQuantity: boolean;
   defaultQuantity: number;
@@ -188,14 +189,24 @@ export interface Member {
 
 export type ActivityStatus = "pending" | "approved" | "denied";
 
+/** One activity type on a ticket. statKey/quantity denormalized at submit time. */
+export interface ActivityEntry {
+  typeId: string;
+  statKey: StatKey;
+  quantity: number;
+}
+
 export interface Activity {
   id: string;
   memberId: string;
-  typeId: string;
-  statKey: StatKey; // denormalized from type at submit time
+  /** Multi-type tickets. Docs from before multi-select carry the three legacy
+   *  top-level fields instead — read via activityEntries(), never directly. */
+  entries?: ActivityEntry[];
+  typeId?: string;
+  statKey?: StatKey;
+  quantity?: number;
   date: Timestamp | Date;
   description: string;
-  quantity: number;
   proofPath?: string;
   witnesses: string[]; // memberIds
   status: ActivityStatus;

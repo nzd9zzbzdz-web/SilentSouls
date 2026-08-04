@@ -4,6 +4,7 @@ import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ReviewQueue } from "@/components/portal/ReviewQueue";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
+import { activityEntries } from "@/lib/activity-entries";
 import {
   listActivities,
   listActivityTypes,
@@ -33,11 +34,12 @@ export default async function ReviewQueuePage({
     id: activity.id,
     memberName: memberById.get(activity.memberId)?.roadName ?? "Unknown",
     memberFullName: memberById.get(activity.memberId)?.displayName ?? "",
-    typeName: typeById.get(activity.typeId)?.name ?? activity.typeId,
-    statKey: activity.statKey,
+    entries: activityEntries(activity).map((e) => ({
+      typeName: typeById.get(e.typeId)?.name ?? e.typeId,
+      quantity: e.quantity,
+    })),
     date: (activity.date as Timestamp)?.toDate?.().toISOString() ?? "",
     description: activity.description,
-    quantity: activity.quantity,
     witnesses: activity.witnesses
       .map((id) => memberById.get(id)?.roadName)
       .filter(Boolean) as string[],

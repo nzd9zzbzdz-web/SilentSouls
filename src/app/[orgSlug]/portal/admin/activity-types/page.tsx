@@ -92,7 +92,7 @@ export default async function ActivityTypesAdminPage({
                 <TableCell className="text-sm">{STAT_LABELS[type.statKey]}</TableCell>
                 <TableCell>
                   {type.requiresProof ? (
-                    <Badge variant="outline">Required</Badge>
+                    <Badge variant="outline">Recommended</Badge>
                   ) : (
                     <span className="text-sm text-muted-foreground">Optional</span>
                   )}

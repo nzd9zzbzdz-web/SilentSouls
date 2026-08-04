@@ -371,11 +371,9 @@ async function seed() {
   // A pending activity for the golden path (Eli's 10th club ride)
   await org.collection("activities").doc("a-golden-path").set({
     memberId: "m-patch",
-    typeId: "club-ride",
-    statKey: "clubRuns",
+    entries: [{ typeId: "club-ride", statKey: "clubRuns", quantity: 1 }],
     date: Timestamp.fromDate(new Date("2026-07-05")),
     description: "Full club run out to Paleto Bay and back, rode sweep the whole way.",
-    quantity: 1,
     witnesses: ["m-six", "m-thorn"],
     status: "pending",
     createdAt: Timestamp.now(),

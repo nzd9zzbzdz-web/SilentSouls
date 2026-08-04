@@ -9,11 +9,12 @@ import type {
   StatKey,
 } from "@/lib/types";
 import { checkMilestones } from "@/lib/milestones";
+import { activityEntries } from "@/lib/activity-entries";
 
 export interface EngineResult {
   memberId: string;
-  statKey: StatKey;
-  newStatValue: number;
+  /** Every stat the ticket touched, with its post-approval value. */
+  stats: { statKey: StatKey; newValue: number }[];
   awardedPatchIds: string[];
 }
 
@@ -84,13 +85,18 @@ export async function approveActivityTx(
     if (!mSnap.exists) throw new EngineError("member_not_found");
     const member = mSnap.data() as Member;
 
-    const quantity = activity.quantity ?? 1;
-    const statKey = activity.statKey;
-    const newStat = (member.stats?.[statKey] ?? 0) + quantity;
+    // A ticket can carry several activity types. Aggregate per stat (two
+    // entries may feed the same stat), then evaluate patches across all of them.
+    const newStats = new Map<StatKey, number>();
+    for (const entry of activityEntries(activity)) {
+      const base = newStats.get(entry.statKey) ?? member.stats?.[entry.statKey] ?? 0;
+      newStats.set(entry.statKey, base + (entry.quantity ?? 1));
+    }
 
-    const relevant = candidates.filter(
-      (p) => p.requirement!.statKey === statKey && newStat >= p.requirement!.threshold,
-    );
+    const relevant = candidates.filter((p) => {
+      const newStat = newStats.get(p.requirement!.statKey);
+      return newStat !== undefined && newStat >= p.requirement!.threshold;
+    });
     const awardRefs = relevant.map((p) =>
       org.collection("awardedPatches").doc(`${activity.memberId}_${p.id}`),
     );
@@ -112,7 +118,9 @@ export async function approveActivityTx(
     });
 
     tx.update(memberRef, {
-      [`stats.${statKey}`]: newStat,
+      ...Object.fromEntries(
+        [...newStats].map(([key, value]) => [`stats.${key}`, value]),
+      ),
       patchCount: (member.patchCount ?? 0) + newAwards.length,
       lastActivityAt: FieldValue.serverTimestamp(),
     });
@@ -146,14 +154,15 @@ export async function approveActivityTx(
       actorUid: reviewerUid,
       action: "activity.approve",
       targetPath: activityRef.path,
-      detail: `${statKey} +${quantity}; awards: ${newAwards.map((p) => p.name).join(", ") || "none"}`,
+      detail: `${[...newStats]
+        .map(([key, value]) => `${key} +${value - (member.stats?.[key] ?? 0)}`)
+        .join(", ")}; awards: ${newAwards.map((p) => p.name).join(", ") || "none"}`,
       at: FieldValue.serverTimestamp(),
     });
 
     return {
       memberId: activity.memberId,
-      statKey,
-      newStatValue: newStat,
+      stats: [...newStats].map(([statKey, newValue]) => ({ statKey, newValue })),
       awardedPatchIds: newAwards.map((p) => p.id),
     } satisfies EngineResult;
   });

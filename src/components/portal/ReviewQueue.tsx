@@ -23,13 +23,22 @@ export interface ReviewItem {
   id: string;
   memberName: string;
   memberFullName: string;
-  typeName: string;
-  statKey: string;
+  /** One ticket can carry several activity types. */
+  entries: { typeName: string; quantity: number }[];
   date: string;
   description: string;
-  quantity: number;
   witnesses: string[];
   hasProof: boolean;
+}
+
+function entriesLabel(item: ReviewItem): string {
+  return item.entries
+    .map((e) =>
+      e.quantity > 1
+        ? `${e.typeName} ×${e.quantity.toLocaleString("en-US")}`
+        : e.typeName,
+    )
+    .join(" · ");
 }
 
 export function ReviewQueue({
@@ -120,10 +129,7 @@ export function ReviewQueue({
                         {item.memberFullName}
                       </span>
                     </p>
-                    <p className="text-sm text-primary">
-                      {item.typeName}
-                      {item.quantity > 1 && ` ×${item.quantity}`}
-                    </p>
+                    <p className="text-sm text-primary">{entriesLabel(item)}</p>
                   </div>
                   <time className="text-sm text-muted-foreground">
                     {item.date &&
@@ -196,7 +202,7 @@ export function ReviewQueue({
             <DialogTitle>Deny this submission?</DialogTitle>
             <DialogDescription>
               {denyTarget &&
-                `"${denyTarget.memberName}" · ${denyTarget.typeName}. Tell them why so they can fix it.`}
+                `"${denyTarget.memberName}" · ${entriesLabel(denyTarget)}. Tell them why so they can fix it.`}
             </DialogDescription>
           </DialogHeader>
           <div>

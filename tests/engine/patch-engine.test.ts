@@ -74,6 +74,8 @@ async function resetOrg() {
     patchCount: 0,
     createdAt: Timestamp.now(),
   });
+  // Deliberately the pre-multi-select shape (top-level typeId/statKey/quantity,
+  // no entries array) — every test that approves a1 is back-compat coverage.
   await org.collection("activities").doc("a1").set({
     memberId: "m1",
     typeId: "club-ride",
@@ -97,7 +99,7 @@ afterAll(async () => {
 describe("approveActivityTx", () => {
   it("increments the stat and flips status to approved", async () => {
     const result = await approveActivityTx(ORG, "a1", "reviewer-uid");
-    expect(result.newStatValue).toBe(10);
+    expect(result.stats).toEqual([{ statKey: "clubRuns", newValue: 10 }]);
 
     const activity = await orgRef(ORG).collection("activities").doc("a1").get();
     expect(activity.data()?.status).toBe("approved");
@@ -137,8 +139,51 @@ describe("approveActivityTx", () => {
   it("does not award below the threshold", async () => {
     await orgRef(ORG).collection("members").doc("m1").update({ "stats.clubRuns": 3 });
     const result = await approveActivityTx(ORG, "a1", "reviewer-uid");
-    expect(result.newStatValue).toBe(4);
+    expect(result.stats).toEqual([{ statKey: "clubRuns", newValue: 4 }]);
     expect(result.awardedPatchIds).toEqual([]);
+  });
+
+  it("applies every entry of a multi-type ticket in one approval", async () => {
+    await orgRef(ORG).collection("activities").doc("multi").set({
+      memberId: "m1",
+      entries: [
+        { typeId: "club-ride", statKey: "clubRuns", quantity: 1 },
+        { typeId: "heist-completed", statKey: "heistsCompleted", quantity: 12 },
+      ],
+      date: Timestamp.now(),
+      description: "big night",
+      witnesses: [],
+      status: "pending",
+      createdAt: Timestamp.now(),
+    });
+    const result = await approveActivityTx(ORG, "multi", "reviewer-uid");
+
+    const byKey = Object.fromEntries(result.stats.map((s) => [s.statKey, s.newValue]));
+    expect(byKey).toEqual({ clubRuns: 10, heistsCompleted: 12 });
+    // Awards span both stats: the worn clubRuns patch plus two emblem rungs.
+    expect(result.awardedPatchIds.sort()).toEqual(["rung-1", "rung-2", "test-patch"]);
+
+    const member = await orgRef(ORG).collection("members").doc("m1").get();
+    expect(member.data()?.stats).toEqual({ clubRuns: 10, heistsCompleted: 12 });
+    expect(member.data()?.patchCount).toBe(3);
+  });
+
+  it("aggregates entries that feed the same stat", async () => {
+    await orgRef(ORG).collection("activities").doc("same-stat").set({
+      memberId: "m1",
+      entries: [
+        { typeId: "heist-completed", statKey: "heistsCompleted", quantity: 3 },
+        { typeId: "bank-job", statKey: "heistsCompleted", quantity: 4 },
+      ],
+      date: Timestamp.now(),
+      description: "double header",
+      witnesses: [],
+      status: "pending",
+      createdAt: Timestamp.now(),
+    });
+    const result = await approveActivityTx(ORG, "same-stat", "reviewer-uid");
+    expect(result.stats).toEqual([{ statKey: "heistsCompleted", newValue: 7 }]);
+    expect(result.awardedPatchIds).toEqual(["rung-1"]); // 7 clears only the 5 rung
   });
 
   it("never double-awards (composite id idempotency)", async () => {

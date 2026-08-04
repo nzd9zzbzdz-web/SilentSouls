@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ActivityForm } from "@/components/portal/ActivityForm";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
+import { describeActivity } from "@/lib/activity-entries";
 import {
   listActivities,
   listActivityTypes,
@@ -86,14 +87,12 @@ export default async function ActivitiesPage({
             ) : (
               <ul className="divide-y divide-border">
                 {mySubmissions.map((activity) => {
-                  const type = typeById.get(activity.typeId);
                   const date = (activity.date as Timestamp)?.toDate?.();
                   return (
                     <li key={activity.id} className="py-3">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-medium text-foreground">
-                          {type?.name ?? activity.typeId}
-                          {activity.quantity > 1 && ` ×${activity.quantity}`}
+                          {describeActivity(activity, (id) => typeById.get(id)?.name)}
                         </p>
                         <Badge
                           variant={

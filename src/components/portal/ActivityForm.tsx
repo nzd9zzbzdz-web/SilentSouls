@@ -9,13 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getClientStorage } from "@/lib/firebase/client";
 import { MAX_ACTIVITY_QUANTITY } from "@/lib/constants";
@@ -42,33 +35,49 @@ export function ActivityForm({
   witnesses: { id: string; label: string }[];
 }) {
   const router = useRouter();
-  const [typeId, setTypeId] = useState<string>("");
+  // One ticket can carry several types — typeId → quantity for the checked ones.
+  const [selected, setSelected] = useState<Record<string, number>>({});
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState(1);
   const [selectedWitnesses, setSelectedWitnesses] = useState<string[]>([]);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
 
-  const selectedType = types.find((t) => t.id === typeId);
+  const selectedTypes = types.filter((t) => t.id in selected);
+  const proofRecommended = selectedTypes.filter((t) => t.requiresProof);
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!typeId) next.typeId = "Pick an activity type";
+    if (selectedTypes.length === 0) next.types = "Pick at least one activity type";
     if (!date) next.date = "Pick a date";
     if (description.trim().length < 10)
       next.description = "Describe what happened (at least 10 characters)";
-    if (selectedType?.allowQuantity) {
+    for (const type of selectedTypes) {
+      if (!type.allowQuantity) continue;
+      const quantity = selected[type.id];
       if (!Number.isInteger(quantity) || quantity < 1)
-        next.quantity = "Enter a whole number of at least 1";
+        next[`qty_${type.id}`] = "Enter a whole number of at least 1";
       else if (quantity > MAX_ACTIVITY_QUANTITY)
-        next.quantity = `Max ${MAX_ACTIVITY_QUANTITY.toLocaleString("en-US")} per submission`;
+        next[`qty_${type.id}`] =
+          `Max ${MAX_ACTIVITY_QUANTITY.toLocaleString("en-US")} per submission`;
     }
-    if (selectedType?.requiresProof && !proofFile)
-      next.proof = `${selectedType.name} requires proof (photo or clip)`;
     setErrors(next);
     return Object.keys(next).length === 0;
+  }
+
+  function toggleType(id: string) {
+    setSelected((prev) => {
+      if (id in prev) {
+        const { [id]: _drop, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [id]: 1 };
+    });
+    setErrors((prev) => {
+      const { types: _drop, [`qty_${id}`]: _drop2, ...rest } = prev;
+      return rest;
+    });
   }
 
   function toggleWitness(id: string) {
@@ -93,18 +102,19 @@ export function ActivityForm({
         }
         const result = await submitActivity({
           orgId,
-          typeId,
+          entries: selectedTypes.map((t) => ({
+            typeId: t.id,
+            quantity: selected[t.id],
+          })),
           date: new Date(date),
           description: description.trim(),
-          quantity,
           witnesses: selectedWitnesses,
           proofPath,
         });
         if (result.ok) {
           toast.success("Activity submitted for review");
-          setTypeId("");
+          setSelected({});
           setDescription("");
-          setQuantity(1);
           setSelectedWitnesses([]);
           setProofFile(null);
           router.refresh();
@@ -119,34 +129,66 @@ export function ActivityForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      <div>
-        <Label htmlFor="activity-type">
-          Activity type <span aria-hidden="true" className="text-destructive">*</span>
-        </Label>
-        <Select value={typeId} onValueChange={setTypeId}>
-          <SelectTrigger
-            id="activity-type"
-            className="mt-1 w-full"
-            aria-required="true"
-            aria-invalid={Boolean(errors.typeId)}
-            aria-describedby={errors.typeId ? "activity-type-error" : undefined}
-          >
-            <SelectValue placeholder="What did you do?" />
-          </SelectTrigger>
-          <SelectContent>
-            {types.map((type) => (
-              <SelectItem key={type.id} value={type.id}>
-                {type.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.typeId && (
-          <p id="activity-type-error" role="alert" className="mt-1 text-sm text-destructive">
-            {errors.typeId}
+      <fieldset>
+        <legend className="text-sm font-medium">
+          Activity types <span aria-hidden="true" className="text-destructive">*</span>
+        </legend>
+        <p className="text-xs text-muted-foreground">
+          Check everything this ticket covers. Types with a box take an amount —
+          the name carries the unit.
+        </p>
+        <div
+          className="mt-2 max-h-64 space-y-1.5 overflow-y-auto rounded-md border border-border p-2"
+          aria-invalid={Boolean(errors.types)}
+          aria-describedby={errors.types ? "activity-types-error" : undefined}
+        >
+          {types.map((type) => {
+            const checked = type.id in selected;
+            const qtyError = errors[`qty_${type.id}`];
+            return (
+              <div key={type.id} className="rounded-sm px-1 hover:bg-secondary/40">
+                <div className="flex min-h-11 items-center gap-2">
+                  <label className="flex flex-1 cursor-pointer items-center gap-2 py-1 text-sm">
+                    <Checkbox
+                      className="size-5"
+                      checked={checked}
+                      onCheckedChange={() => toggleType(type.id)}
+                    />
+                    {type.name}
+                  </label>
+                  {checked && type.allowQuantity && (
+                    <Input
+                      type="number"
+                      min={1}
+                      max={MAX_ACTIVITY_QUANTITY}
+                      value={selected[type.id]}
+                      onChange={(e) =>
+                        setSelected((prev) => ({
+                          ...prev,
+                          [type.id]: Number(e.target.value) || 1,
+                        }))
+                      }
+                      aria-label={`${type.name} amount`}
+                      aria-invalid={Boolean(qtyError)}
+                      className="h-9 w-28"
+                    />
+                  )}
+                </div>
+                {qtyError && (
+                  <p role="alert" className="pb-1 text-xs text-destructive">
+                    {qtyError}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {errors.types && (
+          <p id="activity-types-error" role="alert" className="mt-1 text-sm text-destructive">
+            {errors.types}
           </p>
         )}
-      </div>
+      </fieldset>
 
       <div>
         <Label htmlFor="activity-date">
@@ -207,33 +249,6 @@ export function ActivityForm({
         )}
       </div>
 
-      {selectedType?.allowQuantity && (
-        <div>
-          <Label htmlFor="activity-quantity">Quantity</Label>
-          {/* The name carries the unit — "Dirty Money Earned ($)" wants the
-              dollar amount, not a count of times you earned money. */}
-          <p className="text-xs text-muted-foreground">
-            How much to add to {selectedType.name}.
-          </p>
-          <Input
-            id="activity-quantity"
-            type="number"
-            min={1}
-            max={MAX_ACTIVITY_QUANTITY}
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value) || 1)}
-            aria-invalid={Boolean(errors.quantity)}
-            aria-describedby={errors.quantity ? "activity-quantity-error" : undefined}
-            className="mt-1 w-40"
-          />
-          {errors.quantity && (
-            <p id="activity-quantity-error" className="mt-1 text-xs text-destructive">
-              {errors.quantity}
-            </p>
-          )}
-        </div>
-      )}
-
       <fieldset>
         <legend className="text-sm font-medium">Witnesses</legend>
         <p className="text-xs text-muted-foreground">
@@ -258,15 +273,14 @@ export function ActivityForm({
 
       <div>
         <Label htmlFor="activity-proof">
-          Proof{" "}
-          {selectedType?.requiresProof ? (
-            <span aria-hidden="true" className="text-destructive">
-              *
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">(optional)</span>
-          )}
+          Proof <span className="text-xs text-muted-foreground">(optional)</span>
         </Label>
+        {proofRecommended.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Officers like to see proof for{" "}
+            {proofRecommended.map((t) => t.name).join(", ")}.
+          </p>
+        )}
         {/* Focus lands on the sr-only input; surface it on the visible label. */}
         <label
           htmlFor="activity-proof"

@@ -13,6 +13,7 @@ import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components/portal/map/ClubMap";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
+import { describeActivity } from "@/lib/activity-entries";
 import { orgRef } from "@/lib/firebase/admin";
 import type { MapMarker, MapTerritory } from "@/lib/types";
 import {
@@ -194,7 +195,6 @@ export default async function DashboardPage({
               <ul className="divide-y divide-border">
                 {recent.map((activity) => {
                   const who = memberById.get(activity.memberId);
-                  const type = typeById.get(activity.typeId);
                   const when = (activity.createdAt as Timestamp)?.toDate?.();
                   return (
                     <li key={activity.id} className="flex items-center justify-between gap-3 py-3">
@@ -203,7 +203,7 @@ export default async function DashboardPage({
                           <span className="font-semibold">
                             &ldquo;{who?.roadName ?? "Unknown"}&rdquo;
                           </span>{" "}
-                          · {type?.name ?? activity.typeId}
+                          · {describeActivity(activity, (id) => typeById.get(id)?.name)}
                         </p>
                         {when && (
                           <p className="text-xs text-muted-foreground">

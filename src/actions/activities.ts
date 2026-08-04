@@ -10,7 +10,7 @@ import {
   type ReviewActivityInput,
   type SubmitActivityInput,
 } from "@/lib/schemas/activity";
-import type { ActivityType } from "@/lib/types";
+import type { ActivityEntry, ActivityType } from "@/lib/types";
 
 const DAILY_SUBMISSION_CAP = 20;
 
@@ -34,17 +34,24 @@ export async function submitActivity(
     const access = await requireOrgRole(input.orgId, "member");
     if (!access.memberId) return { ok: false, error: "No member record" };
 
-    // Validate the activity type BEFORE touching the rate-limit counter, so an
-    // invalid submission never burns a daily slot.
-    const typeSnap = await orgRef(input.orgId)
-      .collection("activityTypes")
-      .doc(input.typeId)
-      .get();
-    if (!typeSnap.exists) return { ok: false, error: "Unknown activity type" };
-    const type = typeSnap.data() as ActivityType;
-    if (!type.active) return { ok: false, error: "Activity type is disabled" };
-    if (type.requiresProof && !input.proofPath) {
-      return { ok: false, error: `${type.name} requires proof (photo or clip)` };
+    // Validate every activity type BEFORE touching the rate-limit counter, so
+    // an invalid submission never burns a daily slot. Proof is never required —
+    // requiresProof is only a "recommended" hint in the form.
+    const typeSnaps = await adminDb.getAll(
+      ...input.entries.map((e) =>
+        orgRef(input.orgId).collection("activityTypes").doc(e.typeId),
+      ),
+    );
+    const entries: ActivityEntry[] = [];
+    for (const [i, snap] of typeSnaps.entries()) {
+      if (!snap.exists) return { ok: false, error: "Unknown activity type" };
+      const type = snap.data() as ActivityType;
+      if (!type.active) return { ok: false, error: `${type.name} is disabled` };
+      entries.push({
+        typeId: input.entries[i].typeId,
+        statKey: type.statKey, // denormalized at submit time
+        quantity: type.allowQuantity ? input.entries[i].quantity : 1,
+      });
     }
 
     // Rate cap (≤20/day/uid) and the activity write happen in ONE transaction:
@@ -62,11 +69,9 @@ export async function submitActivity(
       tx.set(capRef, { count: count + 1 }, { merge: true });
       tx.set(activityRef, {
         memberId: access.memberId,
-        typeId: input.typeId,
-        statKey: type.statKey, // denormalized at submit time
+        entries,
         date: input.date,
         description: input.description,
-        quantity: type.allowQuantity ? input.quantity : 1,
         witnesses: input.witnesses,
         ...(input.proofPath ? { proofPath: input.proofPath } : {}),
         status: "pending",

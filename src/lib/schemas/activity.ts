@@ -2,13 +2,8 @@ import { z } from "zod";
 import { STAT_KEYS } from "@/lib/types";
 import { MAX_ACTIVITY_QUANTITY } from "@/lib/constants";
 
-export const submitActivitySchema = z.object({
-  orgId: z.string().min(1),
+const activityEntrySchema = z.object({
   typeId: z.string().min(1),
-  date: z.coerce.date().max(new Date(Date.now() + 24 * 60 * 60 * 1000), {
-    message: "Date cannot be in the future",
-  }),
-  description: z.string().min(10, "Describe what happened (at least 10 characters)").max(2000),
   quantity: z
     .number()
     .int("Quantity must be a whole number")
@@ -18,6 +13,22 @@ export const submitActivitySchema = z.object({
       `Quantity cannot exceed ${MAX_ACTIVITY_QUANTITY.toLocaleString("en-US")}`,
     )
     .default(1),
+});
+
+export const submitActivitySchema = z.object({
+  orgId: z.string().min(1),
+  // One ticket can carry several activity types, each with its own quantity.
+  entries: z
+    .array(activityEntrySchema)
+    .min(1, "Pick at least one activity type")
+    .max(20, "Too many activity types on one ticket")
+    .refine((es) => new Set(es.map((e) => e.typeId)).size === es.length, {
+      message: "Each activity type can only appear once",
+    }),
+  date: z.coerce.date().max(new Date(Date.now() + 24 * 60 * 60 * 1000), {
+    message: "Date cannot be in the future",
+  }),
+  description: z.string().min(10, "Describe what happened (at least 10 characters)").max(2000),
   witnesses: z.array(z.string()).max(10).default([]),
   proofPath: z.string().max(500).optional(),
 });
