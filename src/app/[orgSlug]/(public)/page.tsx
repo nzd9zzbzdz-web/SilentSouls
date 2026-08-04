@@ -191,14 +191,21 @@ export default async function PublicHomePage({
           </h2>
           <div className="grid gap-y-12 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-4 lg:gap-x-0 lg:gap-y-0 lg:divide-x lg:divide-[#941B22]/15">
             {pillars.map((p) => (
-              <article key={p.title} className="flex flex-col items-center px-6 text-center">
+              // The whole pillar is the target — emblem, heading and copy all
+              // read as one clickable card, so aiming at the small link below
+              // them is never the only way through.
+              <Link
+                key={p.title}
+                href={p.href}
+                className="group flex flex-col items-center rounded-lg px-6 py-2 text-center transition-colors duration-200 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D9362B]/60"
+              >
                 <Image
                   src={p.img}
                   alt=""
                   width={160}
                   height={160}
                   unoptimized
-                  className="h-16 w-auto object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)] md:h-[4.75rem]"
+                  className="h-16 w-auto object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)] transition-transform duration-300 group-hover:scale-105 md:h-[4.75rem]"
                 />
                 <h3 className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-[#EEE7E8]">
                   {p.title}
@@ -206,14 +213,13 @@ export default async function PublicHomePage({
                 <p className="mt-3 max-w-[17rem] text-sm leading-relaxed text-[#B8A0A5]">
                   {p.body}
                 </p>
-                <Link
-                  href={p.href}
-                  className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em]"
+                <span
+                  className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] group-hover:underline"
                   style={{ color: EMBER }}
                 >
                   {p.cta} <ChevronRight className="size-3.5" aria-hidden />
-                </Link>
-              </article>
+                </span>
+              </Link>
             ))}
           </div>
         </div>

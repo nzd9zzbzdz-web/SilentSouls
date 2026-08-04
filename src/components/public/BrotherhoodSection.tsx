@@ -20,8 +20,10 @@ export function BrotherhoodSection({
   members: PublicRosterMember[];
   joinHref: string;
 }) {
-  if (members.length === 0) return null;
-
+  // Always render, even with nobody to show. The Brotherhood pillar links to
+  // this anchor: if the section disappeared when the roster came back empty,
+  // that link would land nowhere and read as a broken page rather than as a
+  // club with no patched members yet.
   const officers = members.filter((m) => m.isOfficer).length;
 
   return (
@@ -42,8 +44,9 @@ export function BrotherhoodSection({
             The Brotherhood
           </DisplayHeading>
           <p className="mx-auto mt-4 max-w-xl leading-relaxed text-muted-foreground">
-            {members.length} riding, {officers} at the table. We ride together, we
-            stand together. Every patch here was earned.
+            {members.length === 0
+              ? "Nobody has been patched in yet. The colors are earned, and the first riders to earn them will stand here."
+              : `${members.length} riding, ${officers} at the table. We ride together, we stand together. Every patch here was earned.`}
           </p>
         </div>
 
