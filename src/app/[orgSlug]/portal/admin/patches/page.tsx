@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { BackfillAwardsButton } from "@/components/portal/BackfillAwardsButton";
 import { PatchAdmin } from "@/components/portal/PatchAdmin";
+import { ReconcileAwardsButton } from "@/components/portal/ReconcileAwardsButton";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
 import { listMembers, listPatchArt, listPatches } from "@/lib/queries";
@@ -34,7 +35,10 @@ export default async function PatchAdminPage({
             cleared it get it now.
           </p>
         </div>
-        <BackfillAwardsButton orgId={org.id} />
+        <div className="flex shrink-0 gap-2">
+          <BackfillAwardsButton orgId={org.id} />
+          <ReconcileAwardsButton orgId={org.id} />
+        </div>
       </div>
 
       <PatchAdmin
