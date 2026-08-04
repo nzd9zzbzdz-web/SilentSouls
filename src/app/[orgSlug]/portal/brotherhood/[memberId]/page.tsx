@@ -13,6 +13,7 @@ import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import {
   getMember,
   listMemberAwards,
+  listPatchArt,
   listPatches,
   listRanks,
   listServiceRecord,
@@ -51,16 +52,18 @@ export default async function MemberDetailPage({
     ? (assetSnap.data()?.dataUrl as string | undefined)
     : undefined;
 
-  const [ranks, awards, patches, branding, career, sponsor] = await Promise.all([
-    listRanks(org.id),
-    listMemberAwards(org.id, memberId),
-    listPatches(org.id),
-    getBranding(org.id, "portal"),
-    listServiceRecord(org.id, memberId),
-    member.sponsorMemberId
-      ? getMember(org.id, member.sponsorMemberId)
-      : Promise.resolve(null),
-  ]);
+  const [ranks, awards, patches, branding, career, sponsor, patchArt] =
+    await Promise.all([
+      listRanks(org.id),
+      listMemberAwards(org.id, memberId),
+      listPatches(org.id),
+      getBranding(org.id, "portal"),
+      listServiceRecord(org.id, memberId),
+      member.sponsorMemberId
+        ? getMember(org.id, member.sponsorMemberId)
+        : Promise.resolve(null),
+      listPatchArt(org.id),
+    ]);
   const rank = ranks.find((r) => r.id === member.rankId);
   const patchById = new Map(patches.map((p) => [p.id, p]));
 
@@ -175,6 +178,7 @@ export default async function MemberDetailPage({
             ladders={ladders}
             roadName={member.roadName}
             isSelf={access.memberId === memberId}
+            art={patchArt}
           />
         </TabsContent>
       </Tabs>

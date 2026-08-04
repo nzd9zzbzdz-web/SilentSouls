@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PatchArtCell } from "@/components/portal/PatchArtCell";
 import { manualAward, upsertPatch } from "@/actions/patches";
 import { STAT_LABELS } from "@/lib/constants";
 import type { PatchCategory, StatKey } from "@/lib/types";
@@ -47,6 +48,7 @@ interface PatchRow {
   manual: boolean;
   active: boolean;
   emblem: boolean;
+  art: string | null; // webp data URL from the patchArt collection
   surface: "front" | "back";
   u: number;
   v: number;
@@ -179,6 +181,7 @@ export function PatchAdmin({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Art</TableHead>
               <TableHead>Patch</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Requirement</TableHead>
@@ -189,6 +192,14 @@ export function PatchAdmin({
           <TableBody>
             {patches.map((patch) => (
               <TableRow key={patch.id}>
+                <TableCell>
+                  <PatchArtCell
+                    orgId={orgId}
+                    patchId={patch.id}
+                    patchName={patch.name}
+                    art={patch.art}
+                  />
+                </TableCell>
                 <TableCell>
                   <p className="font-semibold">{patch.name}</p>
                   <p className="max-w-xs truncate text-xs text-muted-foreground">

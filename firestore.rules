@@ -93,6 +93,11 @@ service cloud.firestore {
         allow read: if isMember(orgId);
         allow write: if false;
       }
+      match /patchArt/{patchId} {
+        // Patch/emblem artwork. Written only by uploadPatchArt (admin server action).
+        allow read: if isMember(orgId);
+        allow write: if false;
+      }
       match /awardedPatches/{awardId} {
         allow read: if isMember(orgId);
         allow write: if false;

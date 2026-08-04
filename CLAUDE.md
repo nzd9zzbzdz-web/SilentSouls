@@ -56,6 +56,14 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
     awards already granted must not change meaning. `syncDefaultActivityTypes`
     is the migration for live orgs — it flags them `emblem` (merge-only) and
     strips emblems off existing `cutLayouts`. Idempotent; awards untouched.
+- **Patch/emblem artwork lives in `organizations/{orgId}/patchArt/{patchId}`**
+  as a webp data URL (`uploadPatchArt`, admin-only, sharp → 512² contain with
+  alpha kept, ≤200KB) — same no-Storage-bucket trick as character renders.
+  A SIBLING collection on purpose: `listPatches` is read by the profile, wall,
+  cut and admin, and sixty data URLs riding along would be ~1MB per read. Fetch
+  with `listPatchArt` only where art is drawn. `getCut` folds it into
+  `patch.imagePath`, which the render model already reads. Art is always
+  optional — every surface falls back to the lettered badge.
 - Officer-only data lives in **subcollections** (`members/*/notes`) — rules can't
   hide fields on a parent doc.
 - **No hardcoded brand colors/names in components.** Branding comes from

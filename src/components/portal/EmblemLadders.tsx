@@ -28,26 +28,57 @@ function tierColor(tier: LadderTier): string {
   return RARITY_COLOR[tier.patch.rarity ?? "common"] ?? RARITY_COLOR.common;
 }
 
-function Rung({ tier, isNext }: { tier: LadderTier; isNext: boolean }) {
+function Rung({
+  tier,
+  isNext,
+  art,
+}: {
+  tier: LadderTier;
+  isNext: boolean;
+  art: string | null;
+}) {
   const color = tierColor(tier);
   const numeral = ROMAN[tier.tier - 1] ?? String(tier.tier);
 
   return (
     <li className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
-      <span
-        aria-hidden
-        className={
-          "flex size-7 items-center justify-center rounded-full border text-[0.6rem] font-bold " +
-          (tier.earned
-            ? "border-transparent text-background"
-            : isNext
-              ? "border-dashed border-primary/60 bg-transparent text-primary"
-              : "border-border bg-transparent text-muted-foreground/50")
-        }
-        style={tier.earned ? { background: color, boxShadow: `0 0 10px ${color}66` } : undefined}
-      >
-        {tier.earned ? <Check className="size-3.5" strokeWidth={3} /> : numeral}
-      </span>
+      {art ? (
+        // Artwork carries the state itself: earned emblems sit lit in their
+        // rarity glow, locked ones go dark and desaturated the way a game
+        // greys out an achievement you haven't unlocked.
+        <span
+          aria-hidden
+          className={
+            "flex size-9 items-center justify-center rounded-full " +
+            (tier.earned ? "" : isNext ? "opacity-60" : "opacity-30")
+          }
+          style={
+            tier.earned
+              ? { boxShadow: `0 0 12px ${color}55` }
+              : { filter: "grayscale(1) brightness(0.7)" }
+          }
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- data URL, no loader */}
+          <img src={art} alt="" className="size-full object-contain" />
+        </span>
+      ) : (
+        <span
+          aria-hidden
+          className={
+            "flex size-7 items-center justify-center rounded-full border text-[0.6rem] font-bold " +
+            (tier.earned
+              ? "border-transparent text-background"
+              : isNext
+                ? "border-dashed border-primary/60 bg-transparent text-primary"
+                : "border-border bg-transparent text-muted-foreground/50")
+          }
+          style={
+            tier.earned ? { background: color, boxShadow: `0 0 10px ${color}66` } : undefined
+          }
+        >
+          {tier.earned ? <Check className="size-3.5" strokeWidth={3} /> : numeral}
+        </span>
+      )}
       <span
         className={
           "text-[0.68rem] leading-tight " +
@@ -71,7 +102,7 @@ function Rung({ tier, isNext }: { tier: LadderTier; isNext: boolean }) {
   );
 }
 
-function LadderRow({ ladder }: { ladder: Ladder }) {
+function LadderRow({ ladder, art }: { ladder: Ladder; art: Map<string, string> }) {
   const remaining = remainingLabel(ladder);
   const maxed = !ladder.next;
 
@@ -95,6 +126,7 @@ function LadderRow({ ladder }: { ladder: Ladder }) {
             key={tier.patch.id}
             tier={tier}
             isNext={ladder.next?.patch.id === tier.patch.id}
+            art={art.get(tier.patch.id) ?? null}
           />
         ))}
       </ul>
@@ -132,10 +164,13 @@ export function EmblemLadders({
   ladders,
   roadName,
   isSelf,
+  art,
 }: {
   ladders: Ladder[];
   roadName: string;
   isSelf: boolean;
+  /** Emblem artwork by patch id; a missing entry falls back to a lettered badge. */
+  art: Map<string, string>;
 }) {
   const earned = ladders.reduce((n, l) => n + l.earnedCount, 0);
   const total = ladders.reduce((n, l) => n + l.tiers.length, 0);
@@ -170,7 +205,7 @@ export function EmblemLadders({
       ) : (
         <ul className="mt-6 grid gap-4 lg:grid-cols-2">
           {ladders.map((ladder) => (
-            <LadderRow key={ladder.statKey} ladder={ladder} />
+            <LadderRow key={ladder.statKey} ladder={ladder} art={art} />
           ))}
         </ul>
       )}

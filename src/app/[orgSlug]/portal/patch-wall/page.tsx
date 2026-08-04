@@ -10,6 +10,7 @@ import {
   getMember,
   listMemberAwards,
   listMembers,
+  listPatchArt,
   listPatches,
 } from "@/lib/queries";
 import { composeLadders, remainingLabel } from "@/lib/patch-ladders";
@@ -30,6 +31,32 @@ const RARITY_COLOR: Record<string, string> = {
   epic: "#B084E0",
   legendary: "#E0B84A",
 };
+
+/**
+ * A patch's artwork beside its name. Renders nothing when an admin hasn't
+ * uploaded any, so a wall of art-less patches looks exactly as it did before
+ * rather than a grid of empty frames.
+ */
+function PatchArt({
+  art,
+  name,
+  locked,
+}: {
+  art?: string;
+  name: string;
+  locked?: boolean;
+}) {
+  if (!art) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- data URL, no loader
+    <img
+      src={art}
+      alt={`${name} patch`}
+      className="size-12 shrink-0 object-contain"
+      style={locked ? { filter: "grayscale(1) brightness(0.7)", opacity: 0.6 } : undefined}
+    />
+  );
+}
 
 function RarityChip({ rarity }: { rarity?: string }) {
   if (!rarity) return null;
@@ -55,9 +82,10 @@ export default async function PatchWallPage({
   if (!org) notFound();
   const access = await requireOrgRole(org.id, "member");
 
-  const [patches, members] = await Promise.all([
+  const [patches, members, art] = await Promise.all([
     listPatches(org.id),
     listMembers(org.id),
+    listPatchArt(org.id),
   ]);
   const member = access.memberId ? await getMember(org.id, access.memberId) : null;
   const myAwards = access.memberId
@@ -151,13 +179,16 @@ export default async function PatchWallPage({
                 className="glow-gold rounded-lg border border-primary/40 bg-card p-5"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p
-                    className="text-xl text-primary"
-                    style={{ fontFamily: "var(--font-display)" }}
-                  >
-                    {patch.name}
-                  </p>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <PatchArt art={art.get(patch.id)} name={patch.name} />
+                    <p
+                      className="text-xl text-primary"
+                      style={{ fontFamily: "var(--font-display)" }}
+                    >
+                      {patch.name}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
                     <Badge variant="outline" className="border-primary/40 text-primary">
                       {CATEGORY_LABELS[patch.category]}
                     </Badge>
@@ -187,10 +218,15 @@ export default async function PatchWallPage({
               className="rounded-lg border border-border bg-card/60 p-5"
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="text-lg font-semibold text-muted-foreground">
-                  {patch.name}
-                </p>
-                <Badge variant="secondary">{CATEGORY_LABELS[patch.category]}</Badge>
+                <div className="flex min-w-0 items-start gap-3">
+                  <PatchArt art={art.get(patch.id)} name={patch.name} locked />
+                  <p className="text-lg font-semibold text-muted-foreground">
+                    {patch.name}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="shrink-0">
+                  {CATEGORY_LABELS[patch.category]}
+                </Badge>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{patch.description}</p>
               {pct !== null && patch.requirement ? (

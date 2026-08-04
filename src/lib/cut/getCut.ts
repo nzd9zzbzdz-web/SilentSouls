@@ -43,7 +43,7 @@ export async function getMemberCut(
   if (!memberSnap.exists) return null;
   const member = memberSnap.data() as Member;
 
-  const [vcFront, vcBack, rankSnap, rvSnap, patchesSnap, awardedSnap] =
+  const [vcFront, vcBack, rankSnap, rvSnap, patchesSnap, awardedSnap, artSnap] =
     await Promise.all([
       org.collection("vestConfigs").doc("front").get(),
       org.collection("vestConfigs").doc("back").get(),
@@ -51,15 +51,26 @@ export async function getMemberCut(
       org.collection("rankVisuals").doc(member.rankId).get(),
       org.collection("patches").get(),
       org.collection("awardedPatches").where("memberId", "==", memberId).get(),
+      org.collection("patchArt").get(),
     ]);
 
   const vestConfigs: Partial<Record<CutSurface, VestConfig>> = {};
   if (vcFront.exists) vestConfigs.front = vcFront.data() as VestConfig;
   if (vcBack.exists) vestConfigs.back = vcBack.data() as VestConfig;
 
-  const patches = patchesSnap.docs.map(
-    (d) => ({ id: d.id, ...(d.data() as Omit<Patch, "id">) }),
+  // Uploaded artwork resolves through `imagePath`, which the render model
+  // already reads — an admin uploading a patch image gets it on the cut with
+  // no renderer change. A patch with its own imagePath set keeps it.
+  const artById = new Map(
+    artSnap.docs
+      .map((d) => [d.id, d.data()?.dataUrl as string | undefined] as const)
+      .filter((e): e is readonly [string, string] => Boolean(e[1])),
   );
+
+  const patches = patchesSnap.docs.map((d) => {
+    const patch = { id: d.id, ...(d.data() as Omit<Patch, "id">) };
+    return { ...patch, imagePath: patch.imagePath ?? artById.get(d.id) };
+  });
 
   const awarded = awardedSnap.docs.map((d) => {
     const a = d.data() as AwardedPatch & { slotOverride?: string };

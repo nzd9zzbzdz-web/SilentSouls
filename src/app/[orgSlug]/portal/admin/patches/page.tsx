@@ -3,7 +3,7 @@ import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { PatchAdmin } from "@/components/portal/PatchAdmin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
-import { listMembers, listPatches } from "@/lib/queries";
+import { listMembers, listPatchArt, listPatches } from "@/lib/queries";
 
 export default async function PatchAdminPage({
   params,
@@ -15,9 +15,10 @@ export default async function PatchAdminPage({
   if (!org) notFound();
   await requireOrgRole(org.id, "admin");
 
-  const [patches, members] = await Promise.all([
+  const [patches, members, art] = await Promise.all([
     listPatches(org.id),
     listMembers(org.id),
+    listPatchArt(org.id),
   ]);
 
   return (
@@ -42,6 +43,7 @@ export default async function PatchAdminPage({
           manual: p.manual,
           active: p.active,
           emblem: p.emblem === true,
+          art: art.get(p.id) ?? null,
           surface: p.defaultPlacement.surface,
           u: p.defaultPlacement.u,
           v: p.defaultPlacement.v,

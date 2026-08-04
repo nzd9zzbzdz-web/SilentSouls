@@ -37,6 +37,23 @@ export const listPatches = cache(async (orgId: string): Promise<Patch[]> => {
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Patch, "id">) }));
 });
 
+/**
+ * Patch/emblem artwork by patch id — webp data URLs written by
+ * `uploadPatchArt`. Kept out of the patch docs so `listPatches` stays cheap for
+ * the pages that only need names and thresholds; call this only where art is
+ * actually drawn.
+ */
+export const listPatchArt = cache(
+  async (orgId: string): Promise<Map<string, string>> => {
+    const snap = await orgRef(orgId).collection("patchArt").get();
+    return new Map(
+      snap.docs
+        .map((d) => [d.id, d.data()?.dataUrl as string | undefined] as const)
+        .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
+    );
+  },
+);
+
 export const listMembers = cache(async (orgId: string): Promise<Member[]> => {
   const snap = await orgRef(orgId)
     .collection("members")
