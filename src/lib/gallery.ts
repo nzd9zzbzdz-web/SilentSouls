@@ -25,6 +25,7 @@ const CURATION: { file: string; title: string }[] = [
   { file: "Bikers at the bar.png", title: "Bikers at the Bar" },
   { file: "2 riders.png", title: "Two Riders" },
   { file: "City Skyline.png", title: "City Skyline" },
+  { file: "World Burns.png", title: "Watching the World Burn" },
   { file: "Prez and Gus.png", title: "Prez & Gus" },
   { file: "Prez.png", title: "Prez" },
   { file: "Prez 2.png", title: "Prez" },
