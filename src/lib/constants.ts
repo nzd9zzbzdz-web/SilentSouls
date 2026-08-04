@@ -313,11 +313,14 @@ export const PATCH_LADDERS: {
   {
     statKey: "jailTimeMonths",
     tiers: [
-      { id: "held-overnight", name: "Held Overnight", description: "Serve 6 months inside.", threshold: 6, category: "leadership" },
-      { id: "done-a-bit", name: "Done a Bit", description: "Serve 24 months inside.", threshold: 24, category: "leadership" },
-      { id: "hardened", name: "Hardened", description: "Serve 60 months inside and come back.", threshold: 60, category: "leadership", legacy: true },
-      { id: "lifer", name: "Lifer", description: "Serve 180 months inside.", threshold: 180, category: "leadership" },
-      { id: "institutionalized", name: "Institutionalized", description: "Serve 500 months inside.", threshold: 500, category: "leadership" },
+      // Names re-cut for the scale: this ladder starts at 300 months, so the
+      // old "Held Overnight" / "Done a Bit" read as jokes against 25 and 83
+      // years. Ids are unchanged — awards point at them.
+      { id: "held-overnight", name: "Did a Stretch", description: "Serve 300 months inside.", threshold: 300, category: "leadership" },
+      { id: "done-a-bit", name: "Hard Time", description: "Serve 1,000 months inside.", threshold: 1_000, category: "leadership" },
+      { id: "hardened", name: "Hardened", description: "Serve 2,000 months inside and come back.", threshold: 2_000, category: "leadership", legacy: true },
+      { id: "lifer", name: "Lifer", description: "Serve 5,000 months inside.", threshold: 5_000, category: "leadership" },
+      { id: "institutionalized", name: "Institutionalized", description: "Serve 10,000 months inside.", threshold: 10_000, category: "leadership" },
     ],
   },
 ];
