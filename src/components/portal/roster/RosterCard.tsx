@@ -148,7 +148,18 @@ export function RosterCard({
                   key={p.name}
                   className="flex items-center gap-1.5 text-[0.68rem] text-white/80"
                 >
-                  <Icon className="size-3 shrink-0 text-primary/80" aria-hidden />
+                  {p.artUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- streamed by the art route, already sized
+                    <img
+                      src={p.artUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="size-6 shrink-0 object-contain"
+                    />
+                  ) : (
+                    <Icon className="size-3 shrink-0 text-primary/80" aria-hidden />
+                  )}
                   <span className="truncate">{p.name}</span>
                 </li>
               );

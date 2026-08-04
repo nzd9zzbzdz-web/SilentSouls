@@ -27,6 +27,8 @@ export interface StagePatch {
   description: string;
   category: PatchCategory;
   awardedLabel: string; // e.g. "Earned Mar 2024" or "Manually awarded"
+  /** Uploaded artwork, if the club has any — otherwise the category icon. */
+  artUrl?: string | null;
 }
 
 export interface CharacterStageProps {
@@ -197,7 +199,12 @@ export function CharacterStage({
             className={`charstage-slot ${patch ? "earned" : "empty"}`}
             style={{ top: `${top - 4.5}%` }}
           >
-            <Icon className="charstage-slot-icon" aria-hidden />
+            {patch?.artUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- streamed by the art route, already sized
+              <img className="charstage-slot-art" src={patch.artUrl} alt="" aria-hidden />
+            ) : (
+              <Icon className="charstage-slot-icon" aria-hidden />
+            )}
             {patch && (
               <>
                 <div className="charstage-slot-label" aria-hidden>
@@ -390,6 +397,15 @@ const CSS_TEXT = `
   filter: drop-shadow(0 0 0.6cqw color-mix(in srgb, var(--primary) 70%, transparent));
 }
 .charstage-slot:hover .charstage-slot-icon { transform: scale(1.15); }
+/* Real artwork fills the painted diamond instead of sitting in it as a glyph,
+   so an earned patch reads as the patch. Lit like the icon it replaces. */
+.charstage-slot-art {
+  width: 92%; height: 92%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 0.7cqw color-mix(in srgb, var(--primary) 55%, transparent));
+  transition: transform 0.25s;
+}
+.charstage-slot:hover .charstage-slot-art { transform: scale(1.15); }
 .charstage-slot-label {
   position: absolute;
   left: 112%; bottom: 52%;

@@ -22,6 +22,7 @@ export interface RosterMember {
   joinedAtMs: number; // 0 when unknown — sorts last
   imageUrl: string;
   hasRender: boolean; // false ⇒ silhouette fallback, styled as such
-  topPatches: { name: string; category: PatchCategory }[];
+  /** `artUrl` is null when the club hasn't uploaded art for that patch. */
+  topPatches: { name: string; category: PatchCategory; artUrl: string | null }[];
   tier: TierKey;
 }

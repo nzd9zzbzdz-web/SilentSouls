@@ -214,4 +214,38 @@ describe("composeServiceRecord", () => {
       'Earned the "Road Warrior" patch',
     ]);
   });
+
+  it("hangs the patch artwork on the row that earned it, and nothing else", () => {
+    // Art is optional per patch: a club that uploaded one image shouldn't get
+    // broken frames on the other rows, and joining/promotion rows never carry
+    // artwork at all.
+    const items = composeServiceRecord({
+      ...base,
+      awards: [
+        award("a1", "rw", "2026-02-01T00:00:00Z"),
+        award("a2", "no-art", "2026-03-01T00:00:00Z"),
+      ],
+      patchById: new Map([
+        ["rw", patch("rw", "Road Warrior")],
+        ["no-art", patch("no-art", "Iron Rider")],
+      ]),
+      career: [career("c1", "Rank changed to Enforcer", "2026-04-01T00:00:00Z")],
+      artUrlFor: (patchId) => (patchId === "rw" ? "/api/art/rw?v=7" : null),
+    });
+
+    const byTitle = new Map(items.map((i) => [i.title, i.artUrl]));
+    expect(byTitle.get('Earned the "Road Warrior" patch')).toBe("/api/art/rw?v=7");
+    expect(byTitle.get('Earned the "Iron Rider" patch')).toBeUndefined();
+    expect(byTitle.get("Rank changed to Enforcer")).toBeUndefined();
+    expect(byTitle.get("Joined the club")).toBeUndefined();
+  });
+
+  it("leaves rows art-less when no resolver is supplied", () => {
+    const items = composeServiceRecord({
+      ...base,
+      awards: [award("a1", "rw", "2026-02-01T00:00:00Z")],
+      patchById: new Map([["rw", patch("rw", "Road Warrior")]]),
+    });
+    expect(items.every((i) => i.artUrl === undefined)).toBe(true);
+  });
 });

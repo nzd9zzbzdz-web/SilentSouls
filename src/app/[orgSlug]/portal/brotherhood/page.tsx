@@ -10,9 +10,11 @@ import {
   listAwardsByMember,
   listMembers,
   listMembersWithRender,
+  listPatchArtVersions,
   listPatches,
   listRanks,
 } from "@/lib/queries";
+import { patchArtUrl } from "@/lib/patch-ladders";
 import { CHARACTER_SILHOUETTE } from "@/lib/constants";
 import type { Member, Rank, Rarity } from "@/lib/types";
 
@@ -46,11 +48,13 @@ export default async function BrotherhoodPage({
   // Only admins can upload character art, so only they get the nudge.
   const viewerCanManageArt = access.role === "admin";
 
-  const [members, ranks, patches, awardsByMember] = await Promise.all([
+  const [members, ranks, patches, awardsByMember, artVersions] = await Promise.all([
     listMembers(org.id),
     listRanks(org.id),
     listPatches(org.id),
     listAwardsByMember(org.id),
+    // Ids and timestamps only — the artwork itself streams from the art route.
+    listPatchArtVersions(org.id),
   ]);
   // Existence only — the stored renders are served by the render route.
   const withRender = await listMembersWithRender(
@@ -79,7 +83,11 @@ export default async function BrotherhoodPage({
           b.tier - a.tier,
       )
       .slice(0, 3)
-      .map((p) => ({ name: p.name, category: p.category }));
+      .map((p) => ({
+        name: p.name,
+        category: p.category,
+        artUrl: patchArtUrl(org.id, p.id, artVersions),
+      }));
 
     const joined = (member.joinDate as Timestamp)?.toDate?.();
 

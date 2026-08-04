@@ -71,25 +71,40 @@ export function ServiceRecord({
           {items.map((item) => {
             const Icon = ICONS[item.kind];
             return (
-              <li key={item.id} className="relative">
+              <li key={item.id} className="relative flex items-start gap-3">
                 <span
                   aria-hidden
                   className="absolute -left-[35px] flex size-5 items-center justify-center rounded-full border border-primary/50 bg-card"
                 >
                   <Icon className="size-3 text-primary" />
                 </span>
-                <time
-                  dateTime={item.dateISO}
-                  className="text-xs uppercase tracking-wider text-muted-foreground"
-                >
-                  {item.dateLabel}
-                </time>
-                <p className="mt-1 font-semibold text-foreground">{item.title}</p>
-                {item.detail && (
-                  <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-                    {item.detail}
-                  </p>
+                {/* The patch itself, when the club has art for it. Sits beside
+                    the row rather than replacing the rail marker — the marker
+                    is what keeps the timeline reading as one column. */}
+                {item.artUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element -- served by the art route, already sized
+                  <img
+                    src={item.artUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="mt-1 size-11 shrink-0 object-contain drop-shadow-[0_0_6px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+                  />
                 )}
+                <div className="min-w-0">
+                  <time
+                    dateTime={item.dateISO}
+                    className="text-xs uppercase tracking-wider text-muted-foreground"
+                  >
+                    {item.dateLabel}
+                  </time>
+                  <p className="mt-1 font-semibold text-foreground">{item.title}</p>
+                  {item.detail && (
+                    <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                      {item.detail}
+                    </p>
+                  )}
+                </div>
               </li>
             );
           })}

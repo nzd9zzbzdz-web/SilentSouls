@@ -22,6 +22,8 @@ export interface ServiceRecordItem {
   detail?: string;
   dateLabel: string;
   dateISO: string;
+  /** Patch rows only, and only when the org uploaded artwork for that patch. */
+  artUrl?: string;
 }
 
 export interface ServiceRecordInput {
@@ -30,6 +32,12 @@ export interface ServiceRecordInput {
   awards: AwardedPatch[];
   patchById: Map<string, Patch>;
   career: ServiceRecordEntry[];
+  /**
+   * Patch id → artwork URL. Injected rather than looked up here so this stays
+   * pure: the caller owns the org id and the art versions map. Omitted (or
+   * returning null) leaves the row on its category icon.
+   */
+  artUrlFor?: (patchId: string) => string | null;
 }
 
 const DATE_FMT: Intl.DateTimeFormatOptions = {
@@ -61,6 +69,7 @@ function row(
   title: string,
   detail: string | undefined,
   at: unknown,
+  artUrl?: string | null,
 ): (ServiceRecordItem & { atMs: number }) | null {
   const date = toDate(at);
   if (!date) return null;
@@ -71,6 +80,7 @@ function row(
     detail: detail || undefined,
     dateLabel: date.toLocaleDateString("en-US", DATE_FMT),
     dateISO: date.toISOString(),
+    ...(artUrl ? { artUrl } : {}),
     atMs: date.getTime(),
   };
 }
@@ -113,7 +123,7 @@ function milestoneAwards(
 }
 
 export function composeServiceRecord(input: ServiceRecordInput): ServiceRecordItem[] {
-  const { memberNumber, joinDate, awards, patchById, career } = input;
+  const { memberNumber, joinDate, awards, patchById, career, artUrlFor } = input;
 
   const rows = [
     row("joined", "joined", "Joined the club", `Member #${memberNumber}.`, joinDate),
@@ -125,6 +135,7 @@ export function composeServiceRecord(input: ServiceRecordInput): ServiceRecordIt
         `Earned the "${patch?.name ?? award.patchId}" patch`,
         award.reason || patch?.description,
         award.awardedAt,
+        artUrlFor?.(award.patchId),
       );
     }),
     ...career.map((item) => row(item.id, item.kind, item.title, item.detail, item.at)),

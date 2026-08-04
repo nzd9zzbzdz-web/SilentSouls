@@ -5,7 +5,7 @@ import { CharacterPoseEditor } from "@/components/portal/CharacterPoseEditor";
 import { EmblemLadders } from "@/components/portal/EmblemLadders";
 import { ServiceRecord } from "@/components/portal/ServiceRecord";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { composeLadders } from "@/lib/patch-ladders";
+import { composeLadders, patchArtUrl } from "@/lib/patch-ladders";
 import { composeServiceRecord } from "@/lib/service-record";
 import { requireOrgRole } from "@/lib/auth/session";
 import { orgRef } from "@/lib/firebase/admin";
@@ -88,6 +88,9 @@ export default async function MemberDetailPage({
         awardedLabel: awardedAt
           ? `Earned ${awardedAt.toLocaleDateString("en-US", { month: "short", year: "numeric" })}`
           : "Earned",
+        // URL only — the bytes stream from the art route, so four patches don't
+        // cost four data URLs in this page's HTML.
+        artUrl: patchArtUrl(org.id, patch.id, patchArt),
       };
     });
 
@@ -110,6 +113,7 @@ export default async function MemberDetailPage({
     awards,
     patchById,
     career,
+    artUrlFor: (patchId) => patchArtUrl(org.id, patchId, patchArt),
   });
 
   // Emblem progression: the criminal record grouped into a five-rung ladder per
