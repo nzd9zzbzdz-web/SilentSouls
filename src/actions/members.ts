@@ -2,16 +2,25 @@
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { FieldValue, Timestamp, adminAuth, adminDb, orgRef } from "@/lib/firebase/admin";
+import {
+  FieldPath,
+  FieldValue,
+  Timestamp,
+  adminAuth,
+  adminDb,
+  orgRef,
+} from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { syncUserClaims } from "@/lib/auth/claims";
 import { checkMilestones } from "@/lib/milestones";
 import {
   createMemberSchema,
+  deleteMemberSchema,
   inviteMemberSchema,
   officerNoteSchema,
   updateMemberSchema,
   type CreateMemberInput,
+  type DeleteMemberInput,
   type InviteMemberInput,
   type OfficerNoteInput,
   type UpdateMemberInput,
@@ -160,6 +169,120 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
     });
 
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
+    return { ok: true };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+/**
+ * Org-admin: permanently remove a member and everything hanging off them.
+ *
+ * This is the hard delete. `updateMember` with status exiled/retired is the
+ * reversible one — it revokes access and files them under Past Colors while
+ * keeping their record. Use this only when the record shouldn't exist at all.
+ *
+ * Order matters: portal access is revoked BEFORE anything is deleted, for the
+ * same reason de-provisioning does it in `updateMember` — if a later step
+ * throws, a member with no data and no access is recoverable, but a member
+ * whose data is gone while their session still works is not.
+ *
+ * The member number is NOT recycled: `lastMemberNumber` is a monotonic counter,
+ * so a future member never inherits a deleted member's number.
+ */
+export async function deleteMember(raw: DeleteMemberInput): Promise<ActionResult> {
+  const parsed = deleteMemberSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const { orgId, memberId, confirmRoadName } = parsed.data;
+
+  try {
+    const access = await requireOrgRole(orgId, "admin");
+    const org = orgRef(orgId);
+    const memberRef = org.collection("members").doc(memberId);
+    const snap = await memberRef.get();
+    if (!snap.exists) return { ok: false, error: "Member not found" };
+    const member = snap.data()!;
+
+    // An admin removing their own record would strip their own claims and lock
+    // them out mid-request. Make them do it from another admin account.
+    if (access.memberId === memberId) {
+      return { ok: false, error: "You cannot delete your own member record" };
+    }
+
+    // Typo guard: the dialog asks for the road name, and it has to match.
+    if (
+      confirmRoadName.trim().toLowerCase() !== String(member.roadName ?? "").toLowerCase()
+    ) {
+      return { ok: false, error: "Road name doesn't match" };
+    }
+
+    // Never leave an org with no way back in. FieldPath, not a dotted string —
+    // an org slug like "silent-souls" isn't a valid unquoted field path.
+    const linkedUid = member.uid as string | null | undefined;
+    if (linkedUid) {
+      const userSnap = await adminDb.collection("users").doc(linkedUid).get();
+      const isAdmin =
+        (userSnap.data()?.memberships?.[orgId]?.role as string | undefined) === "admin";
+      if (isAdmin) {
+        const admins = await adminDb
+          .collection("users")
+          .where(new FieldPath("memberships", orgId, "role"), "==", "admin")
+          .select()
+          .get();
+        if (admins.size <= 1) {
+          return { ok: false, error: "This is the last admin — promote someone first" };
+        }
+      }
+    }
+
+    // 1. Revoke portal access first (see the note above on ordering).
+    if (linkedUid) {
+      await adminDb
+        .collection("users")
+        .doc(linkedUid)
+        .set({ memberships: { [orgId]: FieldValue.delete() } }, { merge: true });
+      await syncUserClaims(linkedUid);
+    }
+
+    // 2. Audit before the target disappears — auditLogs live at org level, so
+    //    the entry outlives the member it describes.
+    await org.collection("auditLogs").add({
+      actorUid: access.user.uid,
+      action: "member.delete",
+      targetPath: memberRef.path,
+      detail: `${member.roadName} (${member.displayName}) · No. ${member.memberNumber}`,
+      at: FieldValue.serverTimestamp(),
+    });
+
+    // 3. Everything keyed to the member. Their own doc's subcollections
+    //    (notes, serviceRecord, assets) go with recursiveDelete.
+    for (const collection of ["awardedPatches", "activities"] as const) {
+      const owned = await org
+        .collection(collection)
+        .where("memberId", "==", memberId)
+        .get();
+      await Promise.all(owned.docs.map((d) => d.ref.delete()));
+    }
+    await org.collection("cutLayouts").doc(memberId).delete();
+
+    // 4. Don't leave dangling sponsor pointers on the people they brought in.
+    const sponsored = await org
+      .collection("members")
+      .where("sponsorMemberId", "==", memberId)
+      .get();
+    await Promise.all(
+      sponsored.docs.map((d) => d.ref.update({ sponsorMemberId: FieldValue.delete() })),
+    );
+
+    // 5. The member and their subcollections.
+    await adminDb.recursiveDelete(memberRef);
+
+    await org.update({ memberCount: FieldValue.increment(-1) });
+
+    revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
+    revalidatePath(`/[orgSlug]/portal/admin`, "page");
     return { ok: true };
   } catch (e) {
     return failure(e);

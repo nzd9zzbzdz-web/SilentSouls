@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Copy, Loader2, MailPlus, Plus } from "lucide-react";
+import { Copy, Loader2, MailPlus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { createMember, inviteMember, updateMember } from "@/actions/members";
+import { createMember, deleteMember, inviteMember, updateMember } from "@/actions/members";
 import type { MemberStatus, SystemRole } from "@/lib/types";
 
 interface MemberRow {
@@ -79,6 +79,8 @@ export function MemberAdmin({
     joinDate: new Date().toISOString().slice(0, 10),
   });
   const [inviteTarget, setInviteTarget] = useState<MemberRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<SystemRole>("member");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -151,6 +153,25 @@ export function MemberAdmin({
     });
   }
 
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    startTransition(async () => {
+      const result = await deleteMember({
+        orgId,
+        memberId: deleteTarget.id,
+        confirmRoadName: deleteConfirm.trim(),
+      });
+      if (result.ok) {
+        toast.success(`"${deleteTarget.roadName}" deleted`);
+        setDeleteTarget(null);
+        setDeleteConfirm("");
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Delete failed");
+      }
+    });
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -207,6 +228,18 @@ export function MemberAdmin({
                         Invite
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Delete ${member.roadName}`}
+                      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => {
+                        setDeleteTarget(member);
+                        setDeleteConfirm("");
+                      }}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -401,6 +434,64 @@ export function MemberAdmin({
                 Create invite
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog — type-to-confirm, because this one doesn't come back */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete &ldquo;{deleteTarget?.roadName}&rdquo;?</DialogTitle>
+            <DialogDescription>
+              Permanently removes {deleteTarget?.displayName} and everything tied to
+              them — logged activities, earned patches, officer notes, service
+              record and cut. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+              Looking to remove someone who left the club? <strong>Edit</strong> them
+              and set their status to <strong>Retired</strong> or{" "}
+              <strong>Exiled</strong> instead — that revokes portal access but keeps
+              their history under Past Colors.
+            </p>
+            <div>
+              <Label htmlFor="delete-confirm">
+                Type <strong>{deleteTarget?.roadName}</strong> to confirm
+              </Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                autoComplete="off"
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={
+                pending ||
+                deleteConfirm.trim().toLowerCase() !==
+                  (deleteTarget?.roadName ?? "").toLowerCase()
+              }
+            >
+              {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+              Delete permanently
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -7,7 +7,7 @@ import {
   type AppOptions,
 } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getFirestore, FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
 const PROJECT_ID =
@@ -39,7 +39,7 @@ export const adminApp = getAdminApp();
 export const adminAuth = getAuth(adminApp);
 export const adminDb = getFirestore(adminApp);
 export const adminStorage = getStorage(adminApp);
-export { FieldValue, Timestamp };
+export { FieldPath, FieldValue, Timestamp };
 
 /** Root doc ref for an org. All org-scoped paths derive from here so a forged
  *  document id can never escape its tenant. */

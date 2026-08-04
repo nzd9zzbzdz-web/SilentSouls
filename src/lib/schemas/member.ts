@@ -25,6 +25,14 @@ export const updateMemberSchema = createMemberSchema.partial().extend({
 });
 export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
 
+export const deleteMemberSchema = z.object({
+  orgId: z.string().min(1),
+  memberId: z.string().min(1),
+  /** Typed by the admin and matched against the member's road name. */
+  confirmRoadName: z.string().min(1, "Type the road name to confirm"),
+});
+export type DeleteMemberInput = z.infer<typeof deleteMemberSchema>;
+
 export const officerNoteSchema = z.object({
   orgId: z.string().min(1),
   memberId: z.string().min(1),
