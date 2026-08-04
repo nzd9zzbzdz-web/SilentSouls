@@ -5,7 +5,8 @@ import { PatchAdmin } from "@/components/portal/PatchAdmin";
 import { ReconcileAwardsButton } from "@/components/portal/ReconcileAwardsButton";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
-import { listMembers, listPatchArt, listPatches } from "@/lib/queries";
+import { listMembers, listPatchArtVersions, listPatches } from "@/lib/queries";
+import { patchArtUrl } from "@/lib/patch-ladders";
 
 export default async function PatchAdminPage({
   params,
@@ -17,10 +18,10 @@ export default async function PatchAdminPage({
   if (!org) notFound();
   await requireOrgRole(org.id, "admin");
 
-  const [patches, members, art] = await Promise.all([
+  const [patches, members, artVersions] = await Promise.all([
     listPatches(org.id),
     listMembers(org.id),
-    listPatchArt(org.id),
+    listPatchArtVersions(org.id),
   ]);
 
   return (
@@ -53,7 +54,7 @@ export default async function PatchAdminPage({
           manual: p.manual,
           active: p.active,
           emblem: p.emblem === true,
-          art: art.get(p.id) ?? null,
+          art: patchArtUrl(org.id, p.id, artVersions),
           surface: p.defaultPlacement.surface,
           u: p.defaultPlacement.u,
           v: p.defaultPlacement.v,

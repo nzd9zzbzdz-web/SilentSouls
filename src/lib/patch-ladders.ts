@@ -140,6 +140,22 @@ export function composeLadders({
   });
 }
 
+/**
+ * Where a patch's artwork is served from. The `v` is the art's updatedAt, so a
+ * re-upload lands at a new URL and the old one can be cached forever — see the
+ * art route. Returns null when the patch has no art, and callers render their
+ * lettered-badge fallback.
+ */
+export function patchArtUrl(
+  orgId: string,
+  patchId: string,
+  versions: Map<string, number>,
+): string | null {
+  const v = versions.get(patchId);
+  if (v === undefined) return null;
+  return `/api/orgs/${orgId}/patches/${patchId}/art?v=${v}`;
+}
+
 /** "$24.8K" / "24,760" / "180 mo" — what's left before the next tier lands. */
 export function remainingLabel(ladder: Ladder): string | null {
   if (!ladder.next) return null;

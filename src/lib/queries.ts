@@ -38,19 +38,35 @@ export const listPatches = cache(async (orgId: string): Promise<Patch[]> => {
 });
 
 /**
- * Patch/emblem artwork by patch id — webp data URLs written by
- * `uploadPatchArt`. Kept out of the patch docs so `listPatches` stays cheap for
- * the pages that only need names and thresholds; call this only where art is
- * actually drawn.
+ * Which patches have artwork, and the version of each — patch id → updatedAt in
+ * ms. Deliberately does NOT read the image: `.select()` fetches the timestamp
+ * and nothing else, so a page listing sixty patches carries sixty numbers
+ * rather than sixty base64 blobs. The bytes come from the art route, which the
+ * browser fetches in parallel and caches (see `patchArtUrl`).
  */
-export const listPatchArt = cache(
-  async (orgId: string): Promise<Map<string, string>> => {
-    const snap = await orgRef(orgId).collection("patchArt").get();
+export const listPatchArtVersions = cache(
+  async (orgId: string): Promise<Map<string, number>> => {
+    const snap = await orgRef(orgId).collection("patchArt").select("updatedAt").get();
     return new Map(
-      snap.docs
-        .map((d) => [d.id, d.data()?.dataUrl as string | undefined] as const)
-        .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
+      snap.docs.map((d) => {
+        const ts = d.data()?.updatedAt as { toMillis?: () => number } | undefined;
+        return [d.id, ts?.toMillis?.() ?? 0];
+      }),
     );
+  },
+);
+
+/** One patch's artwork, for the route that streams it. */
+export const getPatchArt = cache(
+  async (
+    orgId: string,
+    patchId: string,
+  ): Promise<{ dataUrl: string; updatedAtMs: number } | null> => {
+    const snap = await orgRef(orgId).collection("patchArt").doc(patchId).get();
+    const data = snap.data();
+    if (!snap.exists || typeof data?.dataUrl !== "string") return null;
+    const ts = data.updatedAt as { toMillis?: () => number } | undefined;
+    return { dataUrl: data.dataUrl, updatedAtMs: ts?.toMillis?.() ?? 0 };
   },
 );
 

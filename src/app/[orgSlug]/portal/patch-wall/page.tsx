@@ -10,10 +10,10 @@ import {
   getMember,
   listMemberAwards,
   listMembers,
-  listPatchArt,
+  listPatchArtVersions,
   listPatches,
 } from "@/lib/queries";
-import { composeLadders, remainingLabel } from "@/lib/patch-ladders";
+import { composeLadders, patchArtUrl, remainingLabel } from "@/lib/patch-ladders";
 import { CRIMINAL_RECORD_ROWS, STAT_LABELS } from "@/lib/constants";
 import type { AwardedPatch, Patch } from "@/lib/types";
 
@@ -45,16 +45,18 @@ function PatchArt({
   name,
   locked,
 }: {
-  art?: string;
+  art: string | null;
   name: string;
   locked?: boolean;
 }) {
   if (!art) return null;
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- data URL, no loader
+    // eslint-disable-next-line @next/next/no-img-element -- served by the art route, already sized
     <img
       src={art}
       alt={`${name} patch`}
+      loading="lazy"
+      decoding="async"
       className="size-12 shrink-0 object-contain"
       style={locked ? { filter: "grayscale(1) brightness(0.7)", opacity: 0.6 } : undefined}
     />
@@ -85,10 +87,10 @@ export default async function PatchWallPage({
   if (!org) notFound();
   const access = await requireOrgRole(org.id, "member");
 
-  const [patches, members, art] = await Promise.all([
+  const [patches, members, artVersions] = await Promise.all([
     listPatches(org.id),
     listMembers(org.id),
-    listPatchArt(org.id),
+    listPatchArtVersions(org.id),
   ]);
   const member = access.memberId ? await getMember(org.id, access.memberId) : null;
   const myAwards = access.memberId
@@ -193,7 +195,7 @@ export default async function PatchWallPage({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex min-w-0 items-start gap-3">
-                    <PatchArt art={art.get(patch.id)} name={patch.name} />
+                    <PatchArt art={patchArtUrl(org.id, patch.id, artVersions)} name={patch.name} />
                     <p
                       className="text-xl text-primary"
                       style={{ fontFamily: "var(--font-display)" }}
@@ -232,7 +234,7 @@ export default async function PatchWallPage({
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 items-start gap-3">
-                  <PatchArt art={art.get(patch.id)} name={patch.name} locked />
+                  <PatchArt art={patchArtUrl(org.id, patch.id, artVersions)} name={patch.name} locked />
                   <p className="text-lg font-semibold text-muted-foreground">
                     {patch.name}
                   </p>

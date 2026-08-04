@@ -57,11 +57,16 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
     is the migration for live orgs — it flags them `emblem` (merge-only) and
     strips emblems off existing `cutLayouts`. Idempotent; awards untouched.
 - **Patch/emblem artwork lives in `organizations/{orgId}/patchArt/{patchId}`**
-  as a webp data URL (`uploadPatchArt`, admin-only, sharp → 512² contain with
-  alpha kept, ≤200KB) — same no-Storage-bucket trick as character renders.
+  as a webp data URL (`uploadPatchArt`, admin-only, sharp → 256² contain with
+  alpha kept, ≤64KB) — same no-Storage-bucket trick as character renders.
   A SIBLING collection on purpose: `listPatches` is read by the profile, wall,
-  cut and admin, and sixty data URLs riding along would be ~1MB per read. Fetch
-  with `listPatchArt` only where art is drawn. `getCut` folds it into
+  cut and admin, and sixty data URLs riding along would be megabytes per read.
+  **Never read the blob into a page.** Pages call `listPatchArtVersions`
+  (a `.select("updatedAt")` query — ids and timestamps, no images) and build
+  `<img>` URLs with `patchArtUrl()`; the bytes stream from
+  `/api/orgs/{orgId}/patches/{patchId}/art`, same pattern as the character
+  render route. The `?v=` is the art's updatedAt, so the response is
+  `immutable` and a re-upload lands at a new URL. `getCut` puts that URL in
   `patch.imagePath`, which the render model already reads. Art is always
   optional — every surface falls back to the lettered badge.
 - Officer-only data lives in **subcollections** (`members/*/notes`) — rules can't

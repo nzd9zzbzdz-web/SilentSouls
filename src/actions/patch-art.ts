@@ -8,8 +8,15 @@ import { writeAuditLog } from "@/lib/audit";
 import type { ActionResult } from "./activities";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // raw upload cap
-const MAX_STORED_BYTES = 200 * 1024; // a badge, not a photo
-const ART_SIZE = 512; // square canvas the renderer can scale down from
+/**
+ * A badge, not a photo. Patches draw at 36-48px on the ladder and the wall, so
+ * 256² still has headroom for a 3x display and for the cut renderer later,
+ * while keeping a sixty-patch page inside about a megabyte of images — fetched
+ * in parallel by the browser and then cached forever against the version in
+ * the URL. The old 512²/200KB was ~12MB of art for a club this size.
+ */
+const MAX_STORED_BYTES = 64 * 1024;
+const ART_SIZE = 256;
 
 /**
  * Patch and emblem artwork.

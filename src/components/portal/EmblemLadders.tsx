@@ -1,6 +1,11 @@
 import { Check, Gem, Lock } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
-import { remainingLabel, type Ladder, type LadderTier } from "@/lib/patch-ladders";
+import {
+  patchArtUrl,
+  remainingLabel,
+  type Ladder,
+  type LadderTier,
+} from "@/lib/patch-ladders";
 
 /**
  * The Emblems tab on a member's profile: one ladder per criminal-record stat,
@@ -58,8 +63,14 @@ function Rung({
               : { filter: "grayscale(1) brightness(0.7)" }
           }
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- data URL, no loader */}
-          <img src={art} alt="" className="size-full object-contain" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- served by the art route, already sized */}
+          <img
+            src={art}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="size-full object-contain"
+          />
         </span>
       ) : (
         <span
@@ -102,7 +113,15 @@ function Rung({
   );
 }
 
-function LadderRow({ ladder, art }: { ladder: Ladder; art: Map<string, string> }) {
+function LadderRow({
+  ladder,
+  orgId,
+  artVersions,
+}: {
+  ladder: Ladder;
+  orgId: string;
+  artVersions: Map<string, number>;
+}) {
   const remaining = remainingLabel(ladder);
   const maxed = !ladder.next;
 
@@ -126,7 +145,7 @@ function LadderRow({ ladder, art }: { ladder: Ladder; art: Map<string, string> }
             key={tier.patch.id}
             tier={tier}
             isNext={ladder.next?.patch.id === tier.patch.id}
-            art={art.get(tier.patch.id) ?? null}
+            art={patchArtUrl(orgId, tier.patch.id, artVersions)}
           />
         ))}
       </ul>
@@ -164,13 +183,19 @@ export function EmblemLadders({
   ladders,
   roadName,
   isSelf,
-  art,
+  orgId,
+  artVersions,
 }: {
   ladders: Ladder[];
   roadName: string;
   isSelf: boolean;
-  /** Emblem artwork by patch id; a missing entry falls back to a lettered badge. */
-  art: Map<string, string>;
+  orgId: string;
+  /**
+   * patch id → art version, for building image URLs. Versions, not blobs: a
+   * member with every emblem would otherwise carry 55 base64 images in the HTML.
+   * A missing entry means no art, and the rung falls back to a lettered badge.
+   */
+  artVersions: Map<string, number>;
 }) {
   const earned = ladders.reduce((n, l) => n + l.earnedCount, 0);
   const total = ladders.reduce((n, l) => n + l.tiers.length, 0);
@@ -205,7 +230,12 @@ export function EmblemLadders({
       ) : (
         <ul className="mt-6 grid gap-4 lg:grid-cols-2">
           {ladders.map((ladder) => (
-            <LadderRow key={ladder.statKey} ladder={ladder} art={art} />
+            <LadderRow
+              key={ladder.statKey}
+              ladder={ladder}
+              orgId={orgId}
+              artVersions={artVersions}
+            />
           ))}
         </ul>
       )}

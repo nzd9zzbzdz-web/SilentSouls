@@ -13,7 +13,7 @@ import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import {
   getMember,
   listMemberAwards,
-  listPatchArt,
+  listPatchArtVersions,
   listPatches,
   listRanks,
   listServiceRecord,
@@ -62,7 +62,7 @@ export default async function MemberDetailPage({
       member.sponsorMemberId
         ? getMember(org.id, member.sponsorMemberId)
         : Promise.resolve(null),
-      listPatchArt(org.id),
+      listPatchArtVersions(org.id),
     ]);
   const rank = ranks.find((r) => r.id === member.rankId);
   const patchById = new Map(patches.map((p) => [p.id, p]));
@@ -178,7 +178,8 @@ export default async function MemberDetailPage({
             ladders={ladders}
             roadName={member.roadName}
             isSelf={access.memberId === memberId}
-            art={patchArt}
+            orgId={org.id}
+            artVersions={patchArt}
           />
         </TabsContent>
       </Tabs>

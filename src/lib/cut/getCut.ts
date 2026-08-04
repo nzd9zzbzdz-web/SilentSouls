@@ -51,7 +51,9 @@ export async function getMemberCut(
       org.collection("rankVisuals").doc(member.rankId).get(),
       org.collection("patches").get(),
       org.collection("awardedPatches").where("memberId", "==", memberId).get(),
-      org.collection("patchArt").get(),
+      // Versions only — the bytes come from the art route. Reading the images
+      // here would put every patch's base64 into the cut page's payload.
+      org.collection("patchArt").select("updatedAt").get(),
     ]);
 
   const vestConfigs: Partial<Record<CutSurface, VestConfig>> = {};
@@ -61,15 +63,24 @@ export async function getMemberCut(
   // Uploaded artwork resolves through `imagePath`, which the render model
   // already reads — an admin uploading a patch image gets it on the cut with
   // no renderer change. A patch with its own imagePath set keeps it.
-  const artById = new Map(
-    artSnap.docs
-      .map((d) => [d.id, d.data()?.dataUrl as string | undefined] as const)
-      .filter((e): e is readonly [string, string] => Boolean(e[1])),
+  const artVersions = new Map(
+    artSnap.docs.map((d) => {
+      const ts = d.data()?.updatedAt as { toMillis?: () => number } | undefined;
+      return [d.id, ts?.toMillis?.() ?? 0];
+    }),
   );
 
   const patches = patchesSnap.docs.map((d) => {
     const patch = { id: d.id, ...(d.data() as Omit<Patch, "id">) };
-    return { ...patch, imagePath: patch.imagePath ?? artById.get(d.id) };
+    const version = artVersions.get(d.id);
+    return {
+      ...patch,
+      imagePath:
+        patch.imagePath ??
+        (version === undefined
+          ? undefined
+          : `/api/orgs/${orgId}/patches/${d.id}/art?v=${version}`),
+    };
   });
 
   const awarded = awardedSnap.docs.map((d) => {

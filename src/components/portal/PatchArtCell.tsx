@@ -79,8 +79,14 @@ export function PatchArtCell({
         {pending ? (
           <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
         ) : art ? (
-          // eslint-disable-next-line @next/next/no-img-element -- data URL, no loader
-          <img src={art} alt="" className="size-full rounded-md object-contain p-0.5" />
+          // eslint-disable-next-line @next/next/no-img-element -- served by the art route, already sized
+          <img
+            src={art}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="size-full rounded-md object-contain p-0.5"
+          />
         ) : (
           <ImagePlus className="size-4 text-muted-foreground" aria-hidden />
         )}
