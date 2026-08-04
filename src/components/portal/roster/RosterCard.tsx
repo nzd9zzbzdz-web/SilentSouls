@@ -29,11 +29,11 @@ const CATEGORY_ICON: Record<PatchCategory, typeof Award> = {
 export function RosterCard({
   orgSlug,
   member,
-  viewerIsOfficer,
+  viewerCanManageArt,
 }: {
   orgSlug: string;
   member: RosterMember;
-  viewerIsOfficer: boolean;
+  viewerCanManageArt: boolean;
 }) {
   const { hasRender, isOfficer, isPresident } = member;
 
@@ -88,7 +88,7 @@ export function RosterCard({
         {isPresident && (
           <Crown className="size-4 text-primary drop-shadow" aria-label="President" />
         )}
-        {!hasRender && viewerIsOfficer && (
+        {!hasRender && viewerCanManageArt && (
           <span className="inline-flex items-center gap-1 rounded bg-black/40 px-1.5 py-0.5 text-[0.55rem] uppercase tracking-[0.12em] text-white/55 backdrop-blur-sm">
             <ImageOff className="size-2.5" aria-hidden />
             No render

@@ -43,7 +43,8 @@ export default async function BrotherhoodPage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
   const access = await requireOrgRole(org.id, "member");
-  const viewerIsOfficer = access.role === "officer" || access.role === "admin";
+  // Only admins can upload character art, so only they get the nudge.
+  const viewerCanManageArt = access.role === "admin";
 
   const [members, ranks, patches, awardsByMember] = await Promise.all([
     listMembers(org.id),
@@ -141,7 +142,7 @@ export default async function BrotherhoodPage({
         orgSlug={orgSlug}
         members={riding}
         pastColors={pastColors}
-        viewerIsOfficer={viewerIsOfficer}
+        viewerCanManageArt={viewerCanManageArt}
       />
     </div>
   );

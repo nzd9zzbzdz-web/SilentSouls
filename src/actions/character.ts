@@ -17,7 +17,7 @@ const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // raw upload cap
 const MAX_STORED_BYTES = 700 * 1024; // keep the Firestore doc well under 1MB
 
 /**
- * Officer+: set a member's character render from an uploaded image.
+ * Org-admin: set a member's character render from an uploaded image.
  * Light/checkerboard backgrounds are keyed out automatically; the result is
  * stored as a webp data URL in members/{id}/assets/character (small, read
  * only by the profile page — no Storage bucket required).
@@ -40,7 +40,7 @@ export async function uploadCharacterRender(
   }
 
   try {
-    const access = await requireOrgRole(orgId, "officer");
+    const access = await requireOrgRole(orgId, "admin");
     const memberRef = orgRef(orgId).collection("members").doc(memberId);
     if (!(await memberRef.get()).exists) {
       return { ok: false, error: "Member not found" };
@@ -102,13 +102,13 @@ export async function uploadCharacterRender(
   }
 }
 
-/** Officer+: remove a member's uploaded render (falls back to silhouette). */
+/** Org-admin: remove a member's uploaded render (falls back to silhouette). */
 export async function removeCharacterRender(raw: {
   orgId: string;
   memberId: string;
 }): Promise<ActionResult> {
   try {
-    const access = await requireOrgRole(raw.orgId, "officer");
+    const access = await requireOrgRole(raw.orgId, "admin");
     const assetRef = orgRef(raw.orgId)
       .collection("members")
       .doc(raw.memberId)
@@ -153,11 +153,11 @@ export async function applyDefaultCharacterStage(raw: {
 }
 
 /**
- * Officer+: save where a member's render stands on their stage.
+ * Org-admin: save where a member's render stands on their stage.
  *
  * Pass `pose: null` to clear it and fall back to DEFAULT_CHARACTER_POSE. Values
  * are clamped server-side rather than rejected — a drag that overshoots should
- * land at the edge, not throw away the officer's whole adjustment.
+ * land at the edge, not throw away the whole adjustment.
  */
 export async function saveCharacterPose(raw: {
   orgId: string;
@@ -171,7 +171,7 @@ export async function saveCharacterPose(raw: {
   const { orgId, memberId, pose } = parsed.data;
 
   try {
-    const access = await requireOrgRole(orgId, "officer");
+    const access = await requireOrgRole(orgId, "admin");
     const memberRef = orgRef(orgId).collection("members").doc(memberId);
     if (!(await memberRef.get()).exists) {
       return { ok: false, error: "Member not found" };

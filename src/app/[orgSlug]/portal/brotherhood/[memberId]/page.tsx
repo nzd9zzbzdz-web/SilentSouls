@@ -27,7 +27,9 @@ export default async function MemberDetailPage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
   const access = await requireOrgRole(org.id, "member");
-  const isOfficer = access.role === "officer" || access.role === "admin";
+  // Character art and placement are admin-only — officers can review activities
+  // but don't get to restyle anyone's character screen.
+  const canManageArt = access.role === "admin";
 
   const member = await getMember(org.id, memberId);
   if (!member) notFound();
@@ -94,7 +96,7 @@ export default async function MemberDetailPage({
       <CharacterPoseEditor
         orgId={org.id}
         memberId={memberId}
-        canEdit={isOfficer}
+        canEdit={canManageArt}
         initialPose={member.characterPose}
         orgName={branding?.orgDisplayName ?? org.name}
         tagline={branding?.tagline}
@@ -109,7 +111,7 @@ export default async function MemberDetailPage({
         stagePath={branding?.characterStagePath ?? DEFAULT_CHARACTER_STAGE}
         characterPath={uploadedArt ?? member.photoPath ?? CHARACTER_SILHOUETTE}
       />
-      {isOfficer && (
+      {canManageArt && (
         <div className="mt-3">
           <CharacterArtUploader
             orgId={org.id}

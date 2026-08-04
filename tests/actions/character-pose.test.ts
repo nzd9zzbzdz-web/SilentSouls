@@ -12,17 +12,26 @@ process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
 process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = "character-pose-test-isolated";
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+
+// Record what each action demands. Hiding the buttons in the UI is cosmetic —
+// the action's own gate is the real boundary, so assert on it directly.
+const gate = vi.hoisted(() => ({ demanded: [] as string[] }));
 vi.mock("@/lib/auth/session", () => ({
-  requireOrgRole: async () => ({
-    user: { uid: "officer-1" },
-    role: "officer",
-    memberId: "m-officer",
-    isSuper: false,
-  }),
+  requireOrgRole: async (_orgId: string, minRole = "member") => {
+    gate.demanded.push(minRole);
+    return {
+      user: { uid: "admin-1" },
+      role: "admin",
+      memberId: "m-admin",
+      isSuper: false,
+    };
+  },
 }));
 
 const { adminDb, orgRef, Timestamp } = await import("@/lib/firebase/admin");
-const { saveCharacterPose } = await import("@/actions/character");
+const { saveCharacterPose, removeCharacterRender, uploadCharacterRender } = await import(
+  "@/actions/character"
+);
 const { clampPose } = await import("@/lib/schemas/character");
 const { CHARACTER_POSE_LIMITS, DEFAULT_CHARACTER_POSE } = await import(
   "@/lib/constants"
@@ -56,6 +65,35 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await adminDb.recursiveDelete(org);
+});
+
+describe("character screen permissions", () => {
+  it("saving a pose demands admin, not officer", async () => {
+    gate.demanded.length = 0;
+    await saveCharacterPose({
+      orgId: ORG,
+      memberId: "m1",
+      pose: { x: 10, y: 10, scale: 60 },
+    });
+    expect(gate.demanded).toEqual(["admin"]);
+  });
+
+  it("removing a render demands admin, not officer", async () => {
+    gate.demanded.length = 0;
+    await removeCharacterRender({ orgId: ORG, memberId: "m1" });
+    expect(gate.demanded).toEqual(["admin"]);
+  });
+
+  it("uploading a render demands admin, not officer", async () => {
+    gate.demanded.length = 0;
+    const form = new FormData();
+    form.set("orgId", ORG);
+    form.set("memberId", "m1");
+    form.set("file", new File([new Uint8Array([1, 2, 3])], "x.png", { type: "image/png" }));
+    await uploadCharacterRender(form);
+    // Reached the gate before failing on the bogus image bytes.
+    expect(gate.demanded).toEqual(["admin"]);
+  });
 });
 
 describe("saveCharacterPose", () => {

@@ -44,12 +44,12 @@ export function BrotherhoodRoster({
   orgSlug,
   members,
   pastColors,
-  viewerIsOfficer,
+  viewerCanManageArt,
 }: {
   orgSlug: string;
   members: RosterMember[];
   pastColors: RosterMember[];
-  viewerIsOfficer: boolean;
+  viewerCanManageArt: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("rank");
@@ -143,7 +143,7 @@ export function BrotherhoodRoster({
                 key={member.id}
                 orgSlug={orgSlug}
                 member={member}
-                viewerIsOfficer={viewerIsOfficer}
+                viewerCanManageArt={viewerCanManageArt}
               />
             ))}
           </div>
