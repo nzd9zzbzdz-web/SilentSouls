@@ -4,8 +4,17 @@ import { notFound } from "next/navigation";
 import { ChevronRight, ScrollText } from "lucide-react";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { getGalleryPhotos } from "@/lib/gallery";
+import { listMembers, listMembersWithRender, listRanks } from "@/lib/queries";
+import {
+  byStanding,
+  isPubliclyVisible,
+  type PublicRosterMember,
+} from "@/lib/public-roster";
+import { CHARACTER_SILHOUETTE } from "@/lib/constants";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { HeroGalleryFilmstrip } from "@/components/public/HeroGalleryFilmstrip";
+import { BrotherhoodSection } from "@/components/public/BrotherhoodSection";
+import type { Timestamp } from "firebase-admin/firestore";
 
 const EMBER = "#D9362B";
 // Committed hero clip (text-free so the headline overlays on top) — fallback
@@ -30,9 +39,48 @@ export default async function PublicHomePage({
   const [line1, line2] = splitName(org.name);
   const creed = branding?.tagline ?? "Brotherhood · Loyalty · Respect · Death";
 
+  // The public roster: everyone under the colors, chain of command first. The
+  // same gate guards the render route, so a face can't load for anyone the
+  // section doesn't list.
+  const [members, ranks] = await Promise.all([listMembers(org.id), listRanks(org.id)]);
+  const rankById = new Map(ranks.map((r) => [r.id, r]));
+  const publicMembers = members.filter((m) =>
+    isPubliclyVisible(m, rankById.get(m.rankId)),
+  );
+  const withRender = await listMembersWithRender(
+    org.id,
+    publicMembers.map((m) => m.id),
+  );
+  const brotherhood: PublicRosterMember[] = publicMembers
+    .map((member) => {
+      const rank = rankById.get(member.rankId);
+      const joined = (member.joinDate as Timestamp)?.toDate?.();
+      // The seeder writes the shared silhouette into photoPath when a member
+      // has no art, so a set photoPath alone doesn't mean they have a render.
+      const ownArt =
+        member.photoPath && member.photoPath !== CHARACTER_SILHOUETTE
+          ? member.photoPath
+          : undefined;
+      return {
+        id: member.id,
+        roadName: member.roadName,
+        rankName: rank?.name ?? "Patched Member",
+        rankOrder: rank?.order ?? 99,
+        isOfficer: Boolean(rank?.isOfficer),
+        memberNumber: member.memberNumber,
+        imageUrl: withRender.has(member.id)
+          ? `/api/orgs/${org.id}/members/${member.id}/render`
+          : (ownArt ?? CHARACTER_SILHOUETTE),
+        joinedLabel: joined
+          ? joined.toLocaleDateString("en-US", { month: "short", year: "numeric" })
+          : "—",
+      };
+    })
+    .sort(byStanding);
+
   const pillars = [
     { img: "/brand/emblem-skull.webp", title: "About Us", body: "Ravens of Death MC was founded on the core values of loyalty, trust, and respect. We are brothers, nothing more, nothing less.", href: `${base}/about`, cta: "Read More" },
-    { img: "/brand/emblem-winged.webp", title: "Brotherhood", body: "We ride together, we stand together, we bleed together. Our bond is unbreakable. Our brotherhood is forever.", href: `${base}/about`, cta: "Read More" },
+    { img: "/brand/emblem-winged.webp", title: "Brotherhood", body: "We ride together, we stand together, we bleed together. Our bond is unbreakable. Our brotherhood is forever.", href: "#brotherhood", cta: "Meet the Club" },
     { img: "/brand/emblem-onepercent.webp", title: "Our Code", body: "We live by a code. It guides our actions and defines who we are. Disrespect the code, and you'll face the consequences.", href: `${base}/about`, cta: "Read More" },
     { img: "/brand/emblem-mc.webp", title: "Join the Club", body: "Think you have what it takes to be one of us? Loyalty is earned, not given. Start your journey here.", href: `${base}/join`, cta: "Apply Now" },
   ];
@@ -170,6 +218,9 @@ export default async function PublicHomePage({
           </div>
         </div>
       </section>
+
+      {/* ── The Brotherhood ── */}
+      <BrotherhoodSection members={brotherhood} joinHref={`${base}/join`} />
 
       {/* ── Latest ── */}
       <section aria-labelledby="news-heading" className="bg-[#050407]">

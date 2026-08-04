@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AuthError, requireOrgRole } from "@/lib/auth/session";
-import { getCharacterRender } from "@/lib/queries";
+import { getCharacterRender, getMember, listRanks } from "@/lib/queries";
+import { isPubliclyVisible } from "@/lib/public-roster";
 
 /**
  * Serves a member's uploaded character render as a real image response.
@@ -10,7 +11,9 @@ import { getCharacterRender } from "@/lib/queries";
  * would put megabytes of base64 into the HTML of a roster showing everyone.
  * Streaming them here keeps the page small and lets the browser cache.
  *
- * Members-only: the same `requireOrgRole` gate the portal pages use.
+ * Members see everyone. Anonymous callers see only the members the club puts
+ * on its public site — one gate (`isPubliclyVisible`) shared with the page
+ * that renders them, so a face can never leak past the roster it belongs to.
  */
 export async function GET(
   req: NextRequest,
@@ -18,14 +21,22 @@ export async function GET(
 ) {
   const { orgId, memberId } = await ctx.params;
 
+  let isPublicRequest = false;
   try {
     await requireOrgRole(orgId, "member");
   } catch (e) {
-    const code = e instanceof AuthError ? e.code : "forbidden";
-    return NextResponse.json(
-      { error: code },
-      { status: code === "unauthenticated" ? 401 : 403 },
-    );
+    const member = await getMember(orgId, memberId);
+    const rank = member
+      ? (await listRanks(orgId)).find((r) => r.id === member.rankId)
+      : undefined;
+    if (!member || !isPubliclyVisible(member, rank)) {
+      const code = e instanceof AuthError ? e.code : "forbidden";
+      return NextResponse.json(
+        { error: code },
+        { status: code === "unauthenticated" ? 401 : 403 },
+      );
+    }
+    isPublicRequest = true;
   }
 
   const render = await getCharacterRender(orgId, memberId);
@@ -47,8 +58,11 @@ export async function GET(
       "Content-Type": contentType,
       "Content-Length": String(body.byteLength),
       ETag: etag,
-      // Private: renders are behind the members-only gate, never shared caches.
-      "Cache-Control": "private, max-age=300, must-revalidate",
+      // A public roster face is the same bytes for everyone, so let shared
+      // caches hold it. Members-only art never leaves a private cache.
+      "Cache-Control": isPublicRequest
+        ? "public, max-age=300, must-revalidate"
+        : "private, max-age=300, must-revalidate",
     },
   });
 }
