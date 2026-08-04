@@ -175,7 +175,155 @@ export const RETIRED_PATCH_IDS = [
   "shot-caller",
 ];
 
-/** Criminal-record patches — the replacements for the retired club set. */
+/**
+ * Criminal-record patch ladders — one per row of CRIMINAL_RECORD_ROWS, five
+ * tiers each. Every tier is driven by a stat members log and officers approve,
+ * so the whole ladder moves on the existing pipeline; the patch engine already
+ * awards every threshold crossed in a single pass, so jumping several tiers at
+ * once works without special-casing.
+ *
+ * A ladder owns ONE spot on the cut (`surface`/`u`/`v`, shared by all five
+ * tiers) — the engine supersedes lower tiers in place, so a veteran wears eleven
+ * patches at their highest level rather than fifty-five stacked near-duplicates.
+ * The earlier tiers stay earned; they live in the trophy case on the profile.
+ *
+ * The eight patches that shipped before this ladder existed keep their original
+ * id, threshold, description, category and rarity, so awards already granted
+ * still resolve and nobody's patch quietly changes meaning. `legacy: true` marks
+ * them — it is documentation, nothing reads it.
+ */
+export const PATCH_LADDERS: {
+  statKey: StatKey;
+  surface: "front" | "back";
+  u: number;
+  v: number;
+  tiers: {
+    id: string;
+    name: string;
+    description: string;
+    threshold: number;
+    category?: "activity" | "service" | "leadership" | "recognition" | "legendary";
+    rarity?: "common" | "rare" | "epic" | "legendary";
+    legacy?: true;
+  }[];
+}[] = [
+  {
+    statKey: "crimesCommitted", surface: "front", u: 0.3, v: 0.72,
+    tiers: [
+      { id: "petty-thief", name: "Petty Thief", description: "Commit 25 crimes.", threshold: 25 },
+      { id: "troublemaker", name: "Troublemaker", description: "Commit 150 crimes.", threshold: 150 },
+      { id: "menace", name: "Menace", description: "Commit 500 crimes.", threshold: 500 },
+      { id: "crime-wave", name: "Crime Wave", description: "Commit 1,500 crimes.", threshold: 1_500 },
+      { id: "one-man-riot", name: "One-Man Riot", description: "Commit 5,000 crimes.", threshold: 5_000 },
+    ],
+  },
+  {
+    statKey: "felonies", surface: "front", u: 0.5, v: 0.3,
+    tiers: [
+      { id: "convicted", name: "Convicted", description: "Commit 5 felonies.", threshold: 5 },
+      { id: "repeat-offender", name: "Repeat Offender", description: "Commit 25 felonies.", threshold: 25 },
+      { id: "career-criminal", name: "Career Criminal", description: "Commit 60 felonies.", threshold: 60 },
+      { id: "most-wanted", name: "Most Wanted", description: "Commit 100 felonies.", threshold: 100, category: "legendary", rarity: "legendary", legacy: true },
+      { id: "public-enemy", name: "Public Enemy", description: "Commit 250 felonies.", threshold: 250 },
+    ],
+  },
+  {
+    statKey: "heistsCompleted", surface: "back", u: 0.7, v: 0.72,
+    tiers: [
+      { id: "first-job", name: "First Job", description: "Pull 3 heists.", threshold: 3 },
+      { id: "made-man", name: "Made Man", description: "Pull 10 heists.", threshold: 10, rarity: "epic", legacy: true },
+      { id: "heavy-hitter", name: "Heavy Hitter", description: "Pull 25 heists.", threshold: 25 },
+      { id: "mastermind", name: "Mastermind", description: "Pull 60 heists.", threshold: 60 },
+      { id: "the-score", name: "The Score", description: "Pull 150 heists.", threshold: 150 },
+    ],
+  },
+  {
+    statKey: "drugSales", surface: "back", u: 0.3, v: 0.62,
+    tiers: [
+      { id: "corner-boy", name: "Corner Boy", description: "Move 1,000 drug sales.", threshold: 1_000, legacy: true },
+      { id: "slinger", name: "Slinger", description: "Move 5,000 drug sales.", threshold: 5_000 },
+      { id: "dealer", name: "Dealer", description: "Move 15,000 drug sales.", threshold: 15_000 },
+      { id: "distributor", name: "Distributor", description: "Move 40,000 drug sales.", threshold: 40_000 },
+      { id: "kingpin", name: "Kingpin", description: "Move 100,000 drug sales.", threshold: 100_000 },
+    ],
+  },
+  {
+    statKey: "drugsCooked", surface: "back", u: 0.7, v: 0.62,
+    tiers: [
+      { id: "line-cook", name: "Line Cook", description: "Cook 100 batches.", threshold: 100 },
+      { id: "the-cook", name: "The Cook", description: "Cook 500 batches.", threshold: 500, legacy: true },
+      { id: "chemist", name: "Chemist", description: "Cook 2,000 batches.", threshold: 2_000 },
+      { id: "master-chemist", name: "Master Chemist", description: "Cook 6,000 batches.", threshold: 6_000 },
+      { id: "cartel-chemist", name: "Cartel Chemist", description: "Cook 15,000 batches.", threshold: 15_000 },
+    ],
+  },
+  {
+    statKey: "gunsManufactured", surface: "back", u: 0.3, v: 0.72,
+    tiers: [
+      { id: "tinkerer", name: "Tinkerer", description: "Manufacture 10 guns.", threshold: 10 },
+      { id: "gunsmith", name: "Gunsmith", description: "Manufacture 50 guns.", threshold: 50, legacy: true },
+      { id: "armorer", name: "Armorer", description: "Manufacture 200 guns.", threshold: 200 },
+      { id: "arms-dealer", name: "Arms Dealer", description: "Manufacture 600 guns.", threshold: 600 },
+      { id: "merchant-of-death", name: "Merchant of Death", description: "Manufacture 1,500 guns.", threshold: 1_500 },
+    ],
+  },
+  {
+    statKey: "dirtyMoneyEarned", surface: "front", u: 0.3, v: 0.62,
+    tiers: [
+      { id: "hustler", name: "Hustler", description: "Earn $100K in dirty money.", threshold: 100_000, category: "service" },
+      { id: "earner", name: "Earner", description: "Earn $1M in dirty money.", threshold: 1_000_000, category: "service", legacy: true },
+      { id: "big-earner", name: "Big Earner", description: "Earn $5M in dirty money.", threshold: 5_000_000, category: "service" },
+      { id: "rainmaker", name: "Rainmaker", description: "Earn $20M in dirty money.", threshold: 20_000_000, category: "service" },
+      { id: "untouchable", name: "Untouchable", description: "Earn $50M in dirty money.", threshold: 50_000_000, category: "service" },
+    ],
+  },
+  {
+    statKey: "dirtyMoneyCleaned", surface: "front", u: 0.7, v: 0.62,
+    tiers: [
+      { id: "cash-wash", name: "Cash Wash", description: "Wash $50K through the books.", threshold: 50_000, category: "service" },
+      { id: "bookkeeper", name: "Bookkeeper", description: "Wash $250K through the books.", threshold: 250_000, category: "service" },
+      { id: "the-launderer", name: "The Launderer", description: "Wash $1M through the books.", threshold: 1_000_000, category: "service", legacy: true },
+      { id: "front-man", name: "Front Man", description: "Wash $5M through the books.", threshold: 5_000_000, category: "service" },
+      { id: "clean-hands", name: "Clean Hands", description: "Wash $20M through the books.", threshold: 20_000_000, category: "service" },
+    ],
+  },
+  {
+    statKey: "policeGunnedDown", surface: "front", u: 0.7, v: 0.72,
+    tiers: [
+      { id: "shots-fired", name: "Shots Fired", description: "Put down 5 police.", threshold: 5 },
+      { id: "badge-hunter", name: "Badge Hunter", description: "Put down 25 police.", threshold: 25 },
+      { id: "blue-streak", name: "Blue Streak", description: "Put down 75 police.", threshold: 75 },
+      { id: "no-quarter", name: "No Quarter", description: "Put down 200 police.", threshold: 200 },
+      { id: "ghost-of-the-precinct", name: "Ghost of the Precinct", description: "Put down 500 police.", threshold: 500 },
+    ],
+  },
+  {
+    statKey: "timesArrested", surface: "back", u: 0.5, v: 0.82,
+    tiers: [
+      { id: "booked", name: "Booked", description: "Get arrested 5 times.", threshold: 5 },
+      { id: "frequent-flyer", name: "Frequent Flyer", description: "Get arrested 20 times.", threshold: 20 },
+      { id: "revolving-door", name: "Revolving Door", description: "Get arrested 50 times.", threshold: 50 },
+      { id: "known-to-police", name: "Known to Police", description: "Get arrested 120 times.", threshold: 120 },
+      { id: "never-talks", name: "Never Talks", description: "Get arrested 300 times and give them nothing.", threshold: 300 },
+    ],
+  },
+  {
+    statKey: "jailTimeMonths", surface: "back", u: 0.5, v: 0.3,
+    tiers: [
+      { id: "held-overnight", name: "Held Overnight", description: "Serve 6 months inside.", threshold: 6, category: "leadership" },
+      { id: "done-a-bit", name: "Done a Bit", description: "Serve 60 months inside.", threshold: 60, category: "leadership" },
+      { id: "hardened", name: "Hardened", description: "Serve 300 months inside and come back.", threshold: 300, category: "leadership", legacy: true },
+      { id: "lifer", name: "Lifer", description: "Serve 720 months inside.", threshold: 720, category: "leadership" },
+      { id: "institutionalized", name: "Institutionalized", description: "Serve 1,500 months inside.", threshold: 1_500, category: "leadership" },
+    ],
+  },
+];
+
+/**
+ * The ladders flattened into patch seeds — what the seeder writes and what
+ * Admin → Activity Types installs into an org that predates a tier. Derived
+ * rather than hand-listed so a ladder edit can't drift from what gets seeded.
+ */
 export const CRIMINAL_PATCH_SEEDS: {
   id: string;
   name: string;
@@ -187,16 +335,28 @@ export const CRIMINAL_PATCH_SEEDS: {
   surface: "front" | "back";
   u: number;
   v: number;
-}[] = [
-  { id: "corner-boy", name: "Corner Boy", category: "activity", description: "Move 1,000 drug sales.", tier: 1, rarity: "common", requirement: { statKey: "drugSales", threshold: 1_000 }, surface: "back", u: 0.3, v: 0.62 },
-  { id: "the-cook", name: "The Cook", category: "activity", description: "Cook 500 batches.", tier: 2, rarity: "rare", requirement: { statKey: "drugsCooked", threshold: 500 }, surface: "back", u: 0.7, v: 0.62 },
-  { id: "gunsmith", name: "Gunsmith", category: "activity", description: "Manufacture 50 guns.", tier: 2, rarity: "rare", requirement: { statKey: "gunsManufactured", threshold: 50 }, surface: "back", u: 0.3, v: 0.72 },
-  { id: "made-man", name: "Made Man", category: "activity", description: "Pull 10 heists.", tier: 2, rarity: "epic", requirement: { statKey: "heistsCompleted", threshold: 10 }, surface: "back", u: 0.7, v: 0.72 },
-  { id: "earner", name: "Earner", category: "service", description: "Earn $1M in dirty money.", tier: 2, rarity: "rare", requirement: { statKey: "dirtyMoneyEarned", threshold: 1_000_000 }, surface: "front", u: 0.3, v: 0.62 },
-  { id: "the-launderer", name: "The Launderer", category: "service", description: "Wash $1M through the books.", tier: 3, rarity: "epic", requirement: { statKey: "dirtyMoneyCleaned", threshold: 1_000_000 }, surface: "front", u: 0.7, v: 0.62 },
-  { id: "hardened", name: "Hardened", category: "leadership", description: "Serve 300 months inside and come back.", tier: 3, rarity: "epic", requirement: { statKey: "jailTimeMonths", threshold: 300 }, surface: "back", u: 0.5, v: 0.3 },
-  { id: "most-wanted", name: "Most Wanted", category: "legendary", description: "Commit 100 felonies.", tier: 4, rarity: "legendary", requirement: { statKey: "felonies", threshold: 100 }, surface: "front", u: 0.5, v: 0.3 },
-];
+}[] = PATCH_LADDERS.flatMap((ladder) =>
+  ladder.tiers.map((t, i) => ({
+    id: t.id,
+    name: t.name,
+    category: t.category ?? ("activity" as const),
+    description: t.description,
+    tier: i + 1,
+    // Same tier→rarity scale the cut renderer uses (tierToRarity): tiers IV and
+    // V both read legendary. A tier that shipped with its own rarity keeps it.
+    rarity:
+      t.rarity ??
+      ((i + 1 >= 4 ? "legendary" : i + 1 === 3 ? "epic" : i + 1 === 2 ? "rare" : "common") as
+        | "common"
+        | "rare"
+        | "epic"
+        | "legendary"),
+    requirement: { statKey: ladder.statKey, threshold: t.threshold },
+    surface: ladder.surface,
+    u: ladder.u,
+    v: ladder.v,
+  })),
+);
 
 export const RETIRED_ACTIVITY_TYPE_IDS = [
   "club-event",

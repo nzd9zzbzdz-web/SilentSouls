@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import { CharacterArtUploader } from "@/components/portal/CharacterArtUploader";
 import { type StagePatch } from "@/components/portal/CharacterStage";
 import { CharacterPoseEditor } from "@/components/portal/CharacterPoseEditor";
+import { PatchLadders } from "@/components/portal/PatchLadders";
 import { ServiceRecord } from "@/components/portal/ServiceRecord";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { composeLadders } from "@/lib/patch-ladders";
 import { composeServiceRecord } from "@/lib/service-record";
 import { requireOrgRole } from "@/lib/auth/session";
 import { orgRef } from "@/lib/firebase/admin";
@@ -106,6 +109,10 @@ export default async function MemberDetailPage({
     career,
   });
 
+  // Patch progression: every threshold-driven patch grouped into a ladder per
+  // stat, so the tab reads as levels climbed rather than a flat list of names.
+  const ladders = composeLadders({ patches, awards, stats: member.stats });
+
   return (
     <div className="mx-auto max-w-6xl">
       <CharacterPoseEditor
@@ -136,20 +143,40 @@ export default async function MemberDetailPage({
         </div>
       )}
 
-      <div className="mt-8">
-        <ServiceRecord
-          items={careerItems}
-          roadName={member.roadName}
-          sponsor={
-            sponsor
-              ? {
-                  roadName: sponsor.roadName,
-                  href: `/${orgSlug}/portal/brotherhood/${sponsor.id}`,
-                }
-              : null
-          }
-        />
-      </div>
+      <Tabs defaultValue="service" className="mt-8 gap-4">
+        <TabsList>
+          <TabsTrigger value="service">Service Record</TabsTrigger>
+          <TabsTrigger value="patches">
+            Patches
+            <span className="font-stat ml-1.5 text-xs text-muted-foreground">
+              {ladders.reduce((n, l) => n + l.earnedCount, 0)}
+            </span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="service">
+          <ServiceRecord
+            items={careerItems}
+            roadName={member.roadName}
+            sponsor={
+              sponsor
+                ? {
+                    roadName: sponsor.roadName,
+                    href: `/${orgSlug}/portal/brotherhood/${sponsor.id}`,
+                  }
+                : null
+            }
+          />
+        </TabsContent>
+
+        <TabsContent value="patches">
+          <PatchLadders
+            ladders={ladders}
+            roadName={member.roadName}
+            isSelf={access.memberId === memberId}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

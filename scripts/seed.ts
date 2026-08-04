@@ -78,11 +78,15 @@ const PATCHES: PatchSeed[] = [
   p("iron-rider", "Iron Rider", "activity", "Complete 50 club runs.", 2, { statKey: "clubRuns", threshold: 50 }, "front", 0.3, 0.52),
   p("faithful", "Faithful", "activity", "Attend 10 church meetings.", 1, { statKey: "churchAttendance", threshold: 10 }, "front", 0.7, 0.42),
   p("dedicated-soul", "Dedicated Soul", "activity", "Attend 25 church meetings.", 2, { statKey: "churchAttendance", threshold: 25 }, "front", 0.7, 0.52),
-  // Criminal record patches (CRIMINAL_PATCH_SEEDS) replace the retired club
-  // set here — see RETIRED_PATCH_IDS in constants.
-  ...CRIMINAL_PATCH_SEEDS.map((c) =>
-    p(c.id, c.name, c.category, c.description, c.tier, c.requirement, c.surface, c.u, c.v),
-  ),
+  // Criminal record patches (CRIMINAL_PATCH_SEEDS — the five-tier ladders
+  // derived from PATCH_LADDERS) replace the retired club set here; see
+  // RETIRED_PATCH_IDS in constants. `rarity` is carried through rather than
+  // left to writeCutConfig's tier backfill, which would disagree with the
+  // sync action on any tier that sets its own.
+  ...CRIMINAL_PATCH_SEEDS.map((c) => ({
+    ...p(c.id, c.name, c.category, c.description, c.tier, c.requirement, c.surface, c.u, c.v),
+    rarity: c.rarity,
+  })),
   p("presidents-citation", "President's Citation", "recognition", "Awarded personally by the President for exceptional service.", 3, null, "front", 0.5, 0.68),
   p("brotherhoods-honor", "Brotherhood's Honor", "recognition", "Awarded by club vote for embodying the spirit of the Ravens.", 3, null, "front", 0.5, 0.78),
   p("war-veteran", "War Veteran", "legendary", "Stood their ground when the club needed them most. Manual award.", 4, null, "back", 0.5, 0.45),
@@ -203,7 +207,23 @@ function buildCutLayout(rankTab: { text: string } | null, awards: PatchSeed[]): 
       u: 0.5, v: 0.16, scale: 1, rotationDeg: 0, zIndex: 1, mirrored: false,
     });
   }
+  // A ladder wears only the rung the member got to — same rule the patch engine
+  // applies via supersedeLadder. Without this a demo member with real stats
+  // shows up wearing all five tiers of every ladder stacked on one spot.
+  const topOfLadder = new Map<string, PatchSeed>();
+  const worn: PatchSeed[] = [];
   for (const patch of awards) {
+    const statKey = patch.requirement?.statKey;
+    if (!statKey) {
+      worn.push(patch); // manual-only — no ladder
+      continue;
+    }
+    const held = topOfLadder.get(statKey);
+    if (!held || patch.requirement!.threshold > held.requirement!.threshold) {
+      topOfLadder.set(statKey, patch);
+    }
+  }
+  for (const patch of [...worn, ...topOfLadder.values()]) {
     const base = patch.defaultPlacement;
     const list = surfaces[base.surface];
     let v = base.v;

@@ -41,6 +41,26 @@ async function resetOrg() {
     active: true,
     defaultPlacement: { surface: "back", u: 0.5, v: 0.5, scale: 1, rotationDeg: 0 },
   });
+  // A three-rung ladder on one stat — enough to exercise superseding without
+  // restating all five tiers the real criminal-record ladders ship with.
+  const ladder = [
+    { id: "rung-1", threshold: 5 },
+    { id: "rung-2", threshold: 10 },
+    { id: "rung-3", threshold: 50 },
+  ];
+  for (const [i, rung] of ladder.entries()) {
+    await org.collection("patches").doc(rung.id).set({
+      name: `Rung ${i + 1}`,
+      category: "activity",
+      description: `${rung.threshold} heists`,
+      tier: i + 1,
+      requirement: { statKey: "heistsCompleted", threshold: rung.threshold },
+      manual: false,
+      active: true,
+      // Every rung shares one spot — the ladder owns it, the top tier wears it.
+      defaultPlacement: { surface: "back", u: 0.7, v: 0.72, scale: 0.8, rotationDeg: 0 },
+    });
+  }
   await org.collection("members").doc("m1").set({
     uid: "test-uid",
     displayName: "Test Member",
@@ -133,6 +153,82 @@ describe("approveActivityTx", () => {
 
     const member = await orgRef(ORG).collection("members").doc("m1").get();
     expect(member.data()?.patchCount).toBe(0); // count not double-bumped
+  });
+});
+
+describe("ladder superseding", () => {
+  /** refIds of patches currently placed on a surface of m1's cut. */
+  async function wornOn(surface: "front" | "back"): Promise<string[]> {
+    const cut = await orgRef(ORG).collection("cutLayouts").doc("m1").get();
+    return (cut.data()?.surfaces?.[surface] ?? [])
+      .filter((p: { kind: string }) => p.kind === "patch")
+      .map((p: { refId: string }) => p.refId);
+  }
+
+  async function logHeists(id: string, quantity: number) {
+    await orgRef(ORG).collection("activities").doc(id).set({
+      memberId: "m1",
+      typeId: "heist-completed",
+      statKey: "heistsCompleted",
+      date: Timestamp.now(),
+      description: "test heist",
+      quantity,
+      witnesses: [],
+      status: "pending",
+      createdAt: Timestamp.now(),
+    });
+    return approveActivityTx(ORG, id, "reviewer-uid");
+  }
+
+  it("awards every rung crossed but wears only the top one", async () => {
+    const result = await logHeists("h1", 12); // clears rungs 1 and 2 at once
+    expect(result.awardedPatchIds.sort()).toEqual(["rung-1", "rung-2"]);
+
+    // Both awards are real history...
+    for (const id of ["rung-1", "rung-2"]) {
+      const award = await orgRef(ORG).collection("awardedPatches").doc(`m1_${id}`).get();
+      expect(award.exists).toBe(true);
+    }
+    // ...but the cut shows where they got to, not every step.
+    expect(await wornOn("back")).toEqual(["rung-2"]);
+  });
+
+  it("replaces the worn rung when the next one lands later", async () => {
+    await logHeists("h1", 6); // rung 1
+    expect(await wornOn("back")).toEqual(["rung-1"]);
+
+    await logHeists("h2", 5); // 11 total ⇒ rung 2
+    expect(await wornOn("back")).toEqual(["rung-2"]);
+
+    // The superseded rung stays earned — it just isn't on the vest.
+    const old = await orgRef(ORG).collection("awardedPatches").doc("m1_rung-1").get();
+    expect(old.exists).toBe(true);
+    const member = await orgRef(ORG).collection("members").doc("m1").get();
+    expect(member.data()?.patchCount).toBe(2);
+  });
+
+  it("leaves other ladders alone when one supersedes", async () => {
+    await approveActivityTx(ORG, "a1", "reviewer-uid"); // clubRuns patch, front
+    await logHeists("h1", 12);
+    expect(await wornOn("front")).toEqual(["test-patch"]);
+    expect(await wornOn("back")).toEqual(["rung-2"]);
+  });
+
+  it("does not demote the cut when a lower rung is awarded by hand", async () => {
+    await logHeists("h1", 12); // wearing rung 2
+    const awarded = await manualAwardTx(ORG, "m1", "rung-1", "prez-uid", "Backdated.");
+    expect(awarded).toBe(false); // already held
+
+    await orgRef(ORG).collection("awardedPatches").doc("m1_rung-1").delete();
+    const regranted = await manualAwardTx(ORG, "m1", "rung-1", "prez-uid", "Backdated.");
+    expect(regranted).toBe(true);
+    expect(await wornOn("back")).toEqual(["rung-2"]); // still the higher rung
+  });
+
+  it("wears a hand-granted rung that outranks what the member has", async () => {
+    await logHeists("h1", 6); // rung 1
+    await manualAwardTx(ORG, "m1", "rung-3", "prez-uid", "Earned it the hard way.");
+    expect(await wornOn("back")).toEqual(["rung-3"]);
   });
 });
 

@@ -75,12 +75,47 @@ function row(
   };
 }
 
+/**
+ * Threshold patches ship as five-rung ladders per stat, so a working member
+ * earns dozens of them — listing every rung turns a career timeline into a
+ * patch dump and buries joining, being patched in, and promotions.
+ *
+ * Only the top rung of each ladder earns a row here: the milestone, not every
+ * step toward it. The same rule the cut follows, and no history is lost — the
+ * Patches tab on the profile shows every rung with the date it landed.
+ *
+ * Manual awards (President's Citation, War Veteran) have no ladder and always
+ * get their own row; those are the ones with a story behind them.
+ */
+function milestoneAwards(
+  awards: AwardedPatch[],
+  patchById: Map<string, Patch>,
+): AwardedPatch[] {
+  const topByStat = new Map<string, AwardedPatch>();
+  const standalone: AwardedPatch[] = [];
+
+  for (const award of awards) {
+    const requirement = patchById.get(award.patchId)?.requirement;
+    if (!requirement) {
+      standalone.push(award);
+      continue;
+    }
+    const held = topByStat.get(requirement.statKey);
+    const heldThreshold = held
+      ? (patchById.get(held.patchId)?.requirement?.threshold ?? 0)
+      : -1;
+    if (requirement.threshold > heldThreshold) topByStat.set(requirement.statKey, award);
+  }
+
+  return [...standalone, ...topByStat.values()];
+}
+
 export function composeServiceRecord(input: ServiceRecordInput): ServiceRecordItem[] {
   const { memberNumber, joinDate, awards, patchById, career } = input;
 
   const rows = [
     row("joined", "joined", "Joined the club", `Member #${memberNumber}.`, joinDate),
-    ...awards.map((award) => {
+    ...milestoneAwards(awards, patchById).map((award) => {
       const patch = patchById.get(award.patchId);
       return row(
         `award-${award.id}`,

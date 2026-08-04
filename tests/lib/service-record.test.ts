@@ -121,4 +121,57 @@ describe("composeServiceRecord", () => {
     });
     expect(items.map((i) => i.kind)).toEqual(["promotion", "patch", "joined"]);
   });
+
+  it("shows only the top rung of a patch ladder", () => {
+    // Threshold patches ship five-to-a-stat, so every rung would bury the rest
+    // of the timeline. The Patches tab keeps the full climb.
+    const rung = (id: string, name: string, threshold: number): Patch =>
+      ({ id, name, description: "", requirement: { statKey: "drugSales", threshold } }) as Patch;
+
+    const items = composeServiceRecord({
+      ...base,
+      awards: [
+        award("a1", "t1", "2026-02-01T00:00:00Z"),
+        award("a2", "t2", "2026-03-01T00:00:00Z"),
+        award("a3", "t3", "2026-04-01T00:00:00Z"),
+      ],
+      patchById: new Map([
+        ["t1", rung("t1", "Corner Boy", 1_000)],
+        ["t2", rung("t2", "Slinger", 5_000)],
+        ["t3", rung("t3", "Dealer", 15_000)],
+      ]),
+    });
+
+    const patchRows = items.filter((i) => i.kind === "patch");
+    expect(patchRows).toHaveLength(1);
+    expect(patchRows[0].title).toBe('Earned the "Dealer" patch');
+  });
+
+  it("keeps every ladder and every manual award separate", () => {
+    const rung = (id: string, name: string, statKey: string, threshold: number): Patch =>
+      ({ id, name, description: "", requirement: { statKey, threshold } }) as Patch;
+
+    const items = composeServiceRecord({
+      ...base,
+      awards: [
+        award("a1", "d1", "2026-02-01T00:00:00Z"),
+        award("a2", "d2", "2026-03-01T00:00:00Z"),
+        award("a3", "h1", "2026-03-05T00:00:00Z"),
+        award("a4", "manual", "2026-04-01T00:00:00Z", "Held the line."),
+      ],
+      patchById: new Map([
+        ["d1", rung("d1", "Corner Boy", "drugSales", 1_000)],
+        ["d2", rung("d2", "Slinger", "drugSales", 5_000)],
+        ["h1", rung("h1", "First Job", "heistsCompleted", 3)],
+        ["manual", patch("manual", "War Veteran")],
+      ]),
+    });
+
+    // Top of drugSales + top of heists + the manual award = three rows.
+    expect(items.filter((i) => i.kind === "patch").map((i) => i.title)).toEqual([
+      'Earned the "War Veteran" patch',
+      'Earned the "First Job" patch',
+      'Earned the "Slinger" patch',
+    ]);
+  });
 });

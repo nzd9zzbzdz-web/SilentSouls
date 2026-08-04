@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Award, Crown, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,7 @@ import {
   listMembers,
   listPatches,
 } from "@/lib/queries";
-import { STAT_LABELS } from "@/lib/constants";
+import { composeLadders } from "@/lib/patch-ladders";
 import type { AwardedPatch, Patch } from "@/lib/types";
 
 const CATEGORY_LABELS: Record<Patch["category"], string> = {
@@ -84,17 +85,33 @@ export default async function PatchWallPage({
 
   const active = patches.filter((p) => p.active);
   const earned = active.filter((p) => earnedIds.has(p.id));
-  const locked = active
-    .filter((p) => !earnedIds.has(p.id) && p.category !== "legendary")
-    .map((patch) => {
-      const req = patch.requirement;
-      const current = req ? (member?.stats?.[req.statKey] ?? 0) : 0;
-      const pct = req
-        ? Math.min(100, Math.round((current / req.threshold) * 100))
-        : null; // manual-only
-      return { patch, current, pct };
-    })
-    .sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
+
+  // Threshold patches come in ladders of five per stat. Listing every unearned
+  // rung would bury the page in tiers nobody is near, so each ladder shows only
+  // the rung actually being chased — the full climb lives on the member profile.
+  const ladders = composeLadders({
+    patches,
+    awards: myAwards,
+    stats: member?.stats,
+  });
+  const nextRungs = ladders
+    .filter((l) => l.next)
+    .map((l) => ({
+      patch: l.next!.patch,
+      ladderLabel: l.label,
+      tier: l.next!.tier,
+      tierCount: l.tiers.length,
+      current: l.current,
+      format: l.format,
+      threshold: l.next!.threshold,
+      pct: l.pct,
+    }))
+    .sort((a, b) => b.pct - a.pct);
+
+  // Manual-only patches have no ladder — leadership decides, so they just sit.
+  const lockedManual = active.filter(
+    (p) => !p.requirement && !earnedIds.has(p.id) && p.category !== "legendary",
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -162,8 +179,58 @@ export default async function PatchWallPage({
           <Lock className="size-5 text-muted-foreground" aria-hidden />
           Still to Earn
         </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          The next rung on every ladder. See the whole climb on your{" "}
+          {access.memberId ? (
+            <Link
+              href={`/${orgSlug}/portal/brotherhood/${access.memberId}`}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              profile
+            </Link>
+          ) : (
+            "profile"
+          )}
+          .
+        </p>
         <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {locked.map(({ patch, current, pct }) => (
+          {nextRungs.map((rung) => (
+            <li
+              key={rung.patch.id}
+              className="rounded-lg border border-border bg-card/60 p-5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-lg font-semibold text-muted-foreground">
+                  {rung.patch.name}
+                </p>
+                <Badge variant="secondary">
+                  Tier {rung.tier}/{rung.tierCount}
+                </Badge>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {rung.patch.description}
+              </p>
+              <div
+                role="progressbar"
+                aria-valuenow={rung.pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${rung.patch.name} progress`}
+                className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted"
+              >
+                <div
+                  className="h-full rounded-full bg-primary/70"
+                  style={{ width: `${rung.pct}%` }}
+                />
+              </div>
+              <p className="font-stat mt-2 text-xs text-muted-foreground">
+                {rung.ladderLabel}: {rung.format(rung.current)} /{" "}
+                {rung.format(rung.threshold)}
+                <span className="ml-2 text-primary">{rung.pct}%</span>
+              </p>
+            </li>
+          ))}
+          {lockedManual.map((patch) => (
             <li
               key={patch.id}
               className="rounded-lg border border-border bg-card/60 p-5"
@@ -175,32 +242,9 @@ export default async function PatchWallPage({
                 <Badge variant="secondary">{CATEGORY_LABELS[patch.category]}</Badge>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{patch.description}</p>
-              {pct !== null && patch.requirement ? (
-                <>
-                  <div
-                    role="progressbar"
-                    aria-valuenow={pct}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label={`${patch.name} progress`}
-                    className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted"
-                  >
-                    <div
-                      className="h-full rounded-full bg-primary/70"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <p className="font-stat mt-2 text-xs text-muted-foreground">
-                    {STAT_LABELS[patch.requirement.statKey]}: {current} /{" "}
-                    {patch.requirement.threshold}
-                    <span className="ml-2 text-primary">{pct}%</span>
-                  </p>
-                </>
-              ) : (
-                <p className="mt-3 text-xs italic text-muted-foreground">
-                  Awarded by leadership. Earn it when it counts.
-                </p>
-              )}
+              <p className="mt-3 text-xs italic text-muted-foreground">
+                Awarded by leadership. Earn it when it counts.
+              </p>
             </li>
           ))}
         </ul>
