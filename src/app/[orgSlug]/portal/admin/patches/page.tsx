@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { BackfillAwardsButton } from "@/components/portal/BackfillAwardsButton";
+import { BulkPatchArtUpload } from "@/components/portal/BulkPatchArtUpload";
 import { PatchAdmin } from "@/components/portal/PatchAdmin";
 import { ReconcileAwardsButton } from "@/components/portal/ReconcileAwardsButton";
 import { requireOrgRole } from "@/lib/auth/session";
@@ -36,7 +37,15 @@ export default async function PatchAdminPage({
             cleared it get it now.
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <BulkPatchArtUpload
+            orgId={org.id}
+            patches={patches.map((p) => ({
+              id: p.id,
+              name: p.name,
+              hasArt: artVersions.has(p.id),
+            }))}
+          />
           <BackfillAwardsButton orgId={org.id} />
           <ReconcileAwardsButton orgId={org.id} />
         </div>
