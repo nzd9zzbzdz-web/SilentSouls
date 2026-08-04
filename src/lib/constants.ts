@@ -153,13 +153,13 @@ export const CRIMINAL_PATCH_SEEDS: {
   u: number;
   v: number;
 }[] = [
-  { id: "corner-boy", name: "Corner Boy", category: "activity", description: "Move 100 drug sales.", tier: 1, rarity: "common", requirement: { statKey: "drugSales", threshold: 100 }, surface: "back", u: 0.3, v: 0.62 },
-  { id: "the-cook", name: "The Cook", category: "activity", description: "Cook 50 batches.", tier: 2, rarity: "rare", requirement: { statKey: "drugsCooked", threshold: 50 }, surface: "back", u: 0.7, v: 0.62 },
+  { id: "corner-boy", name: "Corner Boy", category: "activity", description: "Move 1,000 drug sales.", tier: 1, rarity: "common", requirement: { statKey: "drugSales", threshold: 1_000 }, surface: "back", u: 0.3, v: 0.62 },
+  { id: "the-cook", name: "The Cook", category: "activity", description: "Cook 500 batches.", tier: 2, rarity: "rare", requirement: { statKey: "drugsCooked", threshold: 500 }, surface: "back", u: 0.7, v: 0.62 },
   { id: "gunsmith", name: "Gunsmith", category: "activity", description: "Manufacture 50 guns.", tier: 2, rarity: "rare", requirement: { statKey: "gunsManufactured", threshold: 50 }, surface: "back", u: 0.3, v: 0.72 },
   { id: "made-man", name: "Made Man", category: "activity", description: "Pull 10 heists.", tier: 2, rarity: "epic", requirement: { statKey: "heistsCompleted", threshold: 10 }, surface: "back", u: 0.7, v: 0.72 },
   { id: "earner", name: "Earner", category: "service", description: "Earn $1M in dirty money.", tier: 2, rarity: "rare", requirement: { statKey: "dirtyMoneyEarned", threshold: 1_000_000 }, surface: "front", u: 0.3, v: 0.62 },
   { id: "the-launderer", name: "The Launderer", category: "service", description: "Wash $1M through the books.", tier: 3, rarity: "epic", requirement: { statKey: "dirtyMoneyCleaned", threshold: 1_000_000 }, surface: "front", u: 0.7, v: 0.62 },
-  { id: "hardened", name: "Hardened", category: "leadership", description: "Serve 24 months inside and come back.", tier: 3, rarity: "epic", requirement: { statKey: "jailTimeMonths", threshold: 24 }, surface: "back", u: 0.5, v: 0.3 },
+  { id: "hardened", name: "Hardened", category: "leadership", description: "Serve 300 months inside and come back.", tier: 3, rarity: "epic", requirement: { statKey: "jailTimeMonths", threshold: 300 }, surface: "back", u: 0.5, v: 0.3 },
   { id: "most-wanted", name: "Most Wanted", category: "legendary", description: "Commit 100 felonies.", tier: 4, rarity: "legendary", requirement: { statKey: "felonies", threshold: 100 }, surface: "front", u: 0.5, v: 0.3 },
 ];
 
