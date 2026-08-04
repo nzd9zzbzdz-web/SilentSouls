@@ -272,8 +272,56 @@ describe("syncDefaultActivityTypes", () => {
       const second = await syncDefaultActivityTypes(ORG);
 
       expect(second.data!.emblemsMarked).toBe(0);
+      expect(second.data!.laddersRetuned).toBe(0);
       expect(second.data!.cutsCleaned).toBe(0);
       expect(second.data!.patchesAdded).toHaveLength(0);
+    });
+
+    it("brings a stale threshold in line with the ladder", async () => {
+      // The live case: an org carrying Corner Boy at its original 1,000 after
+      // the ladder was retuned. Without this the org keeps a rung that asks for
+      // more than the rung above it, and a description quoting a dead number.
+      const seed = CRIMINAL_PATCH_SEEDS.find((p) => p.id === "corner-boy")!;
+      await orgRef(ORG).collection("patches").doc("corner-boy").set({
+        name: "Corner Boy",
+        category: seed.category,
+        description: "Move 1,000 drug sales.",
+        tier: seed.tier,
+        requirement: { statKey: "drugSales", threshold: 1_000 },
+        manual: false,
+        active: true,
+        emblem: true, // already synced once
+        defaultPlacement: { surface: "back", u: 0.3, v: 0.62, scale: 0.8, rotationDeg: 0 },
+      });
+
+      const res = await syncDefaultActivityTypes(ORG);
+      expect(res.data!.emblemsMarked).toBe(0); // already flagged
+      expect(res.data!.laddersRetuned).toBeGreaterThan(0);
+
+      const doc = (await orgRef(ORG).collection("patches").doc("corner-boy").get()).data()!;
+      expect(doc.requirement.threshold).toBe(seed.requirement.threshold);
+      expect(doc.description).toBe(seed.description); // no longer quotes 1,000
+    });
+
+    it("leaves a renamed emblem's name alone while retuning it", async () => {
+      const seed = CRIMINAL_PATCH_SEEDS.find((p) => p.id === "corner-boy")!;
+      await orgRef(ORG).collection("patches").doc("corner-boy").set({
+        name: "Block Runner", // the club renamed it
+        category: seed.category,
+        description: "Move 1,000 drug sales.",
+        tier: seed.tier,
+        requirement: { statKey: "drugSales", threshold: 1_000 },
+        manual: false,
+        active: true,
+        emblem: true,
+        defaultPlacement: { surface: "back", u: 0.3, v: 0.62, scale: 0.8, rotationDeg: 0 },
+      });
+
+      await syncDefaultActivityTypes(ORG);
+
+      const doc = (await orgRef(ORG).collection("patches").doc("corner-boy").get()).data()!;
+      expect(doc.name).toBe("Block Runner"); // theirs to keep
+      expect(doc.requirement.threshold).toBe(seed.requirement.threshold); // ours to set
     });
 
     it("installs every new emblem already flagged", async () => {

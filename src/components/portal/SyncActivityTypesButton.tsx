@@ -29,6 +29,9 @@ export function SyncActivityTypesButton({ orgId }: { orgId: string }) {
       if (d.retired > 0) parts.push(`retired ${d.retired}`);
       if (d.patchesAdded.length > 0) parts.push(`${d.patchesAdded.length} new patch(es)`);
       if (d.patchesRetired > 0) parts.push(`${d.patchesRetired} patch(es) retired`);
+      if (d.emblemsMarked > 0) parts.push(`${d.emblemsMarked} marked as emblems`);
+      if (d.laddersRetuned > 0) parts.push(`${d.laddersRetuned} threshold(s) retuned`);
+      if (d.cutsCleaned > 0) parts.push(`${d.cutsCleaned} cut(s) cleaned`);
       if (d.membersMigrated > 0) parts.push(`${d.membersMigrated} rap sheet(s) moved to stats`);
       toast.success(
         parts.length === 0 ? "Already up to date — nothing to change" : parts.join(" · "),

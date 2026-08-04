@@ -14,8 +14,11 @@ import {
   listPatches,
 } from "@/lib/queries";
 import { composeLadders, remainingLabel } from "@/lib/patch-ladders";
-import { STAT_LABELS } from "@/lib/constants";
+import { CRIMINAL_RECORD_ROWS, STAT_LABELS } from "@/lib/constants";
 import type { AwardedPatch, Patch } from "@/lib/types";
+
+/** Stats a member can actually see — the Criminal Record panel on their profile. */
+const TRACKED_STATS = new Set(CRIMINAL_RECORD_ROWS.map((r) => r.statKey));
 
 const CATEGORY_LABELS: Record<Patch["category"], string> = {
   activity: "Activity",
@@ -115,7 +118,17 @@ export default async function PatchWallPage({
   // This page is about the cut. Criminal-record emblems are earned the same way
   // but never worn, and they outnumber patches seven to one — they'd swamp the
   // wall. They get a summary here and their own levelled tab on the profile.
-  const active = patches.filter((p) => p.active && p.emblem !== true);
+  //
+  // A patch is also hidden when its stat isn't on the Criminal Record panel.
+  // Club Runs and Church Attendance are still loggable, but a member has no
+  // way to see either number, so "Club Runs: 0 / 50" on the wall is progress
+  // toward a bar they can't watch. Manual awards have no stat and always show.
+  const active = patches.filter(
+    (p) =>
+      p.active &&
+      p.emblem !== true &&
+      (!p.requirement || TRACKED_STATS.has(p.requirement.statKey)),
+  );
   const earned = active.filter((p) => earnedIds.has(p.id));
 
   const emblemLadders = composeLadders({

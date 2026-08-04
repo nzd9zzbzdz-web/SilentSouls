@@ -19,6 +19,7 @@ export interface SyncResult {
   patchesAdded: string[]; // criminal emblems now earnable
   patchesRetired: number; // patches whose stat is no longer loggable
   emblemsMarked: number; // pre-split criminal patches flagged as emblems
+  laddersRetuned: number; // existing emblems brought in line with PATCH_LADDERS
   cutsCleaned: number; // cuts that had emblems stripped off them
   membersMigrated: number; // legacy rap sheets folded into stats
 }
@@ -95,17 +96,40 @@ export async function syncDefaultActivityTypes(
     const patchesAdded: string[] = [];
     const emblemIds = new Set<string>();
     let emblemsMarked = 0;
+    let laddersRetuned = 0;
     for (const patch of CRIMINAL_PATCH_SEEDS) {
       emblemIds.add(patch.id);
       const ref = org.collection("patches").doc(patch.id);
       const snap = await ref.get();
       if (snap.exists) {
+        const data = snap.data() ?? {};
+        const updates: Record<string, unknown> = {};
+
         // The first eight criminal patches shipped before emblems existed and
-        // are worn on real cuts. Flag them so the engine stops placing them —
-        // merge-only, so an admin's edits to name/threshold survive.
-        if (snap.data()?.emblem !== true) {
-          await ref.set({ emblem: true }, { merge: true });
+        // are worn on real cuts. Flag them so the engine stops placing them.
+        if (data.emblem !== true) {
+          updates.emblem = true;
           emblemsMarked += 1;
+        }
+
+        // PATCH_LADDERS owns the rung: where it sits on the ladder and what it
+        // asks for. Without this a retune never reaches an org that already has
+        // the patch, leaving a ladder whose tier 3 demands more than its tier 4
+        // and a description quoting a number nobody is measured against. The
+        // org keeps its own `name` — that one is theirs to rename.
+        const req = data.requirement as { statKey?: string; threshold?: number } | undefined;
+        if (
+          req?.statKey !== patch.requirement.statKey ||
+          req?.threshold !== patch.requirement.threshold
+        ) {
+          updates.requirement = patch.requirement;
+          updates.description = patch.description;
+          updates.tier = patch.tier;
+          laddersRetuned += 1;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await ref.set(updates, { merge: true });
         }
         continue;
       }
@@ -174,6 +198,7 @@ export async function syncDefaultActivityTypes(
       patchesAdded.length +
       patchesRetired +
       emblemsMarked +
+      laddersRetuned +
       cutsCleaned +
       membersMigrated;
     if (changed > 0) {
@@ -184,8 +209,8 @@ export async function syncDefaultActivityTypes(
         detail:
           `+${missing.length} type(s), -${retired} retired, ` +
           `+${patchesAdded.length} patch(es), -${patchesRetired} retired, ` +
-          `${emblemsMarked} marked emblem, ${cutsCleaned} cut(s) cleaned, ` +
-          `${membersMigrated} rap sheet(s) migrated`,
+          `${emblemsMarked} marked emblem, ${laddersRetuned} retuned, ` +
+          `${cutsCleaned} cut(s) cleaned, ${membersMigrated} rap sheet(s) migrated`,
       });
     }
 
@@ -203,6 +228,7 @@ export async function syncDefaultActivityTypes(
         patchesAdded,
         patchesRetired,
         emblemsMarked,
+        laddersRetuned,
         cutsCleaned,
         membersMigrated,
       },
