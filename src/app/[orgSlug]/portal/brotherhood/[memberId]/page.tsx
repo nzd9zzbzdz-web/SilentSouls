@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { CharacterArtUploader } from "@/components/portal/CharacterArtUploader";
-import { CharacterStage, type StagePatch } from "@/components/portal/CharacterStage";
+import { type StagePatch } from "@/components/portal/CharacterStage";
+import { CharacterPoseEditor } from "@/components/portal/CharacterPoseEditor";
 import { requireOrgRole } from "@/lib/auth/session";
 import { orgRef } from "@/lib/firebase/admin";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
@@ -90,7 +91,11 @@ export default async function MemberDetailPage({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <CharacterStage
+      <CharacterPoseEditor
+        orgId={org.id}
+        memberId={memberId}
+        canEdit={isOfficer}
+        initialPose={member.characterPose}
         orgName={branding?.orgDisplayName ?? org.name}
         tagline={branding?.tagline}
         roadName={member.roadName}

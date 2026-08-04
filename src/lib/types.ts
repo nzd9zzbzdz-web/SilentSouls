@@ -128,12 +128,28 @@ export interface RapSheetEntry {
   danger?: boolean; // render in destructive color
 }
 
+/**
+ * Where a member's render sits on their character stage. Stored per member
+ * because renders differ wildly in crop and framing — the shipped defaults are
+ * tuned to the seeded Ravens art and rarely fit someone else's screenshot.
+ *
+ * All three are percentages of the stage box, not pixels, so a pose holds at
+ * any viewport size.
+ */
+export interface CharacterPose {
+  x: number; // left edge, % of stage width
+  y: number; // bottom edge, % of stage height
+  scale: number; // figure height, % of stage height
+}
+
 export interface Member {
   id: string;
   uid: string | null;
   displayName: string;
   roadName: string;
   photoPath?: string;
+  /** Character-stage placement; falls back to DEFAULT_CHARACTER_POSE. */
+  characterPose?: CharacterPose;
   /** @deprecated Legacy hand-authored rap sheet — see {@link RapSheetEntry}. */
   rapSheet?: RapSheetEntry[];
   /** Character-screen status line, e.g. "At Large", "Incarcerated". */

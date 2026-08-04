@@ -1,4 +1,4 @@
-import type { StatKey } from "./types";
+import type { CharacterPose, StatKey } from "./types";
 
 // Slugs that can never be org slugs (static route segments win in App Router,
 // but we validate at org creation too).
@@ -64,6 +64,19 @@ function trimZero(n: number): string {
 
 // Character render fallback — brand-neutral shadow figure shipped in public/.
 export const CHARACTER_SILHOUETTE = "/brand/members/silhouette.webp";
+
+/**
+ * Where the figure stands when nobody has adjusted it. Matches the spotlight in
+ * the seeded stage art; officers can drag per member from the character screen.
+ */
+export const DEFAULT_CHARACTER_POSE: CharacterPose = { x: 3.5, y: 12, scale: 66 };
+
+/** Editing bounds — generous enough to reframe an odd crop, short of losing it. */
+export const CHARACTER_POSE_LIMITS = {
+  x: { min: -30, max: 95 },
+  y: { min: -25, max: 70 },
+  scale: { min: 15, max: 130 },
+} as const;
 
 // Stage backdrop used on every character screen unless the org's portal
 // branding sets its own characterStagePath.

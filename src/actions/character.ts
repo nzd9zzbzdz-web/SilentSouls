@@ -9,7 +9,9 @@ import {
   keyOutLightBackground,
   needsBackgroundKeying,
 } from "@/lib/character-key";
+import { clampPose, saveCharacterPoseSchema } from "@/lib/schemas/character";
 import type { ActionResult } from "./activities";
+import type { CharacterPose } from "@/lib/types";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // raw upload cap
 const MAX_STORED_BYTES = 700 * 1024; // keep the Firestore doc well under 1MB
@@ -144,6 +146,54 @@ export async function applyDefaultCharacterStage(raw: {
       targetPath: `organizations/${raw.orgId}/branding/portal`,
     });
     revalidatePath(`/[orgSlug]/portal`, "layout");
+    return { ok: true };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+/**
+ * Officer+: save where a member's render stands on their stage.
+ *
+ * Pass `pose: null` to clear it and fall back to DEFAULT_CHARACTER_POSE. Values
+ * are clamped server-side rather than rejected — a drag that overshoots should
+ * land at the edge, not throw away the officer's whole adjustment.
+ */
+export async function saveCharacterPose(raw: {
+  orgId: string;
+  memberId: string;
+  pose: CharacterPose | null;
+}): Promise<ActionResult> {
+  const parsed = saveCharacterPoseSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const { orgId, memberId, pose } = parsed.data;
+
+  try {
+    const access = await requireOrgRole(orgId, "officer");
+    const memberRef = orgRef(orgId).collection("members").doc(memberId);
+    if (!(await memberRef.get()).exists) {
+      return { ok: false, error: "Member not found" };
+    }
+
+    await memberRef.update({
+      characterPose: pose ? clampPose(pose) : FieldValue.delete(),
+    });
+    await writeAuditLog(orgId, {
+      actorUid: access.user.uid,
+      action: pose ? "member.characterPose" : "member.characterPose.reset",
+      targetPath: memberRef.path,
+      // Omit the key entirely on reset — Firestore rejects an explicit
+      // `undefined`, which would fail the write after the pose already changed.
+      ...(pose
+        ? {
+            detail: `x=${pose.x.toFixed(1)} y=${pose.y.toFixed(1)} h=${pose.scale.toFixed(1)}`,
+          }
+        : {}),
+    });
+
+    revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
     return { ok: true };
   } catch (e) {
     return failure(e);

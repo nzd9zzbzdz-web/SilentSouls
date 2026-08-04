@@ -10,7 +10,7 @@ import {
   Star,
 } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
-import type { PatchCategory } from "@/lib/types";
+import type { CharacterPose, PatchCategory } from "@/lib/types";
 
 /**
  * Cinematic member "character screen": full-body render on the org's stage
@@ -42,6 +42,8 @@ export interface CharacterStageProps {
   patches: StagePatch[]; // up to 4 — the diamond slots
   stagePath?: string; // org stage art (branding.characterStagePath)
   characterPath?: string; // member full-body render (member.photoPath)
+  /** Saved placement for the render; omit for the CSS defaults. */
+  pose?: CharacterPose;
 }
 
 const CATEGORY_ICON: Record<PatchCategory, typeof Award> = {
@@ -89,6 +91,7 @@ export function CharacterStage({
   patches,
   stagePath,
   characterPath,
+  pose,
 }: CharacterStageProps) {
   const slots = SLOT_POS.map((top, i) => ({ top, patch: patches[i] ?? null }));
   const stageRef = useRef<HTMLDivElement>(null);
@@ -152,7 +155,18 @@ export function CharacterStage({
       )}
 
       {characterPath && (
-        <div className="charstage-char-rig">
+        <div
+          className="charstage-char-rig"
+          style={
+            pose
+              ? ({
+                  "--char-x": pose.x,
+                  "--char-y": pose.y,
+                  "--char-h": pose.scale,
+                } as React.CSSProperties)
+              : undefined
+          }
+        >
           <div className="charstage-shadow" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -288,7 +302,13 @@ const CSS_TEXT = `
   border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
+/* --char-x/y/h come from the member's saved pose (percentages of the stage
+   box, so a pose holds at any viewport size). The defaults here match
+   DEFAULT_CHARACTER_POSE and apply when nobody has adjusted the figure. */
 .charstage-char-rig {
+  --char-x: 3.5;
+  --char-y: 12;
+  --char-h: 66;
   position: absolute; inset: 0;
   pointer-events: none;
   transform-origin: 26% 86%;
@@ -297,15 +317,21 @@ const CSS_TEXT = `
 }
 .charstage-character {
   position: absolute;
-  left: 3.5%; bottom: 12%;
-  height: 66%;
+  left: calc(var(--char-x) * 1%);
+  bottom: calc(var(--char-y) * 1%);
+  height: calc(var(--char-h) * 1%);
   filter: drop-shadow(0 1.5cqw 1.2cqw rgba(0,0,0,0.7));
   animation: charstage-in 1s ease-out both;
 }
+/* Pooled under the figure: offsets and width are the original constants
+   expressed relative to the pose, so the shadow tracks a moved or resized
+   character instead of staying put on the floor. */
 .charstage-shadow {
   position: absolute;
-  left: 18%; bottom: 11%;
-  width: 15%; height: 3.5%;
+  left: calc((var(--char-x) + var(--char-h) * 0.22) * 1%);
+  bottom: calc((var(--char-y) - 1) * 1%);
+  width: calc(var(--char-h) * 0.227 * 1%);
+  height: 3.5%;
   background: radial-gradient(ellipse at center, rgba(0,0,0,0.75), transparent 70%);
   border-radius: 50%;
 }
