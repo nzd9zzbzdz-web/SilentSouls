@@ -6,8 +6,9 @@ import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { getGalleryPhotos } from "@/lib/gallery";
 import { listMembers, listMembersWithRender, listRanks } from "@/lib/queries";
 import {
-  byStanding,
+  bySeniority,
   isPubliclyVisible,
+  tenureLabel,
   type PublicRosterMember,
 } from "@/lib/public-roster";
 import { CHARACTER_SILHOUETTE } from "@/lib/constants";
@@ -51,10 +52,10 @@ export default async function PublicHomePage({
     org.id,
     publicMembers.map((m) => m.id),
   );
+  const now = new Date();
   const brotherhood: PublicRosterMember[] = publicMembers
     .map((member) => {
-      const rank = rankById.get(member.rankId);
-      const joined = (member.joinDate as Timestamp)?.toDate?.();
+      const joined = (member.joinDate as Timestamp)?.toDate?.() ?? null;
       // The seeder writes the shared silhouette into photoPath when a member
       // has no art, so a set photoPath alone doesn't mean they have a render.
       const ownArt =
@@ -63,20 +64,15 @@ export default async function PublicHomePage({
           : undefined;
       return {
         id: member.id,
-        roadName: member.roadName,
-        rankName: rank?.name ?? "Patched Member",
-        rankOrder: rank?.order ?? 99,
-        isOfficer: Boolean(rank?.isOfficer),
-        memberNumber: member.memberNumber,
         imageUrl: withRender.has(member.id)
           ? `/api/orgs/${org.id}/members/${member.id}/render`
           : (ownArt ?? CHARACTER_SILHOUETTE),
-        joinedLabel: joined
-          ? joined.toLocaleDateString("en-US", { month: "short", year: "numeric" })
-          : "—",
+        tenureLabel: tenureLabel(joined, now),
+        joinedAtMs: joined?.getTime() ?? Number.MAX_SAFE_INTEGER,
+        bio: member.bio ?? "",
       };
     })
-    .sort(byStanding);
+    .sort(bySeniority);
 
   const pillars = [
     { img: "/brand/emblem-skull.webp", title: "About Us", body: "Ravens of Death MC was founded on the core values of loyalty, trust, and respect. We are brothers, nothing more, nothing less.", href: `${base}/about`, cta: "Read More" },

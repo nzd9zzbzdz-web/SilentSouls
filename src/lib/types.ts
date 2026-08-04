@@ -169,6 +169,12 @@ export interface Member {
   rapSheet?: RapSheetEntry[];
   /** Character-screen status line, e.g. "At Large", "Incarcerated". */
   rapStatus?: string;
+  /**
+   * In-character blurb shown on the PUBLIC site when this member is opened
+   * from the home page roster. Written by an admin, so treat it as the only
+   * member prose the outside world ever sees — nothing else on that card is.
+   */
+  bio?: string;
   rankId: string;
   status: MemberStatus;
   joinDate: Timestamp | Date;

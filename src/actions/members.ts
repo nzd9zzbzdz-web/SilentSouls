@@ -112,6 +112,9 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
     if (fields.status) update.status = fields.status;
     if (fields.joinDate) update.joinDate = Timestamp.fromDate(fields.joinDate);
     if (fields.sponsorMemberId !== undefined) update.sponsorMemberId = fields.sponsorMemberId;
+    // Trimmed-empty clears it, so an admin can take a bio back off the public
+    // site without having to delete and recreate the member.
+    if (fields.bio !== undefined) update.bio = fields.bio.trim();
 
     // ── Portal role ────────────────────────────────────────────────────
     // Roles live on users/{uid}, not the member doc, because one account can

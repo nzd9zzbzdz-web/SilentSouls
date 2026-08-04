@@ -16,6 +16,8 @@ export const createMemberSchema = z.object({
   status: memberStatusSchema,
   joinDate: z.coerce.date(),
   sponsorMemberId: z.string().optional(),
+  /** Public-site blurb. Empty string clears it. */
+  bio: z.string().max(600).optional(),
 });
 export type CreateMemberInput = z.infer<typeof createMemberSchema>;
 

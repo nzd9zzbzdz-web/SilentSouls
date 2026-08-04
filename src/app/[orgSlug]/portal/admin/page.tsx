@@ -43,6 +43,7 @@ export default async function OrgAdminPage({
           hasAccount: Boolean(m.uid),
           role: m.uid ? (rolesByUid.get(m.uid) ?? "member") : null,
           joinDate: (m.joinDate as Timestamp)?.toDate?.().toISOString().slice(0, 10) ?? "",
+          bio: m.bio ?? "",
         }))}
         ranks={ranks.map((r) => ({ id: r.id, name: r.name, isOfficer: r.isOfficer }))}
       />

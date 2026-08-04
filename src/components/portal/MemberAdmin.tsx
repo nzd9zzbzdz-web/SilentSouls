@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -45,6 +46,8 @@ interface MemberRow {
   /** Portal role, or null when no account is linked yet. */
   role: SystemRole | null;
   joinDate: string;
+  /** Public-site blurb; the only member prose the outside world sees. */
+  bio: string;
 }
 
 interface RankOption {
@@ -80,6 +83,7 @@ export function MemberAdmin({
     status: "hangaround" as MemberStatus,
     joinDate: new Date().toISOString().slice(0, 10),
     role: "member" as SystemRole,
+    bio: "",
   });
   const [inviteTarget, setInviteTarget] = useState<MemberRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
@@ -100,6 +104,7 @@ export function MemberAdmin({
       status: "hangaround",
       joinDate: new Date().toISOString().slice(0, 10),
       role: "member",
+      bio: "",
     });
     setEditorOpen(true);
   }
@@ -113,6 +118,7 @@ export function MemberAdmin({
       status: member.status,
       joinDate: member.joinDate,
       role: member.role ?? "member",
+      bio: member.bio,
     });
     setEditorOpen(true);
   }
@@ -126,6 +132,7 @@ export function MemberAdmin({
         rankId: form.rankId,
         status: form.status,
         joinDate: new Date(form.joinDate),
+        bio: form.bio.trim(),
       };
       const roleChanged =
         editing?.hasAccount && editing.role !== null && form.role !== editing.role;
@@ -349,6 +356,27 @@ export function MemberAdmin({
                 onChange={(e) => setForm({ ...form, joinDate: e.target.value })}
                 className="mt-1"
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Drives how long they&rsquo;ve been riding on the public site.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="member-bio">Public bio</Label>
+              <Textarea
+                id="member-bio"
+                value={form.bio}
+                maxLength={600}
+                rows={4}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                placeholder="Rode in from Blaine County with nothing but a wrench and a grudge…"
+                className="mt-1"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Shown to the public when someone opens this member on the home
+                page. Their road name and rank never leave the portal — this is
+                the only thing written about them out there. {form.bio.length}/600
+              </p>
             </div>
 
             {/* Portal role only means something once an account is linked —

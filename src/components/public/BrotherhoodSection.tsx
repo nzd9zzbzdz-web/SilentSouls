@@ -1,17 +1,24 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { Crown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import type { PublicRosterMember } from "@/lib/public-roster";
 
 /**
  * "The Brotherhood" on the public home page: everyone riding under the colors,
- * chain of command first.
+ * longest-serving first.
  *
- * Deliberately not the portal roster. These cards carry a road name, a rank and
- * a face — nothing from the member's record, which is the whole point of the
- * public/portal split. Cards don't link anywhere: there is no public profile,
- * and there shouldn't be.
+ * Anonymous by design. No road names, no ranks, no member numbers — a face,
+ * how long they've ridden, and the blurb the club wrote for them. Clicking a
+ * card opens the render at full size with that blurb. Identity is what the
+ * portal is for; this is the shopfront.
  */
 export function BrotherhoodSection({
   members,
@@ -20,14 +27,12 @@ export function BrotherhoodSection({
   members: PublicRosterMember[];
   joinHref: string;
 }) {
-  // Always render, even with nobody to show. The Brotherhood pillar links to
-  // this anchor: if the section disappeared when the roster came back empty,
-  // that link would land nowhere and read as a broken page rather than as a
-  // club with no patched members yet.
-  const officers = members.filter((m) => m.isOfficer).length;
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = members.find((m) => m.id === openId) ?? null;
 
-  // scroll-mt clears the sticky header (h-24, md:h-28) so the jump from the nav
-  // lands on the heading rather than tucked under the bar.
+  // Always render, even with nobody to show. The Brotherhood nav tab and the
+  // pillar both target this anchor: if the section disappeared when the roster
+  // came back empty, those links would land nowhere and read as a broken page.
   return (
     <section
       id="brotherhood"
@@ -39,83 +44,54 @@ export function BrotherhoodSection({
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             Under the Colors
           </p>
-          <DisplayHeading
-            as="h2"
-            className="mt-3 text-4xl text-foreground md:text-5xl"
-          >
+          <DisplayHeading as="h2" className="mt-3 text-4xl text-foreground md:text-5xl">
             The Brotherhood
           </DisplayHeading>
           <p className="mx-auto mt-4 max-w-xl leading-relaxed text-muted-foreground">
             {members.length === 0
               ? "Nobody has been patched in yet. The colors are earned, and the first riders to earn them will stand here."
-              : `${members.length} riding, ${officers} at the table. We ride together, we stand together. Every patch here was earned.`}
+              : `${members.length} riding. We don't put names to faces out here — but every one of them earned the patch on their back.`}
           </p>
         </div>
 
         <ul className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {members.map((member) => (
-            <li
-              key={member.id}
-              className={cn(
-                "group relative flex aspect-[3/4] flex-col overflow-hidden rounded-xl border bg-card",
-                member.isOfficer ? "border-primary/40" : "border-border",
-              )}
-            >
-              <div
-                aria-hidden
-                className={cn(
-                  "absolute inset-0",
-                  member.isOfficer
-                    ? "bg-[radial-gradient(120%_75%_at_50%_18%,color-mix(in_oklab,var(--primary)_26%,transparent),transparent_70%)]"
-                    : "bg-[radial-gradient(120%_75%_at_50%_18%,color-mix(in_oklab,var(--primary)_11%,transparent),transparent_70%)]",
-                )}
-              />
+            <li key={member.id}>
+              <button
+                type="button"
+                onClick={() => setOpenId(member.id)}
+                aria-label={`${member.tenureLabel} — view larger`}
+                className="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors duration-200 hover:border-primary/50 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              >
+                <span
+                  aria-hidden
+                  className="absolute inset-0 bg-[radial-gradient(120%_75%_at_50%_18%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_70%)]"
+                />
 
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={member.imageUrl}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="absolute inset-x-0 bottom-0 mx-auto h-[86%] w-full object-contain object-bottom drop-shadow-[0_18px_22px_rgba(0,0,0,0.55)] transition-transform duration-500 group-hover:scale-[1.04]"
-              />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={member.imageUrl}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-x-0 bottom-0 mx-auto h-[86%] w-full object-contain object-bottom drop-shadow-[0_18px_22px_rgba(0,0,0,0.55)] transition-transform duration-500 group-hover:scale-[1.04]"
+                />
 
-              {/* Scrim so the nameplate stays legible over any render */}
-              <div
-                aria-hidden
-                className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[rgba(0,0,0,0.92)] via-[rgba(0,0,0,0.55)] to-transparent"
-              />
+                {/* Scrim so the tenure line stays legible over any render */}
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-[rgba(0,0,0,0.92)] via-[rgba(0,0,0,0.5)] to-transparent"
+                />
 
-              {member.rankOrder === 1 && (
-                <div className="relative flex justify-end p-3">
-                  <Crown className="size-4 text-primary drop-shadow" aria-label="President" />
-                </div>
-              )}
-
-              <div className="relative mt-auto p-3">
-                <div
-                  className={cn(
-                    "mb-1.5 inline-block rounded border px-1.5 py-0.5 text-[0.55rem] font-semibold uppercase tracking-[0.14em]",
-                    member.isOfficer
-                      ? "border-primary/60 bg-black/40 text-primary"
-                      : "border-white/20 bg-black/40 text-white/70",
-                  )}
-                >
-                  {member.rankName}
-                </div>
-                <p
-                  className={cn(
-                    "truncate text-lg leading-tight drop-shadow",
-                    member.isOfficer ? "text-primary" : "text-white",
-                  )}
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  &ldquo;{member.roadName}&rdquo;
-                </p>
-                <p className="truncate text-[0.7rem] text-white/55">
-                  Riding since {member.joinedLabel}
-                </p>
-              </div>
+                <span className="relative mt-auto w-full p-3 text-center">
+                  <span
+                    className="block truncate text-base leading-tight text-white drop-shadow"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {member.tenureLabel}
+                  </span>
+                </span>
+              </button>
             </li>
           ))}
         </ul>
@@ -129,6 +105,38 @@ export function BrotherhoodSection({
           </Link>
         </div>
       </div>
+
+      <Dialog open={open !== null} onOpenChange={(next) => !next && setOpenId(null)}>
+        <DialogContent className="max-w-3xl overflow-hidden p-0 sm:max-w-3xl">
+          {open && (
+            <div className="grid gap-0 md:grid-cols-[1.1fr_1fr]">
+              <div className="relative flex min-h-[16rem] items-end justify-center bg-[radial-gradient(120%_80%_at_50%_10%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_70%)] md:min-h-[26rem]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={open.imageUrl}
+                  alt=""
+                  className="max-h-[26rem] w-auto object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.6)]"
+                />
+              </div>
+
+              <div className="flex flex-col justify-center p-6 md:p-8">
+                <DialogTitle asChild>
+                  <DisplayHeading as="h2" className="text-3xl text-primary">
+                    {open.tenureLabel}
+                  </DisplayHeading>
+                </DialogTitle>
+                <p className="mt-4 leading-relaxed text-muted-foreground">
+                  {open.bio ||
+                    "This one keeps their story to themselves. Ride with us long enough and you might hear it."}
+                </p>
+                <DialogClose className="mt-8 inline-flex min-h-11 w-fit items-center rounded-sm border border-primary px-6 text-xs font-semibold uppercase tracking-[0.16em] text-primary transition-colors duration-200 hover:bg-primary/10">
+                  Close
+                </DialogClose>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
