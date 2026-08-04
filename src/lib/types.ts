@@ -95,6 +95,21 @@ export interface Rank {
   tab?: CutPlacementBase & { text: string };
 }
 
+/**
+ * One entry in a member's club career, written by the member actions when a
+ * rank, portal role, or standing changes. Server-written only — rules make the
+ * subcollection read-only to clients. The profile composes these with the join
+ * date and patch awards to render the full record.
+ */
+export interface ServiceRecordEntry {
+  id: string;
+  kind: "promotion" | "removal";
+  title: string;
+  detail?: string;
+  at: Timestamp | Date;
+  byUid?: string;
+}
+
 export interface ActivityType {
   id: string;
   name: string;

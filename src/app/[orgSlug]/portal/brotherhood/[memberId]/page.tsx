@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { CharacterArtUploader } from "@/components/portal/CharacterArtUploader";
 import { type StagePatch } from "@/components/portal/CharacterStage";
 import { CharacterPoseEditor } from "@/components/portal/CharacterPoseEditor";
+import { ServiceRecord } from "@/components/portal/ServiceRecord";
+import { composeServiceRecord } from "@/lib/service-record";
 import { requireOrgRole } from "@/lib/auth/session";
 import { orgRef } from "@/lib/firebase/admin";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
@@ -10,6 +12,7 @@ import {
   listMemberAwards,
   listPatches,
   listRanks,
+  listServiceRecord,
 } from "@/lib/queries";
 import {
   CHARACTER_SILHOUETTE,
@@ -45,11 +48,15 @@ export default async function MemberDetailPage({
     ? (assetSnap.data()?.dataUrl as string | undefined)
     : undefined;
 
-  const [ranks, awards, patches, branding] = await Promise.all([
+  const [ranks, awards, patches, branding, career, sponsor] = await Promise.all([
     listRanks(org.id),
     listMemberAwards(org.id, memberId),
     listPatches(org.id),
     getBranding(org.id, "portal"),
+    listServiceRecord(org.id, memberId),
+    member.sponsorMemberId
+      ? getMember(org.id, member.sponsorMemberId)
+      : Promise.resolve(null),
   ]);
   const rank = ranks.find((r) => r.id === member.rankId);
   const patchById = new Map(patches.map((p) => [p.id, p]));
@@ -91,6 +98,14 @@ export default async function MemberDetailPage({
     };
   });
 
+  const careerItems = composeServiceRecord({
+    memberNumber: member.memberNumber,
+    joinDate: member.joinDate,
+    awards,
+    patchById,
+    career,
+  });
+
   return (
     <div className="mx-auto max-w-6xl">
       <CharacterPoseEditor
@@ -120,6 +135,21 @@ export default async function MemberDetailPage({
           />
         </div>
       )}
+
+      <div className="mt-8">
+        <ServiceRecord
+          items={careerItems}
+          roadName={member.roadName}
+          sponsor={
+            sponsor
+              ? {
+                  roadName: sponsor.roadName,
+                  href: `/${orgSlug}/portal/brotherhood/${sponsor.id}`,
+                }
+              : null
+          }
+        />
+      </div>
     </div>
   );
 }

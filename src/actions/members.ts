@@ -170,10 +170,13 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
     // failure direction: a stale status can be re-applied on retry, but a
     // member marked exiled with a live session cannot be allowed to happen.
     const linkedUid = current?.uid as string | null | undefined;
-    const isDeprovision =
-      !!linkedUid &&
+    // Leaving the club is a fact about their standing; revoking portal access
+    // is what we do about it. Keep them separate — a member who never had a
+    // login still retires, and their service record has to say so.
+    const isLeaving =
       (fields.status === "exiled" || fields.status === "retired") &&
       fields.status !== current?.status;
+    const isDeprovision = !!linkedUid && isLeaving;
 
     if (isDeprovision) {
       await adminDb
@@ -227,11 +230,11 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
       });
     }
 
-    if (isDeprovision) {
+    if (isLeaving) {
       await ref.collection("serviceRecord").add({
         kind: "removal",
         title: fields.status === "exiled" ? "Exiled from the club" : "Retired",
-        detail: "Portal access revoked.",
+        detail: isDeprovision ? "Portal access revoked." : "",
         at: FieldValue.serverTimestamp(),
         byUid: access.user.uid,
       });

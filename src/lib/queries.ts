@@ -8,6 +8,7 @@ import type {
   Member,
   Patch,
   Rank,
+  ServiceRecordEntry,
   SystemRole,
 } from "@/lib/types";
 
@@ -62,6 +63,26 @@ export const listMemberAwards = cache(
     return snap.docs.map((d) => ({
       id: d.id,
       ...(d.data() as Omit<AwardedPatch, "id">),
+    }));
+  },
+);
+
+/**
+ * A member's career log — rank changes, role changes, and removals, newest
+ * first. Written by the member actions since the club was created; nothing read
+ * it until the profile's Service Record, so old members already have history.
+ */
+export const listServiceRecord = cache(
+  async (orgId: string, memberId: string): Promise<ServiceRecordEntry[]> => {
+    const snap = await orgRef(orgId)
+      .collection("members")
+      .doc(memberId)
+      .collection("serviceRecord")
+      .orderBy("at", "desc")
+      .get();
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<ServiceRecordEntry, "id">),
     }));
   },
 );
