@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { STAT_KEYS } from "@/lib/types";
+import { MAX_ACTIVITY_QUANTITY } from "@/lib/constants";
 
 export const submitActivitySchema = z.object({
   orgId: z.string().min(1),
@@ -8,7 +9,15 @@ export const submitActivitySchema = z.object({
     message: "Date cannot be in the future",
   }),
   description: z.string().min(10, "Describe what happened (at least 10 characters)").max(2000),
-  quantity: z.number().int().min(1).max(50).default(1),
+  quantity: z
+    .number()
+    .int("Quantity must be a whole number")
+    .min(1, "Quantity must be at least 1")
+    .max(
+      MAX_ACTIVITY_QUANTITY,
+      `Quantity cannot exceed ${MAX_ACTIVITY_QUANTITY.toLocaleString("en-US")}`,
+    )
+    .default(1),
   witnesses: z.array(z.string()).max(10).default([]),
   proofPath: z.string().max(500).optional(),
 });

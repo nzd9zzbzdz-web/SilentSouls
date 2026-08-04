@@ -43,6 +43,14 @@ export const CRIMINAL_RECORD_ROWS: {
   { label: "Jail Time Served", statKey: "jailTimeMonths", format: (n) => `${n} mo` },
 ];
 
+/**
+ * Upper bound on a single activity's quantity. Generous because quantity now
+ * carries raw amounts, not counts — dollars of dirty money, months served — so
+ * the old cap of 50 rejected any realistic cash log. Abuse is gated by officer
+ * approval and the 20-submissions-per-day limit, not by this number.
+ */
+export const MAX_ACTIVITY_QUANTITY = 10_000_000;
+
 /** $0 · $12.5K · $2.4M — keeps six figures from blowing out the panel. */
 export function formatDirtyMoney(n: number): string {
   if (n >= 1_000_000) return `$${trimZero(n / 1_000_000)}M`;

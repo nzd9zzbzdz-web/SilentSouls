@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getClientStorage } from "@/lib/firebase/client";
+import { MAX_ACTIVITY_QUANTITY } from "@/lib/constants";
 import { submitActivity } from "@/actions/activities";
 
 interface TypeOption {
@@ -58,6 +59,12 @@ export function ActivityForm({
     if (!date) next.date = "Pick a date";
     if (description.trim().length < 10)
       next.description = "Describe what happened (at least 10 characters)";
+    if (selectedType?.allowQuantity) {
+      if (!Number.isInteger(quantity) || quantity < 1)
+        next.quantity = "Enter a whole number of at least 1";
+      else if (quantity > MAX_ACTIVITY_QUANTITY)
+        next.quantity = `Max ${MAX_ACTIVITY_QUANTITY.toLocaleString("en-US")} per submission`;
+    }
     if (selectedType?.requiresProof && !proofFile)
       next.proof = `${selectedType.name} requires proof (photo or clip)`;
     setErrors(next);
@@ -203,15 +210,27 @@ export function ActivityForm({
       {selectedType?.allowQuantity && (
         <div>
           <Label htmlFor="activity-quantity">Quantity</Label>
+          {/* The name carries the unit — "Dirty Money Earned ($)" wants the
+              dollar amount, not a count of times you earned money. */}
+          <p className="text-xs text-muted-foreground">
+            How much to add to {selectedType.name}.
+          </p>
           <Input
             id="activity-quantity"
             type="number"
             min={1}
-            max={50}
+            max={MAX_ACTIVITY_QUANTITY}
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value) || 1)}
-            className="mt-1 w-24"
+            aria-invalid={Boolean(errors.quantity)}
+            aria-describedby={errors.quantity ? "activity-quantity-error" : undefined}
+            className="mt-1 w-40"
           />
+          {errors.quantity && (
+            <p id="activity-quantity-error" className="mt-1 text-xs text-destructive">
+              {errors.quantity}
+            </p>
+          )}
         </div>
       )}
 
