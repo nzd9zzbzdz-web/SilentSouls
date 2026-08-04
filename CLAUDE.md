@@ -50,10 +50,15 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
 - The character screen's **Criminal Record is derived from `member.stats`** via
   `CRIMINAL_RECORD_ROWS` — members log those rows as ordinary activities and an
   officer approves, same pipeline as a club run. `member.rapSheet` is the dead
-  hand-authored predecessor; nothing reads it. To make a live instance match:
-  `npx tsx scripts/migrate-criminal-record.ts` (add `--dry` to preview) — adds
-  the six activity types and folds any old rapSheet values into stats,
-  merge-only and idempotent.
+  hand-authored predecessor; nothing reads it.
+- **New activity types don't reach existing orgs** — the seeder only runs on a
+  destructive reseed. Admin → Activity Types flags what's missing and installs
+  it via `syncDefaultActivityTypes` (no CLI or credentials needed); the
+  equivalent for a shell is `npx tsx scripts/migrate-criminal-record.ts`
+  (`--dry` to preview). Both share `src/lib/criminal-record.ts` so the seed
+  list can't drift between them. Merge-only and idempotent: existing types keep
+  any admin edits, and a stat with an approved log behind it is never
+  overwritten by a legacy rapSheet value.
 - Blackletter display font only via `<DisplayHeading>` / `var(--font-display)` —
   never in body text.
 - Cut layouts store normalized u/v (0..1) coords per vest surface — designed for a

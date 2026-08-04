@@ -10,10 +10,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { SyncActivityTypesButton } from "@/components/portal/SyncActivityTypesButton";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
 import { listActivityTypes } from "@/lib/queries";
 import { STAT_LABELS } from "@/lib/constants";
+import { defaultActivityTypes } from "@/lib/criminal-record";
 
 export default async function ActivityTypesAdminPage({
   params,
@@ -26,19 +28,34 @@ export default async function ActivityTypesAdminPage({
   await requireOrgRole(org.id, "admin");
 
   const types = await listActivityTypes(org.id);
+  const have = new Set(types.map((t) => t.id));
+  const missingCount = defaultActivityTypes().filter((t) => !have.has(t.id)).length;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <DisplayHeading className="flex items-center gap-3 text-3xl text-primary">
-          <SlidersHorizontal className="size-7" aria-hidden />
-          Activity Types
-        </DisplayHeading>
-        <p className="mt-1 text-sm text-muted-foreground">
-          What members can submit and which stat each type feeds. Editing tools
-          arrive in a later milestone.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <DisplayHeading className="flex items-center gap-3 text-3xl text-primary">
+            <SlidersHorizontal className="size-7" aria-hidden />
+            Activity Types
+          </DisplayHeading>
+          <p className="mt-1 text-sm text-muted-foreground">
+            What members can submit and which stat each type feeds. Editing tools
+            arrive in a later milestone.
+          </p>
+        </div>
+        <SyncActivityTypesButton orgId={org.id} />
       </div>
+
+      {missingCount > 0 && (
+        <p className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm text-foreground">
+          <span className="font-semibold">{missingCount}</span> shipped activity{" "}
+          {missingCount === 1 ? "type is" : "types are"} missing from this club —
+          including the Criminal Record types that feed the character screen.
+          Use <span className="font-semibold">Add missing default types</span> to
+          install them.
+        </p>
+      )}
 
       <div className="overflow-x-auto rounded-lg border border-border">
         <Table>

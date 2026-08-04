@@ -20,9 +20,9 @@ import { getFirestore } from "firebase-admin/firestore";
 import {
   ACTIVITY_TYPE_SEEDS,
   CRIMINAL_ACTIVITY_TYPE_SEEDS,
-  CRIMINAL_RECORD_ROWS,
 } from "../src/lib/constants";
-import type { Member, RapSheetEntry, StatKey } from "../src/lib/types";
+import { rapSheetToStats } from "../src/lib/criminal-record";
+import type { Member } from "../src/lib/types";
 
 const PROJECT_ID =
   process.env.PROJECT_ID ??
@@ -54,22 +54,6 @@ if (!getApps().length) {
 const db = getFirestore();
 const org = db.collection("organizations").doc(ORG_ID);
 
-/** "96 mo" → 96 · "$2.4M" → 2400000 · "187" → 187 · anything else → null. */
-function parseRapValue(raw: string): number | null {
-  const text = raw.trim();
-  const money = /^\$\s*([\d,.]+)\s*([KM])?$/i.exec(text);
-  if (money) {
-    const n = Number(money[1].replace(/,/g, ""));
-    if (!Number.isFinite(n)) return null;
-    const suffix = money[2]?.toUpperCase();
-    return Math.round(n * (suffix === "M" ? 1_000_000 : suffix === "K" ? 1_000 : 1));
-  }
-  const plain = /^([\d,.]+)/.exec(text);
-  if (!plain) return null;
-  const n = Number(plain[1].replace(/,/g, ""));
-  return Number.isFinite(n) ? Math.round(n) : null;
-}
-
 async function upsertActivityTypes(): Promise<void> {
   // Append after the existing club types so ordering stays stable.
   const base = ACTIVITY_TYPE_SEEDS.length;
@@ -95,27 +79,11 @@ async function upsertActivityTypes(): Promise<void> {
 }
 
 async function migrateRapSheets(): Promise<void> {
-  const rowByLabel = new Map(
-    CRIMINAL_RECORD_ROWS.map((r) => [r.label.toLowerCase(), r.statKey]),
-  );
   const snap = await org.collection("members").get();
 
   for (const doc of snap.docs) {
-    const member = doc.data() as Member;
-    const rapSheet = member.rapSheet;
-    if (!rapSheet?.length) continue;
-
-    const updates: Partial<Record<StatKey, number>> = {};
-    for (const entry of rapSheet as RapSheetEntry[]) {
-      const statKey = rowByLabel.get(entry.label?.trim().toLowerCase() ?? "");
-      if (!statKey) continue;
-      // Never overwrite a stat that already has a value — approved logs win.
-      if ((member.stats?.[statKey] ?? 0) > 0) continue;
-      const value = parseRapValue(String(entry.value ?? ""));
-      if (value === null || value === 0) continue;
-      updates[statKey] = value;
-    }
-
+    const member = { id: doc.id, ...(doc.data() as Omit<Member, "id">) };
+    const updates = rapSheetToStats(member);
     if (Object.keys(updates).length === 0) continue;
     console.log(`  ${doc.id} (${member.roadName}): ${JSON.stringify(updates)}`);
     if (DRY) continue;
