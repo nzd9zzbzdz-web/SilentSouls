@@ -253,11 +253,11 @@ export const PATCH_LADDERS: {
   {
     statKey: "drugsCooked",
     tiers: [
-      { id: "line-cook", name: "Line Cook", description: "Cook 50 batches.", threshold: 50 },
-      { id: "the-cook", name: "The Cook", description: "Cook 250 batches.", threshold: 250, legacy: true },
-      { id: "chemist", name: "Chemist", description: "Cook 500 batches.", threshold: 500 },
-      { id: "master-chemist", name: "Master Chemist", description: "Cook 2,500 batches.", threshold: 2_500 },
-      { id: "cartel-chemist", name: "Cartel Chemist", description: "Cook 5,000 batches.", threshold: 5_000 },
+      { id: "line-cook", name: "Line Cook", description: "Cook 100 batches.", threshold: 100 },
+      { id: "the-cook", name: "The Cook", description: "Cook 500 batches.", threshold: 500, legacy: true },
+      { id: "chemist", name: "Chemist", description: "Cook 1,000 batches.", threshold: 1_000 },
+      { id: "master-chemist", name: "Master Chemist", description: "Cook 5,000 batches.", threshold: 5_000 },
+      { id: "cartel-chemist", name: "Cartel Chemist", description: "Cook 10,000 batches.", threshold: 10_000 },
     ],
   },
   {
