@@ -1,11 +1,10 @@
-import { Check, Gem, Lock } from "lucide-react";
+import { Gem, Lock } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import {
-  patchArtUrl,
-  remainingLabel,
-  type Ladder,
-  type LadderTier,
-} from "@/lib/patch-ladders";
+  EmblemLadderCard,
+  type EmblemLadderView,
+} from "@/components/portal/EmblemLadderCard";
+import { patchArtUrl, remainingLabel, type Ladder } from "@/lib/patch-ladders";
 
 /**
  * The Emblems tab on a member's profile: one ladder per criminal-record stat,
@@ -14,169 +13,51 @@ import {
  * Emblems are not patches — nothing here goes on the cut. This is the
  * achievement system, so it reads like levelling one: rungs light up in the
  * rarity colour as they land, the next one sits dashed and waiting, the rest
- * stay dark.
+ * stay dark. Clicking a card opens the level they're on at full size.
  *
  * Every rung is a threshold on a stat members log and officers approve, so
  * nothing is hand-maintained — the ladders move when the record does.
+ *
+ * This half stays on the server: it flattens `Ladder` (Timestamps, `format`
+ * closures, whole Patch docs) into the plain data the card can be handed.
  */
 
-const RARITY_COLOR: Record<string, string> = {
-  common: "#A8A29E",
-  rare: "#5F9BD5",
-  epic: "#B084E0",
-  legendary: "#E0B84A",
+const AWARDED_FMT: Intl.DateTimeFormatOptions = {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
 };
 
-const ROMAN = ["I", "II", "III", "IV", "V"];
+function toView(
+  ladder: Ladder,
+  orgId: string,
+  artVersions: Map<string, number>,
+): EmblemLadderView {
+  // The level they're on — or, on an untouched ladder, the one they're chasing.
+  const active = ladder.top ?? ladder.next;
 
-function tierColor(tier: LadderTier): string {
-  return RARITY_COLOR[tier.patch.rarity ?? "common"] ?? RARITY_COLOR.common;
-}
-
-function Rung({
-  tier,
-  isNext,
-  art,
-}: {
-  tier: LadderTier;
-  isNext: boolean;
-  art: string | null;
-}) {
-  const color = tierColor(tier);
-  const numeral = ROMAN[tier.tier - 1] ?? String(tier.tier);
-
-  return (
-    <li className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
-      {art ? (
-        // Artwork carries the state itself: earned emblems sit lit in their
-        // rarity glow, locked ones go dark and desaturated the way a game
-        // greys out an achievement you haven't unlocked.
-        <span
-          aria-hidden
-          className={
-            "flex size-9 items-center justify-center rounded-full " +
-            (tier.earned ? "" : isNext ? "opacity-60" : "opacity-30")
-          }
-          style={
-            tier.earned
-              ? { boxShadow: `0 0 12px ${color}55` }
-              : { filter: "grayscale(1) brightness(0.7)" }
-          }
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- served by the art route, already sized */}
-          <img
-            src={art}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="size-full object-contain"
-          />
-        </span>
-      ) : (
-        <span
-          aria-hidden
-          className={
-            "flex size-7 items-center justify-center rounded-full border text-[0.6rem] font-bold " +
-            (tier.earned
-              ? "border-transparent text-background"
-              : isNext
-                ? "border-dashed border-primary/60 bg-transparent text-primary"
-                : "border-border bg-transparent text-muted-foreground/50")
-          }
-          style={
-            tier.earned ? { background: color, boxShadow: `0 0 10px ${color}66` } : undefined
-          }
-        >
-          {tier.earned ? <Check className="size-3.5" strokeWidth={3} /> : numeral}
-        </span>
-      )}
-      <span
-        className={
-          "text-[0.68rem] leading-tight " +
-          (tier.earned
-            ? "font-semibold text-foreground"
-            : isNext
-              ? "text-primary"
-              : "text-muted-foreground/60")
-        }
-        style={tier.earned ? { color } : undefined}
-        title={tier.patch.description}
-      >
-        {tier.patch.name}
-      </span>
-      <span className="sr-only">
-        {tier.earned
-          ? `Earned${tier.awardedAt ? ` ${tier.awardedAt.toLocaleDateString("en-US", { month: "short", year: "numeric" })}` : ""}`
-          : `Locked — ${tier.patch.description}`}
-      </span>
-    </li>
-  );
-}
-
-function LadderRow({
-  ladder,
-  orgId,
-  artVersions,
-}: {
-  ladder: Ladder;
-  orgId: string;
-  artVersions: Map<string, number>;
-}) {
-  const remaining = remainingLabel(ladder);
-  const maxed = !ladder.next;
-
-  return (
-    <li className="rounded-lg border border-border bg-card/60 p-4 sm:p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-          {ladder.label}
-        </h3>
-        <p className="font-stat text-sm text-muted-foreground">
-          <span className="text-primary">{ladder.format(ladder.current)}</span>
-          <span className="ml-3 text-xs">
-            {ladder.earnedCount}/{ladder.tiers.length}
-          </span>
-        </p>
-      </div>
-
-      <ul className="mt-4 flex items-start justify-between gap-1">
-        {ladder.tiers.map((tier) => (
-          <Rung
-            key={tier.patch.id}
-            tier={tier}
-            isNext={ladder.next?.patch.id === tier.patch.id}
-            art={patchArtUrl(orgId, tier.patch.id, artVersions)}
-          />
-        ))}
-      </ul>
-
-      <div
-        role="progressbar"
-        aria-valuenow={ladder.pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={`${ladder.label} progress toward ${ladder.next?.patch.name ?? "complete"}`}
-        className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted"
-      >
-        <div
-          className={"h-full rounded-full " + (maxed ? "bg-primary" : "bg-primary/70")}
-          style={{ width: `${ladder.pct}%` }}
-        />
-      </div>
-
-      <p className="mt-2 text-xs text-muted-foreground">
-        {maxed ? (
-          <span className="font-semibold text-primary">Ladder topped out.</span>
-        ) : (
-          <>
-            <span className="font-stat text-foreground">{remaining}</span> more to{" "}
-            <span className="font-semibold text-primary">{ladder.next!.patch.name}</span>
-            <span className="ml-2 font-stat">{ladder.pct}%</span>
-          </>
-        )}
-      </p>
-    </li>
-  );
+  return {
+    statKey: ladder.statKey,
+    label: ladder.label,
+    currentLabel: ladder.format(ladder.current),
+    earnedCount: ladder.earnedCount,
+    pct: ladder.pct,
+    remainingLabel: remainingLabel(ladder),
+    activeIndex: active ? active.tier - 1 : 0,
+    rungs: ladder.tiers.map((tier) => ({
+      id: tier.patch.id,
+      name: tier.patch.name,
+      description: tier.patch.description,
+      rarity: tier.patch.rarity,
+      artUrl: patchArtUrl(orgId, tier.patch.id, artVersions),
+      earned: tier.earned,
+      isNext: ladder.next?.patch.id === tier.patch.id,
+      awardedLabel: tier.awardedAt
+        ? tier.awardedAt.toLocaleDateString("en-US", AWARDED_FMT)
+        : null,
+      thresholdLabel: ladder.format(tier.threshold),
+    })),
+  };
 }
 
 export function EmblemLadders({
@@ -230,11 +111,9 @@ export function EmblemLadders({
       ) : (
         <ul className="mt-6 grid gap-4 lg:grid-cols-2">
           {ladders.map((ladder) => (
-            <LadderRow
+            <EmblemLadderCard
               key={ladder.statKey}
-              ladder={ladder}
-              orgId={orgId}
-              artVersions={artVersions}
+              ladder={toView(ladder, orgId, artVersions)}
             />
           ))}
         </ul>
