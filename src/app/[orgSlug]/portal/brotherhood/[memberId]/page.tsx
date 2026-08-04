@@ -3,16 +3,21 @@ import { CharacterArtUploader } from "@/components/portal/CharacterArtUploader";
 import { type StagePatch } from "@/components/portal/CharacterStage";
 import { CharacterPoseEditor } from "@/components/portal/CharacterPoseEditor";
 import { EmblemLadders } from "@/components/portal/EmblemLadders";
+import { Leaderboard } from "@/components/portal/Leaderboard";
 import { ServiceRecord } from "@/components/portal/ServiceRecord";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { composeLadders, patchArtUrl } from "@/lib/patch-ladders";
+import { composeLeaderboard } from "@/lib/leaderboard";
 import { composeServiceRecord } from "@/lib/service-record";
 import { requireOrgRole } from "@/lib/auth/session";
 import { orgRef } from "@/lib/firebase/admin";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import {
   getMember,
+  listAwardsByMember,
   listMemberAwards,
+  listMembers,
+  listMembersWithRender,
   listPatchArtVersions,
   listPatches,
   listRanks,
@@ -52,7 +57,7 @@ export default async function MemberDetailPage({
     ? (assetSnap.data()?.dataUrl as string | undefined)
     : undefined;
 
-  const [ranks, awards, patches, branding, career, sponsor, patchArt] =
+  const [ranks, awards, patches, branding, career, sponsor, patchArt, members, awardsByMember] =
     await Promise.all([
       listRanks(org.id),
       listMemberAwards(org.id, memberId),
@@ -63,6 +68,8 @@ export default async function MemberDetailPage({
         ? getMember(org.id, member.sponsorMemberId)
         : Promise.resolve(null),
       listPatchArtVersions(org.id),
+      listMembers(org.id),
+      listAwardsByMember(org.id),
     ]);
   const rank = ranks.find((r) => r.id === member.rankId);
   const patchById = new Map(patches.map((p) => [p.id, p]));
@@ -121,6 +128,29 @@ export default async function MemberDetailPage({
   // Emblems never reach the cut — this tab is the only place they live.
   const ladders = composeLadders({ patches, awards, stats: member.stats });
 
+  // Standings: the riding club ranked per criminal-record stat. Existence only
+  // for the renders — avatars stream from the render route like the roster.
+  const withRender = await listMembersWithRender(
+    org.id,
+    members.map((m) => m.id),
+  );
+  const leaderboard = composeLeaderboard({
+    members,
+    awardsByMember,
+    patches,
+    artUrlFor: (patchId) => patchArtUrl(org.id, patchId, patchArt),
+    imageFor: (id) => {
+      if (withRender.has(id)) {
+        return { url: `/api/orgs/${org.id}/members/${id}/render`, hasRender: true };
+      }
+      // The seeder writes the shared silhouette into photoPath when a member
+      // has no art file, so a set photoPath alone doesn't mean they have one.
+      const own = members.find((m) => m.id === id)?.photoPath;
+      const ownArt = own && own !== CHARACTER_SILHOUETTE ? own : undefined;
+      return { url: ownArt ?? CHARACTER_SILHOUETTE, hasRender: Boolean(ownArt) };
+    },
+  });
+
   return (
     <div className="mx-auto max-w-6xl">
       <CharacterPoseEditor
@@ -160,6 +190,7 @@ export default async function MemberDetailPage({
               {ladders.reduce((n, l) => n + l.earnedCount, 0)}
             </span>
           </TabsTrigger>
+          <TabsTrigger value="standings">Standings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="service">
@@ -184,6 +215,15 @@ export default async function MemberDetailPage({
             isSelf={access.memberId === memberId}
             orgId={org.id}
             artVersions={patchArt}
+          />
+        </TabsContent>
+
+        <TabsContent value="standings">
+          <Leaderboard
+            categories={leaderboard}
+            orgSlug={orgSlug}
+            subjectMemberId={memberId}
+            viewerMemberId={access.memberId ?? null}
           />
         </TabsContent>
       </Tabs>
