@@ -23,7 +23,12 @@ vi.mock("@/lib/auth/session", () => ({
 const { adminDb, orgRef, Timestamp } = await import("@/lib/firebase/admin");
 const { syncDefaultActivityTypes } = await import("@/actions/activity-types");
 const { defaultActivityTypes } = await import("@/lib/criminal-record");
-const { CRIMINAL_ACTIVITY_TYPE_SEEDS } = await import("@/lib/constants");
+const {
+  CRIMINAL_ACTIVITY_TYPE_SEEDS,
+  CRIMINAL_PATCH_SEEDS,
+  RETIRED_ACTIVITY_TYPE_IDS,
+  RETIRED_PATCH_IDS,
+} = await import("@/lib/constants");
 
 const ORG = "activity-types-test-org";
 
@@ -96,6 +101,66 @@ describe("syncDefaultActivityTypes", () => {
     expect(doc.data()?.name).toBe("Sunday Run");
     expect(doc.data()?.active).toBe(false);
     expect(doc.data()?.requiresProof).toBe(false);
+  });
+
+  it("hides retired club types without deleting their history", async () => {
+    // A club still offering the old set, with a submission against one of them.
+    await orgRef(ORG).collection("activityTypes").doc("territory-patrol").set({
+      name: "Territory Patrol",
+      statKey: "territoryPatrol",
+      requiresProof: false,
+      allowQuantity: false,
+      defaultQuantity: 1,
+      icon: "map",
+      active: true,
+      order: 7,
+    });
+
+    const res = await syncDefaultActivityTypes(ORG);
+    expect(res.data!.retired).toBe(1);
+
+    const doc = await orgRef(ORG).collection("activityTypes").doc("territory-patrol").get();
+    // Still there — a past submission must still resolve a name — just hidden.
+    expect(doc.exists).toBe(true);
+    expect(doc.data()?.active).toBe(false);
+    expect(doc.data()?.name).toBe("Territory Patrol");
+  });
+
+  it("swaps the orphaned patches for the criminal set", async () => {
+    await orgRef(ORG).collection("patches").doc("night-watchman").set({
+      name: "Night Watchman",
+      category: "activity",
+      description: "Complete 15 territory patrols.",
+      tier: 1,
+      requirement: { statKey: "territoryPatrol", threshold: 15 },
+      manual: false,
+      active: true,
+      defaultPlacement: { surface: "back", u: 0.3, v: 0.72, scale: 0.8, rotationDeg: 0 },
+    });
+
+    const res = await syncDefaultActivityTypes(ORG);
+    expect(res.data!.patchesRetired).toBe(1);
+    expect(res.data!.patchesAdded).toHaveLength(CRIMINAL_PATCH_SEEDS.length);
+
+    // Retired, not deleted: anyone who already earned it keeps it on their cut.
+    const old = await orgRef(ORG).collection("patches").doc("night-watchman").get();
+    expect(old.exists).toBe(true);
+    expect(old.data()?.active).toBe(false);
+
+    const added = await orgRef(ORG).collection("patches").doc("most-wanted").get();
+    expect(added.data()?.requirement).toEqual({ statKey: "felonies", threshold: 100 });
+    expect(added.data()?.active).toBe(true);
+  });
+
+  it("every retired id refers to something that once shipped", () => {
+    // Guards against a typo silently retiring nothing.
+    for (const id of RETIRED_ACTIVITY_TYPE_IDS) {
+      expect(defaultActivityTypes().some((t) => t.id === id)).toBe(false);
+    }
+    expect(RETIRED_PATCH_IDS.length).toBeGreaterThan(0);
+    for (const id of RETIRED_PATCH_IDS) {
+      expect(CRIMINAL_PATCH_SEEDS.some((p) => p.id === id)).toBe(false);
+    }
   });
 
   it("folds a legacy rap sheet into stats without clobbering logged ones", async () => {

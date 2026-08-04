@@ -51,14 +51,17 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   `CRIMINAL_RECORD_ROWS` — members log those rows as ordinary activities and an
   officer approves, same pipeline as a club run. `member.rapSheet` is the dead
   hand-authored predecessor; nothing reads it.
-- **New activity types don't reach existing orgs** — the seeder only runs on a
-  destructive reseed. Admin → Activity Types flags what's missing and installs
-  it via `syncDefaultActivityTypes` (no CLI or credentials needed); the
-  equivalent for a shell is `npx tsx scripts/migrate-criminal-record.ts`
-  (`--dry` to preview). Both share `src/lib/criminal-record.ts` so the seed
-  list can't drift between them. Merge-only and idempotent: existing types keep
-  any admin edits, and a stat with an approved log behind it is never
-  overwritten by a legacy rapSheet value.
+- **Seed changes don't reach existing orgs** — the seeder only runs on a
+  destructive reseed. Admin → Activity Types flags drift and fixes it via
+  `syncDefaultActivityTypes` (no CLI or credentials needed): adds missing
+  types, deactivates `RETIRED_ACTIVITY_TYPE_IDS` / `RETIRED_PATCH_IDS`, installs
+  `CRIMINAL_PATCH_SEEDS`, and folds legacy rapSheets into stats. Idempotent, and
+  it never deletes — a retired type/patch keeps its doc so past submissions and
+  already-earned awards still resolve a name. Existing types keep admin edits;
+  a stat with an approved log behind it is never overwritten.
+- The club activity set is **criminal-record-first**: only Club Ride and Church
+  survive from the original 13 spec types. Retired stat keys stay in `STAT_KEYS`
+  so historical values still render.
 - Blackletter display font only via `<DisplayHeading>` / `var(--font-display)` —
   never in body text.
 - Cut layouts store normalized u/v (0..1) coords per vest surface — designed for a

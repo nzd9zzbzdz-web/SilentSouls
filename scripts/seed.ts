@@ -14,6 +14,7 @@ import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestor
 import {
   ACTIVITY_TYPE_SEEDS,
   CRIMINAL_ACTIVITY_TYPE_SEEDS,
+  CRIMINAL_PATCH_SEEDS,
   DEFAULT_RANKS,
 } from "../src/lib/constants";
 import { writeCutConfig } from "./lib/writeCutConfig";
@@ -76,14 +77,11 @@ const PATCHES: PatchSeed[] = [
   p("iron-rider", "Iron Rider", "activity", "Complete 50 club runs.", 2, { statKey: "clubRuns", threshold: 50 }, "front", 0.3, 0.52),
   p("faithful", "Faithful", "activity", "Attend 10 church meetings.", 1, { statKey: "churchAttendance", threshold: 10 }, "front", 0.7, 0.42),
   p("dedicated-soul", "Dedicated Soul", "activity", "Attend 25 church meetings.", 2, { statKey: "churchAttendance", threshold: 25 }, "front", 0.7, 0.52),
-  p("ghost-rider", "Ghost Rider", "activity", "Participate in 10 operations.", 2, { statKey: "operations", threshold: 10 }, "back", 0.3, 0.62),
-  p("guardian", "Guardian", "activity", "Complete 10 security details.", 1, { statKey: "securityDetail", threshold: 10 }, "back", 0.7, 0.62),
-  p("night-watchman", "Night Watchman", "activity", "Complete 15 territory patrols.", 1, { statKey: "territoryPatrol", threshold: 15 }, "back", 0.3, 0.72),
-  p("territory-defender", "Territory Defender", "activity", "Defend the territory 10 times.", 2, { statKey: "territoryDefense", threshold: 10 }, "back", 0.7, 0.72),
-  p("community-pillar", "Community Pillar", "service", "Complete 15 community outreach actions.", 1, { statKey: "communityOutreach", threshold: 15 }, "front", 0.3, 0.62),
-  p("giving-soul", "Giving Soul", "service", "Work 10 charity events.", 1, { statKey: "charityEvents", threshold: 10 }, "front", 0.7, 0.62),
-  p("mentor", "Mentor", "leadership", "Sponsor 3 prospects into the club.", 2, { statKey: "recruitment", threshold: 3 }, "front", 0.5, 0.3),
-  p("shot-caller", "Shot Caller", "leadership", "Complete 5 special assignments.", 2, { statKey: "specialAssignments", threshold: 5 }, "back", 0.5, 0.3),
+  // Criminal record patches (CRIMINAL_PATCH_SEEDS) replace the retired club
+  // set here — see RETIRED_PATCH_IDS in constants.
+  ...CRIMINAL_PATCH_SEEDS.map((c) =>
+    p(c.id, c.name, c.category, c.description, c.tier, c.requirement, c.surface, c.u, c.v),
+  ),
   p("presidents-citation", "President's Citation", "recognition", "Awarded personally by the President for exceptional service.", 3, null, "front", 0.5, 0.68),
   p("brotherhoods-honor", "Brotherhood's Honor", "recognition", "Awarded by club vote for embodying the spirit of the Ravens.", 3, null, "front", 0.5, 0.78),
   p("war-veteran", "War Veteran", "legendary", "Stood their ground when the club needed them most. Manual award.", 4, null, "back", 0.5, 0.45),
@@ -118,11 +116,16 @@ const rap = (
   dirtyMoney: number,
 ): Partial<Record<StatKey, number>> => ({
   crimesCommitted: crimes,
+  felonies: Math.round(crimes * 0.35),
   heistsCompleted: heists,
-  policeGunnedDown: police,
-  jailTimeMonths: jailMonths,
-  timesArrested: arrests,
+  drugSales: crimes * 3,
+  drugsCooked: Math.round(crimes * 0.8),
+  gunsManufactured: Math.round(crimes * 0.45),
   dirtyMoneyEarned: dirtyMoney,
+  dirtyMoneyCleaned: Math.round(dirtyMoney * 0.6),
+  policeGunnedDown: police,
+  timesArrested: arrests,
+  jailTimeMonths: jailMonths,
 });
 
 const MEMBERS: MemberSeed[] = [

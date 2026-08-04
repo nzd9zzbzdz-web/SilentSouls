@@ -202,7 +202,13 @@ export function CharacterStage({
 
       {/* Service record panel */}
       <div className="charstage-panel-rig">
-      <section className="charstage-panel" aria-label="Service record">
+      {/* --rows lets the CSS tighten type as the record grows, so a long rap
+          sheet stays inside the panel instead of spilling past the frame. */}
+      <section
+        className="charstage-panel"
+        aria-label="Service record"
+        style={{ "--rows": stats.length } as React.CSSProperties}
+      >
         <header>
           <DisplayHeading as="h3" className="charstage-panel-title">
             {panelTitle}
@@ -397,6 +403,10 @@ const CSS_TEXT = `
   z-index: 3;
 }
 .charstage-panel {
+  /* The stats area is ~28cqw tall; a full-size row is ~2.3cqw, so 11 rows fit
+     with a little slack. Shrink only past that, and gently — the threshold is
+     9 rather than 12 to keep a margin for the header/footer estimate. */
+  --stat-scale: min(1, 9 / var(--rows, 6));
   width: 100%; height: 100%;
   display: flex; flex-direction: column;
   background: rgba(5, 4, 2, 0.78);
@@ -430,7 +440,7 @@ const CSS_TEXT = `
 }
 .charstage-stat {
   display: flex; align-items: baseline; justify-content: space-between;
-  gap: 0.8cqw; padding: 0.35cqw 1.4cqw; position: relative;
+  gap: 0.8cqw; padding: calc(0.35cqw * var(--stat-scale)) 1.4cqw; position: relative;
 }
 .charstage-stat + .charstage-stat::before {
   content: '';
@@ -438,7 +448,8 @@ const CSS_TEXT = `
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--primary) 18%, transparent), transparent);
 }
 .charstage-stat-label {
-  font-size: 0.85cqw; letter-spacing: 0.18em; text-transform: uppercase;
+  font-size: calc(0.85cqw * var(--stat-scale));
+  letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--foreground); opacity: 0.85; white-space: nowrap;
 }
 .charstage-dots {
@@ -447,7 +458,7 @@ const CSS_TEXT = `
   transform: translateY(-0.25cqw);
 }
 .charstage-stat-value {
-  font-size: 1.35cqw; font-weight: 600;
+  font-size: calc(1.35cqw * var(--stat-scale)); font-weight: 600;
   color: var(--primary);
   text-shadow: 0 0 0.8cqw color-mix(in srgb, var(--primary) 35%, transparent);
   white-space: nowrap;

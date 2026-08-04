@@ -23,15 +23,16 @@ export function SyncActivityTypesButton({ orgId }: { orgId: string }) {
         toast.error(result.error ?? "Could not sync activity types");
         return;
       }
-      const { created, membersMigrated } = result.data!;
-      if (created.length === 0 && membersMigrated === 0) {
-        toast.success("Already up to date — nothing to add");
-      } else {
-        const parts = [];
-        if (created.length > 0) parts.push(`Added ${created.length}: ${created.join(", ")}`);
-        if (membersMigrated > 0) parts.push(`${membersMigrated} rap sheet(s) moved to stats`);
-        toast.success(parts.join(" · "));
-      }
+      const d = result.data!;
+      const parts: string[] = [];
+      if (d.created.length > 0) parts.push(`Added ${d.created.length} activity type(s)`);
+      if (d.retired > 0) parts.push(`retired ${d.retired}`);
+      if (d.patchesAdded.length > 0) parts.push(`${d.patchesAdded.length} new patch(es)`);
+      if (d.patchesRetired > 0) parts.push(`${d.patchesRetired} patch(es) retired`);
+      if (d.membersMigrated > 0) parts.push(`${d.membersMigrated} rap sheet(s) moved to stats`);
+      toast.success(
+        parts.length === 0 ? "Already up to date — nothing to change" : parts.join(" · "),
+      );
       router.refresh();
     });
   }
@@ -43,7 +44,7 @@ export function SyncActivityTypesButton({ orgId }: { orgId: string }) {
       ) : (
         <RefreshCw className="size-4" aria-hidden />
       )}
-      {pending ? "Syncing…" : "Add missing default types"}
+      {pending ? "Syncing…" : "Sync default types"}
     </Button>
   );
 }

@@ -31,11 +31,16 @@ export const CRIMINAL_RECORD_ROWS: {
   format?: (n: number) => string;
 }[] = [
   { label: "Crimes Committed", statKey: "crimesCommitted" },
+  { label: "Felonies", statKey: "felonies", danger: true },
   { label: "Heists Completed", statKey: "heistsCompleted" },
-  { label: "Police Gunned Down", statKey: "policeGunnedDown", danger: true },
-  { label: "Jail Time Served", statKey: "jailTimeMonths", format: (n) => `${n} mo` },
-  { label: "Times Arrested", statKey: "timesArrested" },
+  { label: "Drug Sales", statKey: "drugSales" },
+  { label: "Drugs Cooked", statKey: "drugsCooked" },
+  { label: "Guns Manufactured", statKey: "gunsManufactured" },
   { label: "Dirty Money Earned", statKey: "dirtyMoneyEarned", format: formatDirtyMoney },
+  { label: "Dirty Money Cleaned", statKey: "dirtyMoneyCleaned", format: formatDirtyMoney },
+  { label: "Police Gunned Down", statKey: "policeGunnedDown", danger: true },
+  { label: "Times Arrested", statKey: "timesArrested" },
+  { label: "Jail Time Served", statKey: "jailTimeMonths", format: (n) => `${n} mo` },
 ];
 
 /** $0 · $12.5K · $2.4M — keeps six figures from blowing out the panel. */
@@ -71,11 +76,16 @@ export const STAT_LABELS: Record<StatKey, string> = {
   mentoring: "Mentoring",
   specialAssignments: "Special Assignments",
   crimesCommitted: "Crimes Committed",
+  felonies: "Felonies",
   heistsCompleted: "Heists Completed",
-  policeGunnedDown: "Police Gunned Down",
-  jailTimeMonths: "Jail Time Served",
-  timesArrested: "Times Arrested",
+  drugSales: "Drug Sales",
+  drugsCooked: "Drugs Cooked",
+  gunsManufactured: "Guns Manufactured",
   dirtyMoneyEarned: "Dirty Money Earned",
+  dirtyMoneyCleaned: "Dirty Money Cleaned",
+  policeGunnedDown: "Police Gunned Down",
+  timesArrested: "Times Arrested",
+  jailTimeMonths: "Jail Time Served",
 };
 
 // Default club ranks (org-configurable; seeded per org).
@@ -93,7 +103,10 @@ export const DEFAULT_RANKS = [
   { name: "Hangaround", order: 10, isOfficer: false },
 ] as const;
 
-// The 13 spec activity types (org-editable; seeded per org).
+// Club activity types. The original spec shipped 13 of these; the rest were
+// retired in favour of the criminal record set below (see
+// RETIRED_ACTIVITY_TYPE_IDS) — their stat keys stay in STAT_KEYS so historical
+// values and already-earned patches still resolve.
 export const ACTIVITY_TYPE_SEEDS: {
   name: string;
   statKey: StatKey;
@@ -103,17 +116,65 @@ export const ACTIVITY_TYPE_SEEDS: {
 }[] = [
   { name: "Club Ride", statKey: "clubRuns", requiresProof: true, allowQuantity: false, icon: "bike" },
   { name: "Mandatory Church Attendance", statKey: "churchAttendance", requiresProof: false, allowQuantity: false, icon: "landmark" },
-  { name: "Club Event", statKey: "clubEvents", requiresProof: true, allowQuantity: false, icon: "party-popper" },
-  { name: "Community Outreach", statKey: "communityOutreach", requiresProof: true, allowQuantity: false, icon: "heart-handshake" },
-  { name: "Operation Participation", statKey: "operations", requiresProof: true, allowQuantity: false, icon: "target" },
-  { name: "Security Detail", statKey: "securityDetail", requiresProof: false, allowQuantity: false, icon: "shield" },
-  { name: "Territory Patrol", statKey: "territoryPatrol", requiresProof: false, allowQuantity: false, icon: "map" },
-  { name: "Territory Defense", statKey: "territoryDefense", requiresProof: true, allowQuantity: false, icon: "swords" },
-  { name: "Prospect Task", statKey: "prospectTasks", requiresProof: true, allowQuantity: false, icon: "clipboard-check" },
-  { name: "Recruitment", statKey: "recruitment", requiresProof: false, allowQuantity: false, icon: "user-plus" },
-  { name: "Charity Event", statKey: "charityEvents", requiresProof: true, allowQuantity: false, icon: "hand-heart" },
-  { name: "Mentoring", statKey: "mentoring", requiresProof: false, allowQuantity: false, icon: "graduation-cap" },
-  { name: "Special Assignment", statKey: "specialAssignments", requiresProof: true, allowQuantity: false, icon: "star" },
+];
+
+/**
+ * Club types that shipped once and are no longer offered. The sync action
+ * deactivates these rather than deleting them: past submissions reference the
+ * type id, so the review queue and a member's history still need to resolve a
+ * name. Deactivating just hides them from the submit dropdown.
+ */
+/**
+ * Patches whose requirement stat is no longer loggable. Retiring rather than
+ * deleting keeps them on the cut of anyone who already earned one — the award
+ * doc and the patch name still resolve; they just stop being awarded again.
+ */
+export const RETIRED_PATCH_IDS = [
+  "ghost-rider",
+  "guardian",
+  "night-watchman",
+  "territory-defender",
+  "community-pillar",
+  "giving-soul",
+  "mentor",
+  "shot-caller",
+];
+
+/** Criminal-record patches — the replacements for the retired club set. */
+export const CRIMINAL_PATCH_SEEDS: {
+  id: string;
+  name: string;
+  category: "activity" | "service" | "leadership" | "recognition" | "legendary";
+  description: string;
+  tier: number;
+  rarity: "common" | "rare" | "epic" | "legendary";
+  requirement: { statKey: StatKey; threshold: number };
+  surface: "front" | "back";
+  u: number;
+  v: number;
+}[] = [
+  { id: "corner-boy", name: "Corner Boy", category: "activity", description: "Move 100 drug sales.", tier: 1, rarity: "common", requirement: { statKey: "drugSales", threshold: 100 }, surface: "back", u: 0.3, v: 0.62 },
+  { id: "the-cook", name: "The Cook", category: "activity", description: "Cook 50 batches.", tier: 2, rarity: "rare", requirement: { statKey: "drugsCooked", threshold: 50 }, surface: "back", u: 0.7, v: 0.62 },
+  { id: "gunsmith", name: "Gunsmith", category: "activity", description: "Manufacture 50 guns.", tier: 2, rarity: "rare", requirement: { statKey: "gunsManufactured", threshold: 50 }, surface: "back", u: 0.3, v: 0.72 },
+  { id: "made-man", name: "Made Man", category: "activity", description: "Pull 10 heists.", tier: 2, rarity: "epic", requirement: { statKey: "heistsCompleted", threshold: 10 }, surface: "back", u: 0.7, v: 0.72 },
+  { id: "earner", name: "Earner", category: "service", description: "Earn $1M in dirty money.", tier: 2, rarity: "rare", requirement: { statKey: "dirtyMoneyEarned", threshold: 1_000_000 }, surface: "front", u: 0.3, v: 0.62 },
+  { id: "the-launderer", name: "The Launderer", category: "service", description: "Wash $1M through the books.", tier: 3, rarity: "epic", requirement: { statKey: "dirtyMoneyCleaned", threshold: 1_000_000 }, surface: "front", u: 0.7, v: 0.62 },
+  { id: "hardened", name: "Hardened", category: "leadership", description: "Serve 24 months inside and come back.", tier: 3, rarity: "epic", requirement: { statKey: "jailTimeMonths", threshold: 24 }, surface: "back", u: 0.5, v: 0.3 },
+  { id: "most-wanted", name: "Most Wanted", category: "legendary", description: "Commit 100 felonies.", tier: 4, rarity: "legendary", requirement: { statKey: "felonies", threshold: 100 }, surface: "front", u: 0.5, v: 0.3 },
+];
+
+export const RETIRED_ACTIVITY_TYPE_IDS = [
+  "club-event",
+  "community-outreach",
+  "operation-participation",
+  "security-detail",
+  "territory-patrol",
+  "territory-defense",
+  "prospect-task",
+  "recruitment",
+  "charity-event",
+  "mentoring",
+  "special-assignment",
 ];
 
 /**
@@ -133,11 +194,16 @@ export const CRIMINAL_ACTIVITY_TYPE_SEEDS: {
   icon: string;
 }[] = [
   { id: "crime-committed", name: "Crime Committed", statKey: "crimesCommitted", requiresProof: false, allowQuantity: true, icon: "skull" },
+  { id: "felony", name: "Felony", statKey: "felonies", requiresProof: false, allowQuantity: true, icon: "gavel" },
   { id: "heist-completed", name: "Heist Completed", statKey: "heistsCompleted", requiresProof: true, allowQuantity: false, icon: "banknote" },
-  { id: "police-gunned-down", name: "Police Gunned Down", statKey: "policeGunnedDown", requiresProof: true, allowQuantity: true, icon: "crosshair" },
-  { id: "jail-time-served", name: "Jail Time Served (months)", statKey: "jailTimeMonths", requiresProof: false, allowQuantity: true, icon: "lock" },
-  { id: "arrested", name: "Arrested", statKey: "timesArrested", requiresProof: false, allowQuantity: false, icon: "handcuffs" },
+  { id: "drug-sale", name: "Drug Sale", statKey: "drugSales", requiresProof: false, allowQuantity: true, icon: "pill" },
+  { id: "drugs-cooked", name: "Drugs Cooked", statKey: "drugsCooked", requiresProof: false, allowQuantity: true, icon: "flask-conical" },
+  { id: "gun-manufactured", name: "Guns Manufactured", statKey: "gunsManufactured", requiresProof: false, allowQuantity: true, icon: "wrench" },
   { id: "dirty-money-earned", name: "Dirty Money Earned ($)", statKey: "dirtyMoneyEarned", requiresProof: true, allowQuantity: true, icon: "dollar-sign" },
+  { id: "dirty-money-cleaned", name: "Dirty Money Cleaned ($)", statKey: "dirtyMoneyCleaned", requiresProof: true, allowQuantity: true, icon: "washing-machine" },
+  { id: "police-gunned-down", name: "Police Gunned Down", statKey: "policeGunnedDown", requiresProof: true, allowQuantity: true, icon: "crosshair" },
+  { id: "arrested", name: "Arrested", statKey: "timesArrested", requiresProof: false, allowQuantity: false, icon: "handcuffs" },
+  { id: "jail-time-served", name: "Jail Time Served (months)", statKey: "jailTimeMonths", requiresProof: false, allowQuantity: true, icon: "lock" },
 ];
 
 export const PORTAL_NAV = [

@@ -21,11 +21,16 @@ export const STAT_KEYS = [
   // Criminal record — the rows on the character screen. Logged and approved
   // like any other activity, so the panel is always live rather than typed in.
   "crimesCommitted",
+  "felonies",
   "heistsCompleted",
-  "policeGunnedDown",
-  "jailTimeMonths",
-  "timesArrested",
+  "drugSales",
+  "drugsCooked",
+  "gunsManufactured",
   "dirtyMoneyEarned",
+  "dirtyMoneyCleaned",
+  "policeGunnedDown",
+  "timesArrested",
+  "jailTimeMonths",
 ] as const;
 
 export type StatKey = (typeof STAT_KEYS)[number];

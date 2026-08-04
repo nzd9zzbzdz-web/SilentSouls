@@ -14,7 +14,7 @@ import { SyncActivityTypesButton } from "@/components/portal/SyncActivityTypesBu
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
 import { listActivityTypes } from "@/lib/queries";
-import { STAT_LABELS } from "@/lib/constants";
+import { RETIRED_ACTIVITY_TYPE_IDS, STAT_LABELS } from "@/lib/constants";
 import { defaultActivityTypes } from "@/lib/criminal-record";
 
 export default async function ActivityTypesAdminPage({
@@ -30,6 +30,11 @@ export default async function ActivityTypesAdminPage({
   const types = await listActivityTypes(org.id);
   const have = new Set(types.map((t) => t.id));
   const missingCount = defaultActivityTypes().filter((t) => !have.has(t.id)).length;
+  // Retired club types that are still offered to members here.
+  const staleCount = types.filter(
+    (t) => t.active && RETIRED_ACTIVITY_TYPE_IDS.includes(t.id),
+  ).length;
+  const outOfDate = missingCount + staleCount;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -47,13 +52,26 @@ export default async function ActivityTypesAdminPage({
         <SyncActivityTypesButton orgId={org.id} />
       </div>
 
-      {missingCount > 0 && (
+      {outOfDate > 0 && (
         <p className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm text-foreground">
-          <span className="font-semibold">{missingCount}</span> shipped activity{" "}
-          {missingCount === 1 ? "type is" : "types are"} missing from this club —
-          including the Criminal Record types that feed the character screen.
-          Use <span className="font-semibold">Add missing default types</span> to
-          install them.
+          This club is out of date:{" "}
+          {missingCount > 0 && (
+            <>
+              <span className="font-semibold">{missingCount}</span> shipped
+              {missingCount === 1 ? " type is" : " types are"} missing (including
+              the Criminal Record types that feed the character screen)
+            </>
+          )}
+          {missingCount > 0 && staleCount > 0 && ", and "}
+          {staleCount > 0 && (
+            <>
+              <span className="font-semibold">{staleCount}</span> retired club
+              {staleCount === 1 ? " type is" : " types are"} still offered to
+              members
+            </>
+          )}
+          . <span className="font-semibold">Sync default types</span> fixes both
+          and updates the patches that depend on them.
         </p>
       )}
 
