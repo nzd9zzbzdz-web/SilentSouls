@@ -26,11 +26,13 @@ export function BrotherhoodSection({
   // club with no patched members yet.
   const officers = members.filter((m) => m.isOfficer).length;
 
+  // scroll-mt clears the sticky header (h-24, md:h-28) so the jump from the nav
+  // lands on the heading rather than tucked under the bar.
   return (
     <section
       id="brotherhood"
-      aria-labelledby="brotherhood-heading"
-      className="scroll-mt-20 border-t border-border bg-background"
+      aria-label="The Brotherhood"
+      className="scroll-mt-24 border-t border-border bg-background md:scroll-mt-28"
     >
       <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
         <div className="text-center">

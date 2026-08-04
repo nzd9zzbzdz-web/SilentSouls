@@ -13,7 +13,9 @@ type NavItem = { label: string; href?: string };
 const NAV: NavItem[] = [
   { href: "", label: "Home" },
   { href: "/about", label: "About" },
-  { label: "Brotherhood" },
+  // The club roster lives in a section of the home page rather than its own
+  // route, so this jumps there from wherever you are on the public site.
+  { href: "#brotherhood", label: "Brotherhood" },
   { label: "Chapters" },
   { href: "/gallery", label: "Media" },
   { href: "/join", label: "Join Us" },
