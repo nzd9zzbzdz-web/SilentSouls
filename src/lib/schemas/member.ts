@@ -22,6 +22,8 @@ export type CreateMemberInput = z.infer<typeof createMemberSchema>;
 export const updateMemberSchema = createMemberSchema.partial().extend({
   orgId: z.string().min(1),
   memberId: z.string().min(1),
+  /** Portal permissions, separate from club rank. Linked accounts only. */
+  role: z.enum(["admin", "officer", "member"]).optional(),
 });
 export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
 

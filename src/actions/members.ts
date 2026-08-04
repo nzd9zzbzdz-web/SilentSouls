@@ -26,6 +26,7 @@ import {
   type UpdateMemberInput,
 } from "@/lib/schemas/member";
 import type { ActionResult } from "./activities";
+import type { SystemRole } from "@/lib/types";
 
 /** Org-admin: create a member record (unlinked until they accept an invite). */
 export async function createMember(
@@ -111,7 +112,56 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
     if (fields.status) update.status = fields.status;
     if (fields.joinDate) update.joinDate = Timestamp.fromDate(fields.joinDate);
     if (fields.sponsorMemberId !== undefined) update.sponsorMemberId = fields.sponsorMemberId;
-    if (!Object.keys(update).length) return { ok: false, error: "Nothing to update" };
+
+    // ── Portal role ────────────────────────────────────────────────────
+    // Roles live on users/{uid}, not the member doc, because one account can
+    // belong to several orgs. Resolve the change before touching anything so a
+    // rejected promotion doesn't half-apply alongside the member fields.
+    const linkedUidForRole = current?.uid as string | null | undefined;
+    let roleChange: { uid: string; from: SystemRole; to: SystemRole } | null = null;
+
+    if (fields.role) {
+      if (!linkedUidForRole) {
+        return {
+          ok: false,
+          error: "This member has no portal account yet — invite them to set a role",
+        };
+      }
+      // Exiling/retiring deletes the membership outright. Granting a role in
+      // the same save would delete it and immediately put it back.
+      if (fields.status === "exiled" || fields.status === "retired") {
+        return {
+          ok: false,
+          error: "Can't set a portal role while retiring or exiling — access is removed",
+        };
+      }
+      const userSnap = await adminDb.collection("users").doc(linkedUidForRole).get();
+      const from = (userSnap.data()?.memberships?.[orgId]?.role ?? "member") as SystemRole;
+
+      if (from !== fields.role) {
+        // Changing your own role would rewrite your claims mid-request and
+        // could drop you out of the admin area you're standing in.
+        if (access.memberId === memberId) {
+          return { ok: false, error: "You cannot change your own portal role" };
+        }
+        // Never leave the org without an admin.
+        if (from === "admin") {
+          const admins = await adminDb
+            .collection("users")
+            .where(new FieldPath("memberships", orgId, "role"), "==", "admin")
+            .select()
+            .get();
+          if (admins.size <= 1) {
+            return { ok: false, error: "This is the last admin — promote someone first" };
+          }
+        }
+        roleChange = { uid: linkedUidForRole, from, to: fields.role };
+      }
+    }
+
+    if (!Object.keys(update).length && !roleChange) {
+      return { ok: false, error: "Nothing to update" };
+    }
 
     // De-provisioning: exile/retire strips portal access. Firestore and Auth
     // can't share a single transaction, so revoke access FIRST — if it throws
@@ -136,7 +186,34 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
       await syncUserClaims(linkedUid!);
     }
 
-    await ref.update(update);
+    if (roleChange) {
+      await adminDb
+        .collection("users")
+        .doc(roleChange.uid)
+        .set(
+          { memberships: { [orgId]: { role: roleChange.to, memberId } } },
+          { merge: true },
+        );
+      // Revokes refresh tokens too, so a demoted admin's live session dies
+      // rather than keeping elevated claims until it expires.
+      await syncUserClaims(roleChange.uid);
+      await ref.collection("serviceRecord").add({
+        kind: "promotion",
+        title: `Portal role changed to ${roleChange.to}`,
+        detail: `Was ${roleChange.from}.`,
+        at: FieldValue.serverTimestamp(),
+        byUid: access.user.uid,
+      });
+      await orgRef(orgId).collection("auditLogs").add({
+        actorUid: access.user.uid,
+        action: "member.role",
+        targetPath: ref.path,
+        detail: `${roleChange.from} → ${roleChange.to}`,
+        at: FieldValue.serverTimestamp(),
+      });
+    }
+
+    if (Object.keys(update).length) await ref.update(update);
 
     // Rank changes land in the service record.
     if (fields.rankId && fields.rankId !== current?.rankId) {

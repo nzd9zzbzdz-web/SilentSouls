@@ -3,7 +3,7 @@ import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { MemberAdmin } from "@/components/portal/MemberAdmin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
-import { listMembers, listRanks } from "@/lib/queries";
+import { listMembers, listOrgRoles, listRanks } from "@/lib/queries";
 import type { Timestamp } from "firebase-admin/firestore";
 
 export default async function OrgAdminPage({
@@ -16,9 +16,10 @@ export default async function OrgAdminPage({
   if (!org) notFound();
   await requireOrgRole(org.id, "admin");
 
-  const [members, ranks] = await Promise.all([
+  const [members, ranks, rolesByUid] = await Promise.all([
     listMembers(org.id),
     listRanks(org.id),
+    listOrgRoles(org.id),
   ]);
 
   return (
@@ -26,7 +27,7 @@ export default async function OrgAdminPage({
       <div>
         <DisplayHeading className="text-3xl text-primary">Member Administration</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
-          Create records, set ranks, and invite members into the portal.
+          Create records, set ranks and portal roles, and invite members.
         </p>
       </div>
 
@@ -40,6 +41,7 @@ export default async function OrgAdminPage({
           status: m.status,
           memberNumber: m.memberNumber,
           hasAccount: Boolean(m.uid),
+          role: m.uid ? (rolesByUid.get(m.uid) ?? "member") : null,
           joinDate: (m.joinDate as Timestamp)?.toDate?.().toISOString().slice(0, 10) ?? "",
         }))}
         ranks={ranks.map((r) => ({ id: r.id, name: r.name, isOfficer: r.isOfficer }))}

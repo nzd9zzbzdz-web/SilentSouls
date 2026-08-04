@@ -42,6 +42,8 @@ interface MemberRow {
   status: MemberStatus;
   memberNumber: number;
   hasAccount: boolean;
+  /** Portal role, or null when no account is linked yet. */
+  role: SystemRole | null;
   joinDate: string;
 }
 
@@ -77,6 +79,7 @@ export function MemberAdmin({
     rankId: "",
     status: "hangaround" as MemberStatus,
     joinDate: new Date().toISOString().slice(0, 10),
+    role: "member" as SystemRole,
   });
   const [inviteTarget, setInviteTarget] = useState<MemberRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
@@ -96,6 +99,7 @@ export function MemberAdmin({
       rankId: ranks.find((r) => !r.isOfficer)?.id ?? ranks[0]?.id ?? "",
       status: "hangaround",
       joinDate: new Date().toISOString().slice(0, 10),
+      role: "member",
     });
     setEditorOpen(true);
   }
@@ -108,6 +112,7 @@ export function MemberAdmin({
       rankId: member.rankId,
       status: member.status,
       joinDate: member.joinDate,
+      role: member.role ?? "member",
     });
     setEditorOpen(true);
   }
@@ -122,8 +127,14 @@ export function MemberAdmin({
         status: form.status,
         joinDate: new Date(form.joinDate),
       };
+      const roleChanged =
+        editing?.hasAccount && editing.role !== null && form.role !== editing.role;
       const result = editing
-        ? await updateMember({ ...payload, memberId: editing.id })
+        ? await updateMember({
+            ...payload,
+            memberId: editing.id,
+            ...(roleChanged ? { role: form.role } : {}),
+          })
         : await createMember(payload);
       if (result.ok) {
         toast.success(editing ? "Member updated" : "Member created");
@@ -188,7 +199,7 @@ export function MemberAdmin({
               <TableHead>Member</TableHead>
               <TableHead>Rank</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Account</TableHead>
+              <TableHead>Portal role</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -204,9 +215,16 @@ export function MemberAdmin({
                 <TableCell>{rankById.get(member.rankId)?.name ?? "-"}</TableCell>
                 <TableCell className="capitalize">{member.status}</TableCell>
                 <TableCell>
-                  <Badge variant={member.hasAccount ? "default" : "secondary"}>
-                    {member.hasAccount ? "Linked" : "No account"}
-                  </Badge>
+                  {member.hasAccount ? (
+                    <Badge
+                      variant={member.role === "admin" ? "default" : "secondary"}
+                      className="capitalize"
+                    >
+                      {member.role === "admin" ? "Admin" : member.role}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">No account</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -332,6 +350,31 @@ export function MemberAdmin({
                 className="mt-1"
               />
             </div>
+
+            {/* Portal role only means something once an account is linked —
+                before that, the invite carries the role. */}
+            {editing?.hasAccount && (
+              <div>
+                <Label htmlFor="member-role">Portal role</Label>
+                <Select
+                  value={form.role}
+                  onValueChange={(v) => setForm({ ...form, role: v as SystemRole })}
+                >
+                  <SelectTrigger id="member-role" className="mt-1 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="member">Member</SelectItem>
+                    <SelectItem value="officer">Officer</SelectItem>
+                    <SelectItem value="admin">Organization Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Portal permissions, separate from club rank. Changing this signs
+                  them out of any live session so the new role takes effect.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditorOpen(false)}>

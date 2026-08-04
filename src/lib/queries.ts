@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { orgRef } from "@/lib/firebase/admin";
+import { FieldPath, adminDb, orgRef } from "@/lib/firebase/admin";
 import type {
   Activity,
   ActivityType,
@@ -8,6 +8,7 @@ import type {
   Member,
   Patch,
   Rank,
+  SystemRole,
 } from "@/lib/types";
 
 // Small, stable collections — fetched once per request via React cache().
@@ -122,6 +123,30 @@ export const getCharacterRender = cache(
       dataUrl: data.dataUrl,
       updatedAtMs: data.updatedAt?.toMillis?.() ?? 0,
     };
+  },
+);
+
+/**
+ * Portal role per linked uid for this org. Roles live on `users/{uid}` rather
+ * than the member doc — one account can belong to several orgs — so the member
+ * admin has to join the two to show who is an admin.
+ */
+export const listOrgRoles = cache(
+  async (orgId: string): Promise<Map<string, SystemRole>> => {
+    const snap = await adminDb
+      .collection("users")
+      .where(new FieldPath("memberships", orgId, "role"), "in", [
+        "admin",
+        "officer",
+        "member",
+      ])
+      .get();
+    const byUid = new Map<string, SystemRole>();
+    for (const d of snap.docs) {
+      const role = d.data()?.memberships?.[orgId]?.role as SystemRole | undefined;
+      if (role) byUid.set(d.id, role);
+    }
+    return byUid;
   },
 );
 
