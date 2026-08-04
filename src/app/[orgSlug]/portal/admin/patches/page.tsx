@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { BackfillAwardsButton } from "@/components/portal/BackfillAwardsButton";
 import { PatchAdmin } from "@/components/portal/PatchAdmin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
@@ -23,12 +24,17 @@ export default async function PatchAdminPage({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <DisplayHeading className="text-3xl text-primary">Patch Management</DisplayHeading>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Define requirements, adjust thresholds, and hand out the honors only
-          leadership can give.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <DisplayHeading className="text-3xl text-primary">Patch Management</DisplayHeading>
+          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+            Define requirements, adjust thresholds, and hand out the honors only
+            leadership can give. Thresholds are only checked when an activity is
+            approved — after changing one, backfill so members who already
+            cleared it get it now.
+          </p>
+        </div>
+        <BackfillAwardsButton orgId={org.id} />
       </div>
 
       <PatchAdmin

@@ -202,6 +202,13 @@ describe("syncDefaultActivityTypes", () => {
      * those orgs get fixed — no CLI, no credentials — so it has to both flag
      * the docs and take them back off the vest.
      */
+    // Read from the seed rather than hardcoded: thresholds are tuned to the
+    // club's pace and expected to move, and this test is about the merge, not
+    // about any particular number.
+    const SEEDED_CORNER_BOY_THRESHOLD = CRIMINAL_PATCH_SEEDS.find(
+      (p) => p.id === "corner-boy",
+    )!.requirement.threshold;
+
     async function seedPreEmblemState() {
       // Two criminal patches as they shipped: no `emblem` field.
       for (const id of ["corner-boy", "the-cook"]) {
@@ -239,8 +246,10 @@ describe("syncDefaultActivityTypes", () => {
       expect(res.data!.emblemsMarked).toBe(2);
       const doc = (await orgRef(ORG).collection("patches").doc("corner-boy").get()).data()!;
       expect(doc.emblem).toBe(true);
-      expect(doc.name).toBe("Corner Boy"); // merge, not overwrite
-      expect(doc.requirement.threshold).toBe(1_000);
+      // Merge, not overwrite: the sync adds the flag and leaves everything the
+      // org already had — including a threshold an admin has since retuned.
+      expect(doc.name).toBe("Corner Boy");
+      expect(doc.requirement.threshold).toBe(SEEDED_CORNER_BOY_THRESHOLD);
     });
 
     it("strips emblems off existing cuts and leaves real patches alone", async () => {

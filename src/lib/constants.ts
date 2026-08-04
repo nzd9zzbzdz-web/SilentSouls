@@ -188,10 +188,15 @@ export const RETIRED_PATCH_IDS = [
  * being handed a patch — so `emblem: true` on every seed below, and no cut
  * coordinates to invent.
  *
- * The eight that shipped before the ladders existed keep their original id,
- * threshold, description, category and rarity, so awards already granted still
- * resolve and nobody's patch quietly changes meaning. `legacy: true` marks
- * them — it is documentation, nothing reads it.
+ * `legacy: true` marks the eight that shipped before the ladders existed. Their
+ * ids are load-bearing — awards reference them, so a rename or a delete would
+ * orphan somebody's record — but their thresholds are not: lowering a threshold
+ * never revokes an award, it only makes the rung easier for the next member.
+ *
+ * Thresholds are tuned to the club's actual pace and are expected to be
+ * retuned. Changing one does NOT retroactively award anybody: the engine only
+ * evaluates on activity approval. Run Admin → Patches → "Backfill awards" after
+ * any change, or members sit below a rung they already cleared.
  */
 export const PATCH_LADDERS: {
   statKey: StatKey;
@@ -208,11 +213,11 @@ export const PATCH_LADDERS: {
   {
     statKey: "crimesCommitted",
     tiers: [
-      { id: "petty-thief", name: "Petty Thief", description: "Commit 25 crimes.", threshold: 25 },
-      { id: "troublemaker", name: "Troublemaker", description: "Commit 150 crimes.", threshold: 150 },
-      { id: "menace", name: "Menace", description: "Commit 500 crimes.", threshold: 500 },
-      { id: "crime-wave", name: "Crime Wave", description: "Commit 1,500 crimes.", threshold: 1_500 },
-      { id: "one-man-riot", name: "One-Man Riot", description: "Commit 5,000 crimes.", threshold: 5_000 },
+      { id: "petty-thief", name: "Petty Thief", description: "Commit 10 crimes.", threshold: 10 },
+      { id: "troublemaker", name: "Troublemaker", description: "Commit 50 crimes.", threshold: 50 },
+      { id: "menace", name: "Menace", description: "Commit 150 crimes.", threshold: 150 },
+      { id: "crime-wave", name: "Crime Wave", description: "Commit 500 crimes.", threshold: 500 },
+      { id: "one-man-riot", name: "One-Man Riot", description: "Commit 1,500 crimes.", threshold: 1_500 },
     ],
   },
   {
@@ -238,21 +243,21 @@ export const PATCH_LADDERS: {
   {
     statKey: "drugSales",
     tiers: [
-      { id: "corner-boy", name: "Corner Boy", description: "Move 1,000 drug sales.", threshold: 1_000, legacy: true },
-      { id: "slinger", name: "Slinger", description: "Move 5,000 drug sales.", threshold: 5_000 },
-      { id: "dealer", name: "Dealer", description: "Move 15,000 drug sales.", threshold: 15_000 },
-      { id: "distributor", name: "Distributor", description: "Move 40,000 drug sales.", threshold: 40_000 },
-      { id: "kingpin", name: "Kingpin", description: "Move 100,000 drug sales.", threshold: 100_000 },
+      { id: "corner-boy", name: "Corner Boy", description: "Move 100 drug sales.", threshold: 100, legacy: true },
+      { id: "slinger", name: "Slinger", description: "Move 500 drug sales.", threshold: 500 },
+      { id: "dealer", name: "Dealer", description: "Move 1,000 drug sales.", threshold: 1_000 },
+      { id: "distributor", name: "Distributor", description: "Move 5,000 drug sales.", threshold: 5_000 },
+      { id: "kingpin", name: "Kingpin", description: "Move 10,000 drug sales.", threshold: 10_000 },
     ],
   },
   {
     statKey: "drugsCooked",
     tiers: [
-      { id: "line-cook", name: "Line Cook", description: "Cook 100 batches.", threshold: 100 },
-      { id: "the-cook", name: "The Cook", description: "Cook 500 batches.", threshold: 500, legacy: true },
-      { id: "chemist", name: "Chemist", description: "Cook 2,000 batches.", threshold: 2_000 },
-      { id: "master-chemist", name: "Master Chemist", description: "Cook 6,000 batches.", threshold: 6_000 },
-      { id: "cartel-chemist", name: "Cartel Chemist", description: "Cook 15,000 batches.", threshold: 15_000 },
+      { id: "line-cook", name: "Line Cook", description: "Cook 50 batches.", threshold: 50 },
+      { id: "the-cook", name: "The Cook", description: "Cook 250 batches.", threshold: 250, legacy: true },
+      { id: "chemist", name: "Chemist", description: "Cook 500 batches.", threshold: 500 },
+      { id: "master-chemist", name: "Master Chemist", description: "Cook 2,500 batches.", threshold: 2_500 },
+      { id: "cartel-chemist", name: "Cartel Chemist", description: "Cook 5,000 batches.", threshold: 5_000 },
     ],
   },
   {
@@ -260,29 +265,29 @@ export const PATCH_LADDERS: {
     tiers: [
       { id: "tinkerer", name: "Tinkerer", description: "Manufacture 10 guns.", threshold: 10 },
       { id: "gunsmith", name: "Gunsmith", description: "Manufacture 50 guns.", threshold: 50, legacy: true },
-      { id: "armorer", name: "Armorer", description: "Manufacture 200 guns.", threshold: 200 },
-      { id: "arms-dealer", name: "Arms Dealer", description: "Manufacture 600 guns.", threshold: 600 },
-      { id: "merchant-of-death", name: "Merchant of Death", description: "Manufacture 1,500 guns.", threshold: 1_500 },
+      { id: "armorer", name: "Armorer", description: "Manufacture 100 guns.", threshold: 100 },
+      { id: "arms-dealer", name: "Arms Dealer", description: "Manufacture 500 guns.", threshold: 500 },
+      { id: "merchant-of-death", name: "Merchant of Death", description: "Manufacture 1,000 guns.", threshold: 1_000 },
     ],
   },
   {
     statKey: "dirtyMoneyEarned",
     tiers: [
-      { id: "hustler", name: "Hustler", description: "Earn $100K in dirty money.", threshold: 100_000, category: "service" },
-      { id: "earner", name: "Earner", description: "Earn $1M in dirty money.", threshold: 1_000_000, category: "service", legacy: true },
-      { id: "big-earner", name: "Big Earner", description: "Earn $5M in dirty money.", threshold: 5_000_000, category: "service" },
-      { id: "rainmaker", name: "Rainmaker", description: "Earn $20M in dirty money.", threshold: 20_000_000, category: "service" },
-      { id: "untouchable", name: "Untouchable", description: "Earn $50M in dirty money.", threshold: 50_000_000, category: "service" },
+      { id: "hustler", name: "Hustler", description: "Earn $50K in dirty money.", threshold: 50_000, category: "service" },
+      { id: "earner", name: "Earner", description: "Earn $250K in dirty money.", threshold: 250_000, category: "service", legacy: true },
+      { id: "big-earner", name: "Big Earner", description: "Earn $1M in dirty money.", threshold: 1_000_000, category: "service" },
+      { id: "rainmaker", name: "Rainmaker", description: "Earn $5M in dirty money.", threshold: 5_000_000, category: "service" },
+      { id: "untouchable", name: "Untouchable", description: "Earn $10M in dirty money.", threshold: 10_000_000, category: "service" },
     ],
   },
   {
     statKey: "dirtyMoneyCleaned",
     tiers: [
-      { id: "cash-wash", name: "Cash Wash", description: "Wash $50K through the books.", threshold: 50_000, category: "service" },
-      { id: "bookkeeper", name: "Bookkeeper", description: "Wash $250K through the books.", threshold: 250_000, category: "service" },
-      { id: "the-launderer", name: "The Launderer", description: "Wash $1M through the books.", threshold: 1_000_000, category: "service", legacy: true },
-      { id: "front-man", name: "Front Man", description: "Wash $5M through the books.", threshold: 5_000_000, category: "service" },
-      { id: "clean-hands", name: "Clean Hands", description: "Wash $20M through the books.", threshold: 20_000_000, category: "service" },
+      { id: "cash-wash", name: "Cash Wash", description: "Wash $25K through the books.", threshold: 25_000, category: "service" },
+      { id: "bookkeeper", name: "Bookkeeper", description: "Wash $100K through the books.", threshold: 100_000, category: "service" },
+      { id: "the-launderer", name: "The Launderer", description: "Wash $500K through the books.", threshold: 500_000, category: "service", legacy: true },
+      { id: "front-man", name: "Front Man", description: "Wash $2.5M through the books.", threshold: 2_500_000, category: "service" },
+      { id: "clean-hands", name: "Clean Hands", description: "Wash $5M through the books.", threshold: 5_000_000, category: "service" },
     ],
   },
   {
@@ -290,29 +295,29 @@ export const PATCH_LADDERS: {
     tiers: [
       { id: "shots-fired", name: "Shots Fired", description: "Put down 5 police.", threshold: 5 },
       { id: "badge-hunter", name: "Badge Hunter", description: "Put down 25 police.", threshold: 25 },
-      { id: "blue-streak", name: "Blue Streak", description: "Put down 75 police.", threshold: 75 },
-      { id: "no-quarter", name: "No Quarter", description: "Put down 200 police.", threshold: 200 },
-      { id: "ghost-of-the-precinct", name: "Ghost of the Precinct", description: "Put down 500 police.", threshold: 500 },
+      { id: "blue-streak", name: "Blue Streak", description: "Put down 50 police.", threshold: 50 },
+      { id: "no-quarter", name: "No Quarter", description: "Put down 150 police.", threshold: 150 },
+      { id: "ghost-of-the-precinct", name: "Ghost of the Precinct", description: "Put down 300 police.", threshold: 300 },
     ],
   },
   {
     statKey: "timesArrested",
     tiers: [
       { id: "booked", name: "Booked", description: "Get arrested 5 times.", threshold: 5 },
-      { id: "frequent-flyer", name: "Frequent Flyer", description: "Get arrested 20 times.", threshold: 20 },
-      { id: "revolving-door", name: "Revolving Door", description: "Get arrested 50 times.", threshold: 50 },
-      { id: "known-to-police", name: "Known to Police", description: "Get arrested 120 times.", threshold: 120 },
-      { id: "never-talks", name: "Never Talks", description: "Get arrested 300 times and give them nothing.", threshold: 300 },
+      { id: "frequent-flyer", name: "Frequent Flyer", description: "Get arrested 15 times.", threshold: 15 },
+      { id: "revolving-door", name: "Revolving Door", description: "Get arrested 30 times.", threshold: 30 },
+      { id: "known-to-police", name: "Known to Police", description: "Get arrested 75 times.", threshold: 75 },
+      { id: "never-talks", name: "Never Talks", description: "Get arrested 150 times and give them nothing.", threshold: 150 },
     ],
   },
   {
     statKey: "jailTimeMonths",
     tiers: [
       { id: "held-overnight", name: "Held Overnight", description: "Serve 6 months inside.", threshold: 6, category: "leadership" },
-      { id: "done-a-bit", name: "Done a Bit", description: "Serve 60 months inside.", threshold: 60, category: "leadership" },
-      { id: "hardened", name: "Hardened", description: "Serve 300 months inside and come back.", threshold: 300, category: "leadership", legacy: true },
-      { id: "lifer", name: "Lifer", description: "Serve 720 months inside.", threshold: 720, category: "leadership" },
-      { id: "institutionalized", name: "Institutionalized", description: "Serve 1,500 months inside.", threshold: 1_500, category: "leadership" },
+      { id: "done-a-bit", name: "Done a Bit", description: "Serve 24 months inside.", threshold: 24, category: "leadership" },
+      { id: "hardened", name: "Hardened", description: "Serve 60 months inside and come back.", threshold: 60, category: "leadership", legacy: true },
+      { id: "lifer", name: "Lifer", description: "Serve 180 months inside.", threshold: 180, category: "leadership" },
+      { id: "institutionalized", name: "Institutionalized", description: "Serve 500 months inside.", threshold: 500, category: "leadership" },
     ],
   },
 ];

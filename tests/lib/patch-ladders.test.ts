@@ -176,23 +176,25 @@ describe("PATCH_LADDERS seed data", () => {
     );
   });
 
-  it("preserves the id and threshold of every patch that shipped before the ladders", () => {
-    // These were already awarded to real members — changing what they mean, or
-    // dropping the id, would rewrite history on somebody's cut.
-    const legacy: Record<string, number> = {
-      "corner-boy": 1_000,
-      "the-cook": 500,
-      gunsmith: 50,
-      "made-man": 10,
-      earner: 1_000_000,
-      "the-launderer": 1_000_000,
-      hardened: 300,
-      "most-wanted": 100,
-    };
-    for (const [id, threshold] of Object.entries(legacy)) {
-      const seed = CRIMINAL_PATCH_SEEDS.find((p) => p.id === id);
-      expect(seed, id).toBeDefined();
-      expect(seed!.requirement.threshold, id).toBe(threshold);
+  it("keeps the id of every patch that shipped before the ladders", () => {
+    // Awards reference these ids, so renaming or dropping one orphans somebody's
+    // record. Thresholds are NOT pinned — they're tuned to the club's pace, and
+    // lowering one never revokes an award.
+    const legacyIds = [
+      "corner-boy",
+      "the-cook",
+      "gunsmith",
+      "made-man",
+      "earner",
+      "the-launderer",
+      "hardened",
+      "most-wanted",
+    ];
+    for (const id of legacyIds) {
+      expect(
+        CRIMINAL_PATCH_SEEDS.find((p) => p.id === id),
+        `${id} must survive a retune`,
+      ).toBeDefined();
     }
   });
 });
