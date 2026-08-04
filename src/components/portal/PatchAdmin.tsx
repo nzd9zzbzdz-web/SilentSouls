@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { Loader2, Medal, Plus } from "lucide-react";
+import { Fragment, useMemo, useState, useTransition } from "react";
+import { Loader2, Medal, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { PatchArtCell } from "@/components/portal/PatchArtCell";
 import { manualAward, upsertPatch } from "@/actions/patches";
+import { groupPatches, patchMatchesQuery } from "@/lib/patch-groups";
 import { STAT_LABELS } from "@/lib/constants";
 import type { PatchCategory, StatKey } from "@/lib/types";
 
@@ -61,6 +62,8 @@ const CATEGORIES: PatchCategory[] = [
   "recognition",
   "legendary",
 ];
+
+const ROMAN = ["I", "II", "III", "IV", "V"];
 
 const EMPTY_FORM = {
   patchId: undefined as string | undefined,
@@ -91,7 +94,15 @@ export function PatchAdmin({
   const [awardTarget, setAwardTarget] = useState<PatchRow | null>(null);
   const [awardMemberId, setAwardMemberId] = useState("");
   const [awardReason, setAwardReason] = useState("");
+  const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
+
+  // Filter first, then group, so a search narrows the ladders rather than
+  // flattening them — "drug" still shows Drug Sales as a ladder in tier order.
+  const groups = useMemo(
+    () => groupPatches(patches.filter((p) => patchMatchesQuery(p, query))),
+    [patches, query],
+  );
 
   function openCreate() {
     setForm(EMPTY_FORM);
@@ -170,7 +181,20 @@ export function PatchAdmin({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:max-w-xs">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Filter by name or stat…"
+            aria-label="Filter patches"
+            className="pl-9"
+          />
+        </div>
         <Button onClick={openCreate}>
           <Plus className="size-4" aria-hidden />
           New patch
@@ -190,7 +214,27 @@ export function PatchAdmin({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {patches.map((patch) => (
+            {groups.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                  Nothing matches &ldquo;{query}&rdquo;.
+                </TableCell>
+              </TableRow>
+            )}
+            {groups.map((group) => (
+              <Fragment key={group.key}>
+                <TableRow className="border-t-2 border-border bg-muted/40 hover:bg-muted/40">
+                  <TableCell
+                    colSpan={6}
+                    className="py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
+                    {group.label}
+                    <span className="font-stat ml-2 font-normal normal-case tracking-normal">
+                      {group.patches.length}
+                    </span>
+                  </TableCell>
+                </TableRow>
+                {group.patches.map((patch, i) => (
               <TableRow key={patch.id}>
                 <TableCell>
                   <PatchArtCell
@@ -201,7 +245,17 @@ export function PatchAdmin({
                   />
                 </TableCell>
                 <TableCell>
-                  <p className="font-semibold">{patch.name}</p>
+                  <p className="flex items-baseline gap-2 font-semibold">
+                    {/* Rows inside a ladder are threshold-ordered, so position
+                        is the tier — worth showing, since the names alone don't
+                        say which rung comes first. */}
+                    {group.laddered && (
+                      <span className="font-stat text-xs text-muted-foreground">
+                        {ROMAN[i] ?? i + 1}
+                      </span>
+                    )}
+                    {patch.name}
+                  </p>
                   <p className="max-w-xs truncate text-xs text-muted-foreground">
                     {patch.description}
                   </p>
@@ -210,8 +264,10 @@ export function PatchAdmin({
                 <TableCell className="text-sm">
                   {patch.requirement ? (
                     <span className="font-stat">
-                      {STAT_LABELS[patch.requirement.statKey]} ≥{" "}
-                      {patch.requirement.threshold}
+                      {/* The stat is the group header, so repeating it on every
+                          row is noise — inside a ladder only the number varies. */}
+                      {group.laddered ? "≥ " : `${STAT_LABELS[patch.requirement.statKey]} ≥ `}
+                      {patch.requirement.threshold.toLocaleString("en-US")}
                     </span>
                   ) : (
                     <span className="italic text-muted-foreground">Manual award</span>
@@ -238,6 +294,8 @@ export function PatchAdmin({
                   </div>
                 </TableCell>
               </TableRow>
+                ))}
+              </Fragment>
             ))}
           </TableBody>
         </Table>
