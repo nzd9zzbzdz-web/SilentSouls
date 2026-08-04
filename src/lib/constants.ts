@@ -111,6 +111,8 @@ export const STAT_LABELS: Record<StatKey, string> = {
 
 // Default club ranks (org-configurable; seeded per org).
 // tab u/v are normalized cut coordinates (front surface).
+// `isOfficer` is the CLUB chain of command — it drives roster tiering and cut
+// visuals only. Portal permissions live on the role claim, not here.
 export const DEFAULT_RANKS = [
   { name: "President", order: 1, isOfficer: true },
   { name: "Vice President", order: 2, isOfficer: true },
@@ -118,11 +120,23 @@ export const DEFAULT_RANKS = [
   { name: "Road Captain", order: 4, isOfficer: true },
   { name: "Secretary", order: 5, isOfficer: true },
   { name: "Treasurer", order: 6, isOfficer: true },
-  { name: "Enforcer", order: 7, isOfficer: true },
-  { name: "Patched Member", order: 8, isOfficer: false },
-  { name: "Prospect", order: 9, isOfficer: false },
-  { name: "Hangaround", order: 10, isOfficer: false },
+  { name: "Head Enforcer", order: 7, isOfficer: true },
+  // Titled members: they wear a tab but sit outside the officer table.
+  { name: "Enforcer", order: 8, isOfficer: false },
+  { name: "Chaplain", order: 9, isOfficer: false },
+  { name: "Patched Member", order: 10, isOfficer: false },
+  { name: "Prospect", order: 11, isOfficer: false },
+  { name: "Hangaround", order: 12, isOfficer: false },
 ] as const;
+
+/**
+ * Rank doc id from its name — "Head Enforcer" → "head-enforcer". Seeds, the
+ * bootstrap and the admin sync all derive ids this way, so the same rank is the
+ * same doc in every org (and a re-sync updates rather than duplicates).
+ */
+export function rankDocId(name: string): string {
+  return name.toLowerCase().replace(/[^a-z]+/g, "-");
+}
 
 // Club activity types. The original spec shipped 13 of these; the rest were
 // retired in favour of the criminal record set below (see

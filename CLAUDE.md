@@ -59,6 +59,15 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   it never deletes — a retired type/patch keeps its doc so past submissions and
   already-earned awards still resolve a name. Existing types keep admin edits;
   a stat with an approved log behind it is never overwritten.
+  Ranks have the same problem and the same fix: Admin → Ranks flags drift and
+  `syncDefaultRanks` adds missing `DEFAULT_RANKS`, corrects `order`/`isOfficer`
+  on the rest (merge — the name and tab art survive), and authors a cut visual
+  per new rank from the colors the club already wears. Rank ids come from
+  `rankDocId(name)` — load-bearing, since `member.rankId` points at them.
+- **Rank `isOfficer` is club hierarchy, not permissions.** It drives roster
+  tiering and cut visuals only; portal access is the role claim. Enforcer and
+  Chaplain are titled members — they wear a tab but sit outside the officer
+  table; Head Enforcer is the officer rank.
 - The club activity set is **criminal-record-first**: only Club Ride and Church
   survive from the original 13 spec types. Retired stat keys stay in `STAT_KEYS`
   so historical values still render.

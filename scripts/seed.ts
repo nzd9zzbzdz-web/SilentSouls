@@ -16,6 +16,7 @@ import {
   CRIMINAL_ACTIVITY_TYPE_SEEDS,
   CRIMINAL_PATCH_SEEDS,
   DEFAULT_RANKS,
+  rankDocId,
 } from "../src/lib/constants";
 import { writeCutConfig } from "./lib/writeCutConfig";
 import {
@@ -257,7 +258,7 @@ async function seed() {
   // Ranks
   const rankIdByName = new Map<string, string>();
   for (const rank of DEFAULT_RANKS) {
-    const id = rank.name.toLowerCase().replace(/[^a-z]+/g, "-");
+    const id = rankDocId(rank.name);
     rankIdByName.set(rank.name, id);
     await org.collection("ranks").doc(id).set({
       name: rank.name,

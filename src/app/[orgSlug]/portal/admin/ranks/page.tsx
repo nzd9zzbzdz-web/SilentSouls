@@ -10,9 +10,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { SyncRanksButton } from "@/components/portal/SyncRanksButton";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
 import { listMembers, listRanks } from "@/lib/queries";
+import { DEFAULT_RANKS, rankDocId } from "@/lib/constants";
 
 export default async function RanksAdminPage({
   params,
@@ -33,18 +35,53 @@ export default async function RanksAdminPage({
     countByRank.set(member.rankId, (countByRank.get(member.rankId) ?? 0) + 1);
   }
 
+  // Ranks only land on a destructive reseed, so a club created before a rank
+  // shipped is missing it — and one that changed sides keeps a stale flag.
+  const byId = new Map(ranks.map((r) => [r.id, r]));
+  const missing = DEFAULT_RANKS.filter((r) => !byId.has(rankDocId(r.name)));
+  const stale = DEFAULT_RANKS.filter((r) => {
+    const current = byId.get(rankDocId(r.name));
+    return current && current.isOfficer !== r.isOfficer;
+  });
+  const outOfDate = missing.length + stale.length;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <DisplayHeading className="flex items-center gap-3 text-3xl text-primary">
-          <Shield className="size-7" aria-hidden />
-          Ranks
-        </DisplayHeading>
-        <p className="mt-1 text-sm text-muted-foreground">
-          The chain of command. Assign ranks from the member admin page; rank
-          editing tools arrive in a later milestone.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <DisplayHeading className="flex items-center gap-3 text-3xl text-primary">
+            <Shield className="size-7" aria-hidden />
+            Ranks
+          </DisplayHeading>
+          <p className="mt-1 text-sm text-muted-foreground">
+            The chain of command. Assign ranks from the member admin page; rank
+            editing tools arrive in a later milestone.
+          </p>
+        </div>
+        <SyncRanksButton orgId={org.id} />
       </div>
+
+      {outOfDate > 0 && (
+        <p className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm text-foreground">
+          This club is out of date:{" "}
+          {missing.length > 0 && (
+            <>
+              <span className="font-semibold">{missing.map((r) => r.name).join(", ")}</span>{" "}
+              {missing.length === 1 ? "is" : "are"} missing
+            </>
+          )}
+          {missing.length > 0 && stale.length > 0 && ", and "}
+          {stale.length > 0 && (
+            <>
+              <span className="font-semibold">{stale.map((r) => r.name).join(", ")}</span>{" "}
+              {stale.length === 1 ? "sits" : "sit"} on the wrong side of the
+              officer table
+            </>
+          )}
+          . <span className="font-semibold">Sync default ranks</span> fixes it —
+          nothing already assigned to a member is removed.
+        </p>
+      )}
 
       <div className="overflow-x-auto rounded-lg border border-border">
         <Table>

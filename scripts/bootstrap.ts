@@ -19,7 +19,7 @@ import { randomBytes } from "node:crypto";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
-import { ACTIVITY_TYPE_SEEDS, DEFAULT_RANKS } from "../src/lib/constants";
+import { ACTIVITY_TYPE_SEEDS, DEFAULT_RANKS, rankDocId } from "../src/lib/constants";
 import { writeCutConfig } from "./lib/writeCutConfig";
 import {
   ORG_DISPLAY_NAME,
@@ -113,7 +113,7 @@ async function bootstrap() {
 
   const rankIdByName = new Map<string, string>();
   for (const rank of DEFAULT_RANKS) {
-    const id = rank.name.toLowerCase().replace(/[^a-z]+/g, "-");
+    const id = rankDocId(rank.name);
     rankIdByName.set(rank.name, id);
     await org.collection("ranks").doc(id).set({
       name: rank.name,

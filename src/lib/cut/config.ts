@@ -75,8 +75,10 @@ function clubColors(orgName: string, location: string): Grant[] {
 }
 
 /**
- * Default rank → visuals, keyed by rank NAME (matches DEFAULT_RANKS). Officer
- * ranks wear full colors plus a tab; Sergeant-at-Arms also gets the diamond.
+ * Default rank → visuals, keyed by rank NAME (matches DEFAULT_RANKS). Every
+ * titled rank wears full colors plus a name tab — officer or not, since
+ * Enforcer and Chaplain carry tabs without sitting at the officer table.
+ * Sergeant-at-Arms also gets the diamond.
  */
 export function defaultRankVisual(
   rankName: string,
@@ -96,7 +98,7 @@ export function defaultRankVisual(
     case "Sergeant-at-Arms":
       return { showsColors: true, grants: [...colors, tab("SGT-AT-ARMS"), saaDiamond] };
     default:
-      // All other officer ranks: colors + their name on a front tab.
+      // Every other titled rank: colors + their name on a front tab.
       return { showsColors: true, grants: [...colors, tab(rankName.toUpperCase())] };
   }
 }
