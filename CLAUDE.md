@@ -35,6 +35,19 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   cookie presence only — firebase-admin cannot run there.
 - Patch awards use composite doc ids `memberId_patchId` ⇒ idempotent. The engine
   (`src/lib/patch-engine.ts`) is a single transaction: ALL reads before writes.
+- **Threshold patches come in five-rung ladders, one per criminal-record stat.**
+  `PATCH_LADDERS` in constants is the source; `CRIMINAL_PATCH_SEEDS` (55 entries)
+  is derived from it — never hand-list a tier. A ladder owns ONE spot on the cut
+  and `supersedeLadder` swaps the worn rung in place on both the approval and
+  manual-award paths (`scripts/seed.ts` repeats the rule in `buildCutLayout`);
+  without it a veteran wears every rung stacked. Superseded rungs stay *earned* —
+  they leave the vest, not the record. Same reason `composeServiceRecord` shows
+  only a ladder's top rung: the full climb lives on the profile's Patches tab
+  (`composeLadders`, `src/lib/patch-ladders.ts`), which builds ladders from the
+  org's own patch docs so admin edits and org-authored patches slot in.
+  Ladder progress is measured across the current segment, never from zero.
+  The 8 pre-ladder patches keep their id/threshold/category/rarity — awards
+  already granted must not change meaning.
 - Officer-only data lives in **subcollections** (`members/*/notes`) — rules can't
   hide fields on a parent doc.
 - **No hardcoded brand colors/names in components.** Branding comes from
