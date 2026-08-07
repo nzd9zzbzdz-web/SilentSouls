@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, Move, RotateCcw, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,6 @@ export function CharacterPoseEditor({
   canEdit: boolean;
   initialPose?: CharacterPose;
 }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   const [pose, setPose] = useState<CharacterPose>(
@@ -98,7 +96,6 @@ export function CharacterPoseEditor({
       setPose(applied);
       setEditing(false);
       toast.success(next ? "Character position saved" : "Position reset");
-      router.refresh();
     });
   }
 

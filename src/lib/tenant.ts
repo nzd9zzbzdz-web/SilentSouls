@@ -17,6 +17,16 @@ export const getOrgBySlug = cache(
   },
 );
 
+/** Org doc by id — cached so repeated role checks in one request read it once. */
+export const getOrgById = cache(
+  async (orgId: string): Promise<Organization | null> => {
+    const snap = await adminDb.collection("organizations").doc(orgId).get();
+    return snap.exists
+      ? { id: snap.id, ...(snap.data() as Omit<Organization, "id">) }
+      : null;
+  },
+);
+
 export const getBranding = cache(
   async (orgId: string, surface: "public" | "portal"): Promise<Branding | null> => {
     const snap = await adminDb

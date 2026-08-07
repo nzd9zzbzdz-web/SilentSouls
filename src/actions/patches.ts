@@ -68,7 +68,12 @@ export async function manualAward(
   try {
     const access = await requireOrgRole(orgId, "officer");
     const awarded = await manualAwardTx(orgId, memberId, patchId, access.user.uid, reason);
+    // An award touches the wall, the admin table, the member's profile, and
+    // (for worn patches) their cut.
     revalidatePath(`/[orgSlug]/portal/patch-wall`, "page");
+    revalidatePath(`/[orgSlug]/portal/admin/patches`, "page");
+    revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
+    revalidatePath(`/[orgSlug]/portal/my-cut`, "page");
     return awarded
       ? { ok: true, data: { awarded: true } }
       : { ok: false, error: "Member already holds this patch" };

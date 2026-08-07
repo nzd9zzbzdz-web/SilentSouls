@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState, useTransition } from "react";
 import { Loader2, Medal, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -88,7 +87,6 @@ export function PatchAdmin({
   patches: PatchRow[];
   members: { id: string; label: string }[];
 }) {
-  const router = useRouter();
   const [editorOpen, setEditorOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [awardTarget, setAwardTarget] = useState<PatchRow | null>(null);
@@ -151,7 +149,6 @@ export function PatchAdmin({
       if (result.ok) {
         toast.success(form.patchId ? "Patch updated" : "Patch created");
         setEditorOpen(false);
-        router.refresh();
       } else {
         toast.error(result.error ?? "Save failed");
       }
@@ -172,7 +169,6 @@ export function PatchAdmin({
         setAwardTarget(null);
         setAwardMemberId("");
         setAwardReason("");
-        router.refresh();
       } else {
         toast.error(result.error ?? "Award failed");
       }

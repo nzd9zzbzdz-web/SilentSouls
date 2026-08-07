@@ -23,13 +23,13 @@ export default async function ActivitiesPage({
   if (!org) notFound();
   const access = await requireOrgRole(org.id, "member");
 
-  const [types, members] = await Promise.all([
+  const [types, members, mySubmissions] = await Promise.all([
     listActivityTypes(org.id),
     listMembers(org.id),
+    access.memberId
+      ? listActivities(org.id, { memberId: access.memberId, limit: 20 })
+      : [],
   ]);
-  const mySubmissions = access.memberId
-    ? await listActivities(org.id, { memberId: access.memberId, limit: 20 })
-    : [];
   const typeById = new Map(types.map((t) => [t.id, t]));
 
   return (
@@ -50,7 +50,6 @@ export default async function ActivitiesPage({
             {access.memberId ? (
               <ActivityForm
                 orgId={org.id}
-                orgSlug={orgSlug}
                 memberId={access.memberId}
                 types={types
                   .filter((t) => t.active)

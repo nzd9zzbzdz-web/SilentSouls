@@ -1,12 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
-import { orgRef } from "@/lib/firebase/admin";
+import { getMember, listRanks } from "@/lib/queries";
 import { BrandStyle } from "@/components/theme/BrandStyle";
 import { BodySurface } from "@/components/theme/BodySurface";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { Toaster } from "@/components/ui/sonner";
-import type { Member, Rank } from "@/lib/types";
 
 export default async function PortalLayout({
   children,
@@ -16,11 +15,10 @@ export default async function PortalLayout({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
-  const org = await getOrgBySlug(orgSlug);
-  if (!org || org.status !== "active") notFound();
-
   // Real verification happens HERE (proxy only checked cookie presence).
-  const user = await getSessionUser();
+  // Neither lookup needs the other, so they run in parallel.
+  const [org, user] = await Promise.all([getOrgBySlug(orgSlug), getSessionUser()]);
+  if (!org || org.status !== "active") notFound();
   if (!user) redirect(`/${orgSlug}/volunteer-resources?signin=1`);
 
   const entry = user.claims.orgs?.[org.id];
@@ -33,21 +31,18 @@ export default async function PortalLayout({
   const role = isSuper ? "admin" : entry!.r;
   const memberId = entry?.m ?? null;
 
-  const branding = await getBranding(org.id, "portal");
+  // Branding, member, and ranks don't depend on each other — fetch together.
+  // getMember/listRanks are request-cached, so pages that need them ride free.
+  const [branding, member, ranks] = await Promise.all([
+    getBranding(org.id, "portal"),
+    memberId ? getMember(org.id, memberId) : null,
+    memberId ? listRanks(org.id) : [],
+  ]);
   if (!branding) notFound();
 
-  let member: (Member & { rankName?: string }) | null = null;
-  if (memberId) {
-    const snap = await orgRef(org.id).collection("members").doc(memberId).get();
-    if (snap.exists) {
-      member = { id: snap.id, ...(snap.data() as Omit<Member, "id">) };
-      const rankSnap = await orgRef(org.id)
-        .collection("ranks")
-        .doc(member.rankId)
-        .get();
-      member.rankName = (rankSnap.data() as Rank | undefined)?.name;
-    }
-  }
+  const rankName = member
+    ? ranks.find((r) => r.id === member.rankId)?.name
+    : undefined;
 
   return (
     <div
@@ -67,7 +62,7 @@ export default async function PortalLayout({
             ? {
                 roadName: member.roadName,
                 displayName: member.displayName,
-                rankName: member.rankName ?? "",
+                rankName: rankName ?? "",
               }
             : { roadName: "Platform", displayName: user.email ?? "Super Admin", rankName: "Super Admin" }
         }

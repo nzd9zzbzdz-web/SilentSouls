@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,6 @@ import { backfillPatchAwards } from "@/actions/patch-backfill";
  */
 export function BackfillAwardsButton({ orgId }: { orgId: string }) {
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
 
   function handleBackfill() {
     startTransition(async () => {
@@ -31,7 +29,6 @@ export function BackfillAwardsButton({ orgId }: { orgId: string }) {
           ? `Nothing to award — all ${d.membersChecked} member(s) are up to date`
           : `${d.awardsCreated} award(s) across ${d.membersAwarded} member(s)`,
       );
-      router.refresh();
     });
   }
 

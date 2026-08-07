@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Copy, Loader2, MailPlus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -73,7 +72,6 @@ export function MemberAdmin({
   members: MemberRow[];
   ranks: RankOption[];
 }) {
-  const router = useRouter();
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<MemberRow | null>(null);
   const [form, setForm] = useState({
@@ -146,7 +144,6 @@ export function MemberAdmin({
       if (result.ok) {
         toast.success(editing ? "Member updated" : "Member created");
         setEditorOpen(false);
-        router.refresh();
       } else {
         toast.error(result.error ?? "Save failed");
       }
@@ -183,7 +180,6 @@ export function MemberAdmin({
         toast.success(`"${deleteTarget.roadName}" deleted`);
         setDeleteTarget(null);
         setDeleteConfirm("");
-        router.refresh();
       } else {
         toast.error(result.error ?? "Delete failed");
       }

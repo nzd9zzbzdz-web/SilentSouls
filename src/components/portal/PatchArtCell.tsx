@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,6 @@ export function PatchArtCell({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
 
   function handleFile(file: File | undefined) {
     if (!file) return;
@@ -40,7 +38,6 @@ export function PatchArtCell({
       const result = await uploadPatchArt(formData);
       if (result.ok) {
         toast.success(`Artwork set for ${patchName}`);
-        router.refresh();
       } else {
         toast.error(result.error ?? "Upload failed");
       }
@@ -53,7 +50,6 @@ export function PatchArtCell({
       const result = await removePatchArt({ orgId, patchId });
       if (result.ok) {
         toast.success(`Artwork removed from ${patchName}`);
-        router.refresh();
       } else {
         toast.error(result.error ?? "Could not remove");
       }

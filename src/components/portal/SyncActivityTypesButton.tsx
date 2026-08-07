@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ import { syncDefaultActivityTypes } from "@/actions/activity-types";
  */
 export function SyncActivityTypesButton({ orgId }: { orgId: string }) {
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
 
   function handleSync() {
     startTransition(async () => {
@@ -36,7 +34,6 @@ export function SyncActivityTypesButton({ orgId }: { orgId: string }) {
       toast.success(
         parts.length === 0 ? "Already up to date — nothing to change" : parts.join(" · "),
       );
-      router.refresh();
     });
   }
 

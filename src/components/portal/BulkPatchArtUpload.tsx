@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { CheckCircle2, FolderUp, Loader2, TriangleAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -46,7 +45,6 @@ export function BulkPatchArtUpload({
   const [done, setDone] = useState<{ ok: number; failed: string[] } | null>(null);
   const [progress, setProgress] = useState(0);
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
 
   const artById = new Set(patches.filter((p) => p.hasArt).map((p) => p.id));
 
@@ -104,7 +102,6 @@ export function BulkPatchArtUpload({
       setDone({ ok, failed });
       if (failed.length === 0) toast.success(`Uploaded artwork for ${ok} patch(es)`);
       else toast.warning(`${ok} uploaded, ${failed.length} failed`);
-      router.refresh();
     });
   }
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ref, uploadBytes } from "firebase/storage";
 import { Loader2, Upload } from "lucide-react";
@@ -21,20 +20,35 @@ interface TypeOption {
   allowQuantity: boolean;
 }
 
+/** Inline validation message, rendered only when the field has an error. */
+function FieldError({
+  id,
+  error,
+  className = "mt-1 text-sm text-destructive",
+}: {
+  id?: string;
+  error?: string;
+  className?: string;
+}) {
+  if (!error) return null;
+  return (
+    <p id={id} role="alert" className={className}>
+      {error}
+    </p>
+  );
+}
+
 export function ActivityForm({
   orgId,
-  orgSlug,
   memberId,
   types,
   witnesses,
 }: {
   orgId: string;
-  orgSlug: string;
   memberId: string;
   types: TypeOption[];
   witnesses: { id: string; label: string }[];
 }) {
-  const router = useRouter();
   // One ticket can carry several types — typeId → quantity for the checked ones.
   const [selected, setSelected] = useState<Record<string, number>>({});
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -47,12 +61,23 @@ export function ActivityForm({
   const selectedTypes = types.filter((t) => t.id in selected);
   const proofRecommended = selectedTypes.filter((t) => t.requiresProof);
 
+  /** Set (or clear, when `message` is undefined) one field's error. */
+  function setFieldError(field: string, message?: string) {
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (message) next[field] = message;
+      else delete next[field];
+      return next;
+    });
+  }
+
+  const DESCRIPTION_HINT = "Describe what happened (at least 10 characters)";
+
   function validate(): boolean {
     const next: Record<string, string> = {};
     if (selectedTypes.length === 0) next.types = "Pick at least one activity type";
     if (!date) next.date = "Pick a date";
-    if (description.trim().length < 10)
-      next.description = "Describe what happened (at least 10 characters)";
+    if (description.trim().length < 10) next.description = DESCRIPTION_HINT;
     for (const type of selectedTypes) {
       if (!type.allowQuantity) continue;
       const quantity = selected[type.id];
@@ -68,16 +93,13 @@ export function ActivityForm({
 
   function toggleType(id: string) {
     setSelected((prev) => {
-      if (id in prev) {
-        const { [id]: _drop, ...rest } = prev;
-        return rest;
-      }
-      return { ...prev, [id]: 1 };
+      const next = { ...prev };
+      if (id in next) delete next[id];
+      else next[id] = 1;
+      return next;
     });
-    setErrors((prev) => {
-      const { types: _drop, [`qty_${id}`]: _drop2, ...rest } = prev;
-      return rest;
-    });
+    setFieldError("types");
+    setFieldError(`qty_${id}`);
   }
 
   function toggleWitness(id: string) {
@@ -112,12 +134,13 @@ export function ActivityForm({
           proofPath,
         });
         if (result.ok) {
+          // No router.refresh() — the action revalidated this page, so the
+          // response already carried the fresh submission list.
           toast.success("Activity submitted for review");
           setSelected({});
           setDescription("");
           setSelectedWitnesses([]);
           setProofFile(null);
-          router.refresh();
         } else {
           toast.error(result.error ?? "Submission failed");
         }
@@ -174,20 +197,12 @@ export function ActivityForm({
                     />
                   )}
                 </div>
-                {qtyError && (
-                  <p role="alert" className="pb-1 text-xs text-destructive">
-                    {qtyError}
-                  </p>
-                )}
+                <FieldError error={qtyError} className="pb-1 text-xs text-destructive" />
               </div>
             );
           })}
         </div>
-        {errors.types && (
-          <p id="activity-types-error" role="alert" className="mt-1 text-sm text-destructive">
-            {errors.types}
-          </p>
-        )}
+        <FieldError id="activity-types-error" error={errors.types} />
       </fieldset>
 
       <div>
@@ -206,11 +221,7 @@ export function ActivityForm({
           aria-invalid={Boolean(errors.date)}
           aria-describedby={errors.date ? "activity-date-error" : undefined}
         />
-        {errors.date && (
-          <p id="activity-date-error" role="alert" className="mt-1 text-sm text-destructive">
-            {errors.date}
-          </p>
-        )}
+        <FieldError id="activity-date-error" error={errors.date} />
       </div>
 
       <div>
@@ -221,18 +232,14 @@ export function ActivityForm({
           id="activity-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          onBlur={() => {
-            if (description && description.trim().length < 10)
-              setErrors((prev) => ({
-                ...prev,
-                description: "Describe what happened (at least 10 characters)",
-              }));
-            else
-              setErrors((prev) => {
-                const { description: _drop, ...rest } = prev;
-                return rest;
-              });
-          }}
+          onBlur={() =>
+            setFieldError(
+              "description",
+              description && description.trim().length < 10
+                ? DESCRIPTION_HINT
+                : undefined,
+            )
+          }
           rows={3}
           maxLength={2000}
           placeholder="Route, who was there, what went down…"
@@ -242,11 +249,7 @@ export function ActivityForm({
           aria-invalid={Boolean(errors.description)}
           aria-describedby={errors.description ? "activity-description-error" : undefined}
         />
-        {errors.description && (
-          <p id="activity-description-error" role="alert" className="mt-1 text-sm text-destructive">
-            {errors.description}
-          </p>
-        )}
+        <FieldError id="activity-description-error" error={errors.description} />
       </div>
 
       <fieldset>
@@ -299,21 +302,14 @@ export function ActivityForm({
           onChange={(e) => {
             const file = e.target.files?.[0] ?? null;
             if (file && file.size > 10 * 1024 * 1024) {
-              setErrors((prev) => ({ ...prev, proof: "File is over 10 MB" }));
+              setFieldError("proof", "File is over 10 MB");
               return;
             }
             setProofFile(file);
-            setErrors((prev) => {
-              const { proof: _drop, ...rest } = prev;
-              return rest;
-            });
+            setFieldError("proof");
           }}
         />
-        {errors.proof && (
-          <p id="activity-proof-error" role="alert" className="mt-1 text-sm text-destructive">
-            {errors.proof}
-          </p>
-        )}
+        <FieldError id="activity-proof-error" error={errors.proof} />
       </div>
 
       <Button type="submit" disabled={pending} className="w-full">

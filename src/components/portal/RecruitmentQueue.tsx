@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Check, Loader2, Mail, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
@@ -37,7 +36,6 @@ export function RecruitmentQueue({
   canElevate: boolean;
   items: ApplicationItem[];
 }) {
-  const router = useRouter();
   const [rejectTarget, setRejectTarget] = useState<ApplicationItem | null>(null);
   const [reason, setReason] = useState("");
   const [roleFor, setRoleFor] = useState<Record<string, SystemRole>>({});
@@ -51,7 +49,6 @@ export function RecruitmentQueue({
       const result = await approveApplication({ orgId, applicationId: item.id, role });
       if (result.ok) {
         toast.success(`"${item.roadName}" approved. They're in`);
-        router.refresh();
       } else {
         toast.error(result.error ?? "Approval failed");
       }
@@ -73,7 +70,6 @@ export function RecruitmentQueue({
         toast.success("Application declined");
         setRejectTarget(null);
         setReason("");
-        router.refresh();
       } else {
         toast.error(result.error ?? "Failed");
       }

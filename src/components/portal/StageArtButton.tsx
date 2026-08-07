@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, Theater } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,14 +9,12 @@ import { applyDefaultCharacterStage } from "@/actions/character";
 /** Admin one-click: apply the shipped character-stage art to portal branding. */
 export function StageArtButton({ orgId }: { orgId: string }) {
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
 
   function handleApply() {
     startTransition(async () => {
       const result = await applyDefaultCharacterStage({ orgId });
       if (result.ok) {
         toast.success("Character stage art applied");
-        router.refresh();
       } else {
         toast.error(result.error ?? "Could not update branding");
       }

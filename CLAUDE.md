@@ -28,11 +28,20 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   Client SDK is read-only (sole exception: event RSVPs, shape-enforced in rules).
 - Every action calls `requireOrgRole(orgId, minRole)` and scopes doc refs as
   `organizations/${orgId}/...` — never trust client-posted ids to cross tenants.
+- **Never `router.refresh()` after a successful Server Action.** Every action
+  `revalidatePath`s the pages it changes, and Next returns the re-rendered page
+  in the action's own response — a refresh doubles the render and the session
+  verification. An action must revalidate EVERY page whose data it touched
+  (that's what makes this safe). Refresh only after plain `fetch()` to API
+  routes (sign-in/out) or to restore server truth after a FAILED mutation
+  (ClubMap pin drag).
 - Custom claims: `{ superAdmin?, orgs: { [orgId]: { r: role, m: memberId } } }`.
   Changed ONLY via `syncUserClaims()` which also revokes refresh tokens.
 - Session cookie verified with `verifySessionCookie(cookie, true)` in
   `[orgSlug]/portal/layout.tsx`. `src/proxy.ts` (Next 16 middleware rename) checks
-  cookie presence only — firebase-admin cannot run there.
+  cookie presence only — firebase-admin cannot run there. `getSessionUser` is
+  React-cache()d: the revocation check is an Auth-backend round trip, so it runs
+  once per request no matter how many layouts/pages/actions ask.
 - Patch awards use composite doc ids `memberId_patchId` ⇒ idempotent. The engine
   (`src/lib/patch-engine.ts`) is a single transaction: ALL reads before writes.
 - **Emblems are patch docs that are never worn** (`patch.emblem === true`).

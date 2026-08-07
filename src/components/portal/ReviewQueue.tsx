@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Check, Loader2, Paperclip, Users, X } from "lucide-react";
 import { toast } from "sonner";
@@ -48,7 +47,6 @@ export function ReviewQueue({
   orgId: string;
   items: ReviewItem[];
 }) {
-  const router = useRouter();
   const [denyTarget, setDenyTarget] = useState<ReviewItem | null>(null);
   const [denyNote, setDenyNote] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -64,12 +62,13 @@ export function ReviewQueue({
       });
       if (result.ok) {
         const awards = result.data?.awardedPatchIds ?? [];
+        // The action revalidated this page — its response already removed the
+        // item from the queue; a refresh here would just re-render it again.
         toast.success(
           awards.length
             ? `Approved. ${awards.length} patch${awards.length === 1 ? "" : "es"} awarded!`
             : "Approved. Stats updated",
         );
-        router.refresh();
       } else {
         toast.error(result.error ?? "Approval failed");
       }
@@ -92,7 +91,6 @@ export function ReviewQueue({
         toast.success("Denied");
         setDenyTarget(null);
         setDenyNote("");
-        router.refresh();
       } else {
         toast.error(result.error ?? "Denial failed");
       }

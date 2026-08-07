@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, ShieldMinus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,6 @@ export function ReconcileAwardsButton({ orgId }: { orgId: string }) {
   const [open, setOpen] = useState(false);
   const [stale, setStale] = useState<StaleAward[] | null>(null);
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
 
   function handlePreview() {
     startTransition(async () => {
@@ -62,7 +60,6 @@ export function ReconcileAwardsButton({ orgId }: { orgId: string }) {
       );
       setOpen(false);
       setStale(null);
-      router.refresh();
     });
   }
 

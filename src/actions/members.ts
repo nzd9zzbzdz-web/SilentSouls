@@ -84,6 +84,7 @@ export async function createMember(
       console.error("checkMilestones (member_added) failed post-commit:", err);
     }
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
+    revalidatePath(`/[orgSlug]/portal/admin`, "page");
     return { ok: true, data: { memberId } };
   } catch (e) {
     return failure(e);
@@ -252,6 +253,7 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
     });
 
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
+    revalidatePath(`/[orgSlug]/portal/admin`, "page");
     return { ok: true };
   } catch (e) {
     return failure(e);

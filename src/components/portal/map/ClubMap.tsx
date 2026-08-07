@@ -11,8 +11,8 @@
 // at module scope and must never run during SSR.
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type {
   LatLngBoundsExpression,
@@ -222,8 +222,11 @@ export function ClubMap({
         toast.success(`"${m.label}" moved`);
       } else {
         toast.error(result.error ?? "Could not move the pin");
+        // A failed save leaves the Leaflet pin where it was dropped; refetch
+        // server truth to snap it back. (Success needs no refresh — the action
+        // revalidates the page.)
+        router.refresh();
       }
-      router.refresh();
     });
   }
 
@@ -234,7 +237,6 @@ export function ClubMap({
       const result = await deleteMapMarker({ orgId, markerId: m.id });
       if (result.ok) toast.success("Pin deleted");
       else toast.error(result.error ?? "Delete failed");
-      router.refresh();
     });
     return true;
   }
@@ -245,7 +247,6 @@ export function ClubMap({
       const result = await deleteMapTerritory({ orgId, territoryId: t.id });
       if (result.ok) toast.success("Turf zone deleted");
       else toast.error(result.error ?? "Delete failed");
-      router.refresh();
     });
   }
 
@@ -781,7 +782,6 @@ function MarkerDialog({
   canManage: boolean;
   onDelete: (m: { id: string; label: string }) => void;
 }) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [label, setLabel] = useState(draft.label);
   const [style, setStyle] = useState(draft.style);
@@ -801,7 +801,6 @@ function MarkerDialog({
       if (result.ok) {
         toast.success(draft.markerId ? "Pin updated" : "Pin dropped");
         onClose();
-        router.refresh();
       } else {
         toast.error(result.error ?? "Could not save the pin");
       }
@@ -897,7 +896,6 @@ function TerritoryDialog({
   onSaved: () => void;
   onDismiss: (draft: TerritoryDraft) => void;
 }) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [crewName, setCrewName] = useState(draft.crewName);
   const [label, setLabel] = useState(draft.label);
@@ -916,7 +914,6 @@ function TerritoryDialog({
       if (result.ok) {
         toast.success(draft.territoryId ? "Turf updated" : "Turf claimed");
         onSaved();
-        router.refresh();
       } else {
         toast.error(result.error ?? "Could not save the turf zone");
       }

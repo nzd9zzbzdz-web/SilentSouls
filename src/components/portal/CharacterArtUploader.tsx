@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { ImageUp, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,6 @@ export function CharacterArtUploader({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
 
   function handleFile(file: File | undefined) {
     if (!file) return;
@@ -37,7 +35,6 @@ export function CharacterArtUploader({
       const result = await uploadCharacterRender(formData);
       if (result.ok) {
         toast.success("Character model updated");
-        router.refresh();
       } else {
         toast.error(result.error ?? "Upload failed");
       }
@@ -50,7 +47,6 @@ export function CharacterArtUploader({
       const result = await removeCharacterRender({ orgId, memberId });
       if (result.ok) {
         toast.success("Character model removed");
-        router.refresh();
       } else {
         toast.error(result.error ?? "Could not remove");
       }
