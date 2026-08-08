@@ -59,6 +59,7 @@ export default async function PortalLayout({
         orgName={branding.orgDisplayName}
         tagline={branding.tagline}
         role={role}
+        memberId={memberId}
         viewer={
           member
             ? {

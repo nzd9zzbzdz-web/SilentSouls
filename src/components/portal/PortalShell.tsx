@@ -17,6 +17,7 @@ import {
   Trophy,
   UserCheck,
   UserPlus,
+  UserRound,
   Users,
 } from "lucide-react";
 import {
@@ -43,6 +44,9 @@ import type { SystemRole } from "@/lib/types";
 const MAIN_NAV = [
   { href: "", label: "Dashboard", icon: LayoutDashboard },
   { href: "/map", label: "Club Map", icon: MapIcon },
+  // "My Profile" is injected here at render time — it needs the viewer's
+  // memberId, and an account with no member record (a bare super admin) must
+  // not get a link to nowhere.
   { href: "/brotherhood", label: "Brotherhood", icon: Users },
   { href: "/activities", label: "Log Activity", icon: Activity },
   { href: "/patch-wall", label: "Patch Wall", icon: Award },
@@ -77,6 +81,7 @@ export function PortalShell({
   orgName,
   tagline,
   role,
+  memberId,
   viewer,
   children,
 }: {
@@ -84,6 +89,8 @@ export function PortalShell({
   orgName: string;
   tagline?: string;
   role: SystemRole;
+  /** The viewer's own member record; null for accounts not linked to one. */
+  memberId: string | null;
   viewer: { roadName: string; displayName: string; rankName: string };
   children: React.ReactNode;
 }) {
@@ -97,8 +104,29 @@ export function PortalShell({
     router.refresh();
   }
 
-  const isActive = (href: string) =>
-    href === "" ? pathname === base : pathname.startsWith(`${base}${href}`);
+  // Your own profile is where you write your bio and set your pose, so it gets
+  // a front door instead of being something you find by hunting for yourself in
+  // the roster. Sits directly above Brotherhood: you, then everyone else.
+  const selfHref = memberId ? `/brotherhood/${memberId}` : null;
+  const mainNav = selfHref
+    ? MAIN_NAV.toSpliced(2, 0, {
+        href: selfHref,
+        label: "My Profile",
+        icon: UserRound,
+      })
+    : MAIN_NAV;
+
+  const isActive = (href: string) => {
+    if (href === "") return pathname === base;
+    // Every profile lives under /brotherhood/, so a naive startsWith would light
+    // BOTH rows whenever you're on your own page. Your profile is exact-match;
+    // the roster owns the rest of the subtree.
+    if (href === selfHref) return pathname === `${base}${href}`;
+    if (href === "/brotherhood" && selfHref) {
+      return pathname.startsWith(`${base}/brotherhood`) && pathname !== `${base}${selfHref}`;
+    }
+    return pathname.startsWith(`${base}${href}`);
+  };
 
   return (
     <SidebarProvider>
@@ -124,7 +152,7 @@ export function PortalShell({
             <SidebarGroupLabel>Clubhouse</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {MAIN_NAV.map((item) => (
+                {mainNav.map((item) => (
                   <SidebarMenuItem key={item.label}>
                     <SidebarMenuButton
                       asChild
