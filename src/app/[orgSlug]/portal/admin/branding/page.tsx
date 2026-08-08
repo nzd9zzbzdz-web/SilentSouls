@@ -3,8 +3,10 @@ import { Palette } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { StageArtButton } from "@/components/portal/StageArtButton";
+import { BrandingArtUploader } from "@/components/portal/BrandingArtUploader";
 import { requireOrgRole } from "@/lib/auth/session";
-import { DEFAULT_CHARACTER_STAGE } from "@/lib/constants";
+import { BRANDING_ART, BRANDING_ART_KEYS } from "@/lib/branding-art";
+import { listBrandingArtKeys } from "@/lib/queries";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 
 export default async function BrandingAdminPage({
@@ -17,9 +19,10 @@ export default async function BrandingAdminPage({
   if (!org) notFound();
   await requireOrgRole(org.id, "admin");
 
-  const [portal, publicBranding] = await Promise.all([
+  const [portal, publicBranding, uploaded] = await Promise.all([
     getBranding(org.id, "portal"),
     getBranding(org.id, "public"),
+    listBrandingArtKeys(org.id),
   ]);
 
   const renderSwatches = (colors: Record<string, string> | undefined) => (
@@ -64,24 +67,41 @@ export default async function BrandingAdminPage({
         </CardContent>
       </Card>
 
+      {/* Scene art. Both slots come from BRANDING_ART, so a new swappable
+          image is a row in that table rather than another card written here. */}
       <Card>
         <CardHeader>
-          <CardTitle>Character Stage</CardTitle>
+          <CardTitle>Scene Art</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            The backdrop behind every member&apos;s character screen.
-            {portal?.characterStagePath
-              ? " Set explicitly in branding."
-              : " Using the built-in default."}
-          </p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={portal?.characterStagePath ?? DEFAULT_CHARACTER_STAGE}
-            alt="Current character stage art"
-            className="max-h-40 rounded-md border border-border"
-          />
-          <StageArtButton orgId={org.id} />
+        <CardContent className="space-y-8">
+          {BRANDING_ART_KEYS.map((key) => {
+            const spec = BRANDING_ART[key];
+            const branding = spec.surface === "portal" ? portal : publicBranding;
+            const current = branding?.[spec.field];
+            return (
+              <BrandingArtUploader
+                key={key}
+                orgId={org.id}
+                artKey={key}
+                label={spec.label}
+                blurb={spec.blurb}
+                ratioHint={spec.ratioHint}
+                currentUrl={current ?? spec.fallback}
+                // An upload, not merely a set path — the seeder writes the
+                // shipped default into characterStagePath.
+                isCustom={uploaded.has(key)}
+                aspect={`${spec.width} / ${spec.height}`}
+              />
+            );
+          })}
+
+          <div className="border-t border-border pt-4">
+            <p className="mb-2 text-xs text-muted-foreground">
+              Or put the character stage back to the artwork that ships with the
+              platform:
+            </p>
+            <StageArtButton orgId={org.id} />
+          </div>
         </CardContent>
       </Card>
 

@@ -191,6 +191,35 @@ export const getCharacterRender = cache(
 );
 
 /**
+ * Which branding art slots have an UPLOAD behind them. Ids only via
+ * `.select()`, so the admin page can say "using your upload" vs "using the
+ * default" without pulling half a megabyte of base64 to find out — and without
+ * guessing from the path, which is set to the shipped default by the seeder.
+ */
+export const listBrandingArtKeys = cache(
+  async (orgId: string): Promise<Set<string>> => {
+    const snap = await orgRef(orgId).collection("brandingArt").select().get();
+    return new Set(snap.docs.map((d) => d.id));
+  },
+);
+
+/** Uploaded branding scene art (roster backdrop, character stage), or null. */
+export const getBrandingArt = cache(
+  async (
+    orgId: string,
+    key: string,
+  ): Promise<{ dataUrl: string; updatedAtMs: number } | null> => {
+    const snap = await orgRef(orgId).collection("brandingArt").doc(key).get();
+    const data = snap.data();
+    if (!snap.exists || typeof data?.dataUrl !== "string") return null;
+    return {
+      dataUrl: data.dataUrl,
+      updatedAtMs: data.updatedAt?.toMillis?.() ?? 0,
+    };
+  },
+);
+
+/**
  * Portal role per linked uid for this org. Roles live on `users/{uid}` rather
  * than the member doc — one account can belong to several orgs — so the member
  * admin has to join the two to show who is an admin.
