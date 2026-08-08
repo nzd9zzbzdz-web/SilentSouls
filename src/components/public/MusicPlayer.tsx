@@ -1,27 +1,160 @@
 "use client";
 
-import { useState } from "react";
-import { Music2, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Music2, Minus, Maximize2 } from "lucide-react";
 
 /**
- * Floating club-anthem toggle. Off by default — browsers block audio autoplay
- * and unexpected sound is hostile UX, so playback only ever starts from this
- * button (the required user gesture). Mounted in the public layout, so the
- * track keeps playing as visitors move between pages within the site.
+ * Floating club anthem, streamed from YouTube.
  *
- * The anthem streams from YouTube rather than a file we host, so the embedded
- * player has to stay on screen while it plays — YouTube's embed terms forbid
- * hiding or masking it. Closing the panel unmounts the iframe, which is what
- * stops the audio.
+ * Two browser/platform rules shape this component, and both are worth knowing
+ * before changing it:
+ *
+ * 1. No browser will autoplay audible sound before the visitor interacts with
+ *    the page. So the track starts MUTED on load and unmutes on the first
+ *    pointer/key/scroll event anywhere in the window — which is why this needs
+ *    the IFrame Player API rather than a plain `<iframe>`; a URL parameter
+ *    can't unmute after load.
+ * 2. YouTube's embed terms forbid hiding or masking the player while it plays,
+ *    so "minimized" shrinks it rather than removing it. The panel does go away
+ *    entirely while paused, since nothing is playing to mask. The iframe stays
+ *    mounted throughout so playback position survives minimize/pause.
  */
-export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: string; label?: string }) {
-  const [open, setOpen] = useState(false);
 
-  // loop=1 needs playlist=<id> to repeat a single video; nocookie keeps YouTube
-  // from dropping tracking cookies on visitors who never open the player.
-  const embedSrc =
-    `https://www.youtube-nocookie.com/embed/${videoId}` +
-    `?autoplay=1&loop=1&playlist=${videoId}&rel=0&modestbranding=1&playsinline=1`;
+const VOLUME = 55;
+const EXPANDED_WIDTH = 320;
+const MINIMIZED_WIDTH = 200;
+
+type YouTubePlayer = {
+  playVideo(): void;
+  pauseVideo(): void;
+  unMute(): void;
+  setVolume(v: number): void;
+  destroy(): void;
+};
+
+declare global {
+  interface Window {
+    YT?: {
+      Player: new (el: HTMLElement, opts: unknown) => YouTubePlayer;
+      PlayerState: { PLAYING: number; BUFFERING: number; ENDED: number };
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+/** Loads the IFrame API once per page, no matter how many callers ask. */
+let apiPromise: Promise<NonNullable<Window["YT"]>> | null = null;
+function loadYouTubeApi() {
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  apiPromise ??= new Promise((resolve) => {
+    const previous = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previous?.();
+      resolve(window.YT!);
+    };
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  });
+  return apiPromise;
+}
+
+export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: string; label?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<YouTubePlayer | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [minimized, setMinimized] = useState(false);
+  // Explicit pause via the pill, which is the only thing that hides the panel.
+  // Deliberately NOT `!playing`: the panel has to be on screen from first paint
+  // or the iframe mounts into `display:none` and browsers decline to autoplay.
+  const [stopped, setStopped] = useState(false);
+
+  // Set during the pointerdown that unmutes, so the click completing that same
+  // gesture doesn't immediately pause what it just turned on.
+  const justUnmutedRef = useRef(false);
+
+  const unmute = useCallback(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    justUnmutedRef.current = true;
+    player.unMute();
+    player.setVolume(VOLUME);
+    player.playVideo();
+    setMuted(false);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    // YT.Player REPLACES the element it is handed, so give it a throwaway child
+    // rather than the ref'd container we need to keep.
+    const mount = document.createElement("div");
+    containerRef.current?.appendChild(mount);
+
+    void loadYouTubeApi().then((YT) => {
+      if (cancelled) return;
+      playerRef.current = new YT.Player(mount, {
+        videoId,
+        host: "https://www.youtube-nocookie.com",
+        playerVars: {
+          autoplay: 1,
+          mute: 1,
+          loop: 1,
+          playlist: videoId, // loop=1 only repeats a single video alongside this
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1,
+        },
+        events: {
+          onReady: (e: { target: YouTubePlayer }) => {
+            e.target.setVolume(VOLUME);
+            e.target.playVideo();
+          },
+          onStateChange: (e: { data: number; target: YouTubePlayer }) => {
+            setPlaying(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
+            // The playlist trick above is unreliable on some clients; this is
+            // the belt to its braces.
+            if (e.data === YT.PlayerState.ENDED) e.target.playVideo();
+          },
+        },
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      playerRef.current?.destroy();
+      playerRef.current = null;
+      mount.remove();
+    };
+  }, [videoId]);
+
+  // First interaction anywhere turns the sound on. Clicks inside the iframe
+  // never reach us, but those visitors are driving YouTube's controls anyway.
+  useEffect(() => {
+    if (!muted) return;
+    const opts = { once: true, passive: true, capture: true } as const;
+    const events = ["pointerdown", "keydown", "touchstart", "scroll", "wheel"] as const;
+    events.forEach((type) => window.addEventListener(type, unmute, opts));
+    return () => events.forEach((type) => window.removeEventListener(type, unmute, opts));
+  }, [muted, unmute]);
+
+  function togglePlayback() {
+    const player = playerRef.current;
+    if (!player) return;
+    // This click is the gesture that just unmuted us; it isn't also a pause.
+    if (justUnmutedRef.current) {
+      justUnmutedRef.current = false;
+      return;
+    }
+    if (playing) {
+      player.pauseVideo();
+      setStopped(true);
+    } else {
+      player.playVideo();
+      setStopped(false);
+    }
+  }
 
   return (
     <>
@@ -38,49 +171,48 @@ export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: strin
         }
       `}</style>
 
-      {open && (
-        <div
-          role="region"
-          aria-label={label}
-          className="fixed bottom-20 right-5 z-40 w-[min(20rem,calc(100vw-2.5rem))] overflow-hidden rounded-xl border border-primary/50 bg-background/95 shadow-xl backdrop-blur-md"
-        >
-          <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
-            <span className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-primary">
-              {label}
-            </span>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label={`Close ${label.toLowerCase()}`}
-              className="rounded-full p-1 text-foreground/70 transition-colors hover:text-primary"
-            >
-              <X className="size-4" aria-hidden />
-            </button>
-          </div>
-          <iframe
-            key={videoId}
-            src={embedSrc}
-            title={label}
-            allow="autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
-            className="aspect-video w-full border-0"
-          />
+      <div
+        role="region"
+        aria-label={label}
+        className={`fixed bottom-20 right-5 z-40 overflow-hidden rounded-xl border border-primary/50 bg-background/95 shadow-xl backdrop-blur-md transition-[width] duration-200 ${
+          stopped ? "hidden" : ""
+        }`}
+        style={{
+          width: `min(${minimized ? MINIMIZED_WIDTH : EXPANDED_WIDTH}px, calc(100vw - 2.5rem))`,
+        }}
+      >
+        <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+          <span className="truncate text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-primary">
+            {muted ? "Tap anywhere for sound" : label}
+          </span>
+          <button
+            type="button"
+            onClick={() => setMinimized((v) => !v)}
+            aria-label={minimized ? "Expand player" : "Minimize player"}
+            className="shrink-0 rounded-full p-1 text-foreground/70 transition-colors hover:text-primary"
+          >
+            {minimized ? (
+              <Maximize2 className="size-3.5" aria-hidden />
+            ) : (
+              <Minus className="size-3.5" aria-hidden />
+            )}
+          </button>
         </div>
-      )}
+        <div ref={containerRef} className="aspect-video w-full [&_iframe]:size-full [&_iframe]:border-0" />
+      </div>
 
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? `Stop ${label.toLowerCase()}` : `Play ${label.toLowerCase()}`}
-        aria-pressed={open}
-        aria-expanded={open}
+        onClick={togglePlayback}
+        aria-label={playing ? `Pause ${label.toLowerCase()}` : `Play ${label.toLowerCase()}`}
+        aria-pressed={playing}
         className={`fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full border px-4 py-3 text-[0.7rem] font-semibold uppercase tracking-[0.16em] shadow-lg backdrop-blur-md transition-colors ${
-          open
+          playing
             ? "border-primary/70 bg-background/85 text-primary"
             : "border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
         }`}
       >
-        {open ? (
+        {playing ? (
           <span className="flex h-4 w-4 items-end justify-center gap-[3px]" aria-hidden>
             <span className="anthem-bar h-full w-[3px] rounded-sm bg-current" />
             <span className="anthem-bar h-full w-[3px] rounded-sm bg-current" />
@@ -89,7 +221,7 @@ export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: strin
         ) : (
           <Music2 className="size-4" aria-hidden />
         )}
-        <span>{open ? "Playing" : label}</span>
+        <span>{playing ? (muted ? "Muted" : "Playing") : label}</span>
       </button>
     </>
   );
