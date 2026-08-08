@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Music2, Minus, Maximize2 } from "lucide-react";
 
 /**
- * Floating club anthem, streamed from YouTube.
+ * Floating club anthem, streamed from YouTube. Shared by both surfaces — the
+ * public site and the portal — which is why it lives outside `public/`; it
+ * draws entirely from brand CSS vars, so each surface repaints it.
  *
  * Two browser/platform rules shape this component, and both are worth knowing
  * before changing it:

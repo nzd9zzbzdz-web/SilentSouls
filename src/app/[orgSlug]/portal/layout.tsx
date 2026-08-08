@@ -5,7 +5,9 @@ import { getMember, listRanks } from "@/lib/queries";
 import { BrandStyle } from "@/components/theme/BrandStyle";
 import { BodySurface } from "@/components/theme/BodySurface";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { MusicPlayer } from "@/components/media/MusicPlayer";
 import { Toaster } from "@/components/ui/sonner";
+import { CLUB_ANTHEM_VIDEO_ID } from "@/lib/constants";
 
 export default async function PortalLayout({
   children,
@@ -69,7 +71,14 @@ export default async function PortalLayout({
       >
         {children}
       </PortalShell>
-      <Toaster richColors position="bottom-right" />
+      {/* The anthem follows members inside. Mounted in the LAYOUT, so moving
+          between portal pages never restarts the track — only a full reload
+          does. Same component and corner as the public site; the portal's
+          brand vars just repaint it. */}
+      <MusicPlayer videoId={CLUB_ANTHEM_VIDEO_ID} label="Club Anthem" />
+      {/* Toasts moved off bottom-right when the player took that corner —
+          a 356px toast sat squarely on the play pill. */}
+      <Toaster richColors position="top-right" />
     </div>
   );
 }

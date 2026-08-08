@@ -14,6 +14,7 @@ import {
   PenTool,
   Shield,
   SlidersHorizontal,
+  Trophy,
   UserCheck,
   UserPlus,
   Users,
@@ -45,6 +46,8 @@ const MAIN_NAV = [
   { href: "/brotherhood", label: "Brotherhood", icon: Users },
   { href: "/activities", label: "Log Activity", icon: Activity },
   { href: "/patch-wall", label: "Patch Wall", icon: Award },
+  // Next to the wall on purpose: same emblems, ranked against the club.
+  { href: "/standings", label: "Standings", icon: Trophy },
   { href: "/prospects", label: "Prospects", icon: UserPlus },
 ];
 

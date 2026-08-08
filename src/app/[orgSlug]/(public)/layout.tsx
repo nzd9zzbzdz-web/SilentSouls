@@ -4,7 +4,8 @@ import { BrandStyle } from "@/components/theme/BrandStyle";
 import { BodySurface } from "@/components/theme/BodySurface";
 import { CharityHeader } from "@/components/public/CharityHeader";
 import { CharityFooter } from "@/components/public/CharityFooter";
-import { MusicPlayer } from "@/components/public/MusicPlayer";
+import { MusicPlayer } from "@/components/media/MusicPlayer";
+import { CLUB_ANTHEM_VIDEO_ID } from "@/lib/constants";
 
 export default async function PublicLayout({
   children,
@@ -43,7 +44,7 @@ export default async function PublicLayout({
         name={branding.orgDisplayName}
         tagline={branding.tagline}
       />
-      <MusicPlayer videoId="vmqd7N7zOhM" label="Club Anthem" />
+      <MusicPlayer videoId={CLUB_ANTHEM_VIDEO_ID} label="Club Anthem" />
     </div>
   );
 }

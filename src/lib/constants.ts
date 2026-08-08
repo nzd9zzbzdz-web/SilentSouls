@@ -82,6 +82,14 @@ export const CHARACTER_POSE_LIMITS = {
 // branding sets its own characterStagePath.
 export const DEFAULT_CHARACTER_STAGE = "/brand/character-stage.webp";
 
+/**
+ * The club anthem, streamed from YouTube by <MusicPlayer> on BOTH surfaces —
+ * the public site and the portal. One id, one place: the two layouts must
+ * never drift onto different tracks. Becomes a branding field the day a
+ * second tenant wants its own anthem (same call as MAP_IMAGE_PATH).
+ */
+export const CLUB_ANTHEM_VIDEO_ID = "vmqd7N7zOhM";
+
 export const STAT_LABELS: Record<StatKey, string> = {
   churchAttendance: "Church Attendance",
   clubRuns: "Club Runs",

@@ -7,17 +7,14 @@ import { Leaderboard } from "@/components/portal/Leaderboard";
 import { ServiceRecord } from "@/components/portal/ServiceRecord";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { composeLadders, patchArtUrl } from "@/lib/patch-ladders";
-import { composeLeaderboard } from "@/lib/leaderboard";
+import { loadLeaderboard } from "@/lib/leaderboard-data";
 import { composeServiceRecord } from "@/lib/service-record";
 import { requireOrgRole } from "@/lib/auth/session";
 import { orgRef } from "@/lib/firebase/admin";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import {
   getMember,
-  listAwardsByMember,
   listMemberAwards,
-  listMembers,
-  listMembersWithRender,
   listPatchArtVersions,
   listPatches,
   listRanks,
@@ -57,7 +54,10 @@ export default async function MemberDetailPage({
     ? (assetSnap.data()?.dataUrl as string | undefined)
     : undefined;
 
-  const [ranks, awards, patches, branding, career, sponsor, patchArt, members, awardsByMember] =
+  // Standings ride along in the same batch: loadLeaderboard reads members and
+  // awards the profile doesn't otherwise need, and awaiting it after this
+  // Promise.all would cost a serial round-trip for nothing.
+  const [ranks, awards, patches, branding, career, sponsor, patchArt, leaderboard] =
     await Promise.all([
       listRanks(org.id),
       listMemberAwards(org.id, memberId),
@@ -68,8 +68,7 @@ export default async function MemberDetailPage({
         ? getMember(org.id, member.sponsorMemberId)
         : Promise.resolve(null),
       listPatchArtVersions(org.id),
-      listMembers(org.id),
-      listAwardsByMember(org.id),
+      loadLeaderboard(org.id),
     ]);
   const rank = ranks.find((r) => r.id === member.rankId);
   const patchById = new Map(patches.map((p) => [p.id, p]));
@@ -127,29 +126,6 @@ export default async function MemberDetailPage({
   // stat, so the tab reads as levels climbed rather than a flat list of names.
   // Emblems never reach the cut — this tab is the only place they live.
   const ladders = composeLadders({ patches, awards, stats: member.stats });
-
-  // Standings: the riding club ranked per criminal-record stat. Existence only
-  // for the renders — avatars stream from the render route like the roster.
-  const withRender = await listMembersWithRender(
-    org.id,
-    members.map((m) => m.id),
-  );
-  const leaderboard = composeLeaderboard({
-    members,
-    awardsByMember,
-    patches,
-    artUrlFor: (patchId) => patchArtUrl(org.id, patchId, patchArt),
-    imageFor: (id) => {
-      if (withRender.has(id)) {
-        return { url: `/api/orgs/${org.id}/members/${id}/render`, hasRender: true };
-      }
-      // The seeder writes the shared silhouette into photoPath when a member
-      // has no art file, so a set photoPath alone doesn't mean they have one.
-      const own = members.find((m) => m.id === id)?.photoPath;
-      const ownArt = own && own !== CHARACTER_SILHOUETTE ? own : undefined;
-      return { url: ownArt ?? CHARACTER_SILHOUETTE, hasRender: Boolean(ownArt) };
-    },
-  });
 
   return (
     <div className="mx-auto max-w-6xl">
