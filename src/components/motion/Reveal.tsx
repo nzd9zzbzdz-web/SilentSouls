@@ -22,17 +22,24 @@ export function Reveal({
   delay = 0,
   y = 12,
   className,
+  /** The wrapper element. `li` keeps list semantics valid inside ol/ul. */
+  as = "div",
 }: {
   children: React.ReactNode;
   delay?: number;
   y?: number;
   className?: string;
+  as?: "div" | "li";
 }) {
   const reduce = useReducedMotion();
-  if (reduce) return <div className={className}>{children}</div>;
+  if (reduce) {
+    const Plain = as;
+    return <Plain className={className}>{children}</Plain>;
+  }
 
+  const Motion = as === "li" ? motion.li : motion.div;
   return (
-    <motion.div
+    <Motion
       className={className}
       initial={{ opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -40,6 +47,6 @@ export function Reveal({
       transition={{ duration: 0.5, delay, ease: [0.2, 0.7, 0.2, 1] }}
     >
       {children}
-    </motion.div>
+    </Motion>
   );
 }

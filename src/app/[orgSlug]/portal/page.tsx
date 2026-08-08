@@ -10,6 +10,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CountUp } from "@/components/motion/CountUp";
+import { Reveal } from "@/components/motion/Reveal";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components/portal/map/ClubMap";
 import { requireOrgRole } from "@/lib/auth/session";
@@ -128,16 +130,22 @@ export default async function DashboardPage({
           <h2 id="stats-heading" className="sr-only">
             Your service record
           </h2>
+          {/* The tiles arrive left-to-right and the numbers count in — the
+              record assembling itself, not six boxes appearing. Stagger is
+              index-scaled and capped by the row length, so the last tile is
+              never waiting on a long delay. */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {PROFILE_STAT_ORDER.map((stat) => (
-              <Card key={stat.key} className="py-4">
-                <CardContent className="px-4">
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  <p className="font-stat mt-1 text-2xl font-semibold text-foreground">
-                    {member.stats?.[stat.key] ?? 0}
-                  </p>
-                </CardContent>
-              </Card>
+            {PROFILE_STAT_ORDER.map((stat, i) => (
+              <Reveal key={stat.key} delay={i * 0.06}>
+                <Card className="py-4">
+                  <CardContent className="px-4">
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    <p className="font-stat mt-1 text-2xl font-semibold text-foreground">
+                      <CountUp value={member.stats?.[stat.key] ?? 0} />
+                    </p>
+                  </CardContent>
+                </Card>
+              </Reveal>
             ))}
           </div>
         </section>

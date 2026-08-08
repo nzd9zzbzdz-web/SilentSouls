@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Award, Crown, Gem, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Reveal } from "@/components/motion/Reveal";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
@@ -188,11 +189,15 @@ export default async function PatchWallPage({
           </p>
         ) : (
           <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {earned.map((patch) => (
+            {earned.map((patch, i) => (
               // glass-card supplies the 1px frame; border-primary/40 re-tints
               // it gold (single-property utilities sort after the shorthand).
-              <li
+              // The patches light up in sequence — the wall filling in, which
+              // is the one thing on this page worth animating.
+              <Reveal
+                as="li"
                 key={patch.id}
+                delay={Math.min(i, 8) * 0.05}
                 className="glass-card glow-gold rounded-lg border-primary/40 p-5"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -213,7 +218,7 @@ export default async function PatchWallPage({
                   </div>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">{patch.description}</p>
-              </li>
+              </Reveal>
             ))}
           </ul>
         )}

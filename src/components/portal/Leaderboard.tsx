@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Trophy } from "lucide-react";
+import { Reveal } from "@/components/motion/Reveal";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import {
   Select,
@@ -75,11 +76,25 @@ function Row({
     ? (RARITY_COLOR[row.topEmblem.rarity ?? "common"] ?? RARITY_COLOR.common)
     : null;
 
+  // The podium: first through third wear their medal on the row itself — a
+  // tinted left edge bleeding into a soft bloom, so the top of the board reads
+  // as a podium at a glance instead of three rows that happen to be first.
+  // Painted as an inset shadow rather than a border so no row shifts a pixel,
+  // and left OFF the lit subject row: two competing tints on one row is noise.
+  const medal = MEDAL_COLOR[row.rank];
+  const podium =
+    medal && !isSubject
+      ? {
+          boxShadow: `inset 3px 0 0 ${medal}, inset 16px 0 22px -18px ${medal}, 0 14px 32px -24px rgb(0 0 0 / 0.9)`,
+        }
+      : undefined;
+
   return (
-    <li>
+    <>
       <Link
         href={`/${orgSlug}/portal/brotherhood/${row.memberId}`}
         aria-current={isSubject ? "true" : undefined}
+        style={podium}
         className={
           "glass-card glass-hover flex items-center gap-3 rounded-lg p-3 sm:gap-4 " +
           (isSubject ? "border-primary/60 bg-primary/10" : "")
@@ -166,7 +181,7 @@ function Row({
           )}
         </span>
       </Link>
-    </li>
+    </>
   );
 }
 
@@ -225,15 +240,19 @@ export function Leaderboard({
           Nobody on the board yet.
         </p>
       ) : (
+        // Rows drop in from the top down, so the board reads as a podium
+        // filling rather than a list appearing. Stagger caps at the tenth row:
+        // past that the delay stops meaning anything and just feels slow.
         <ol className="mt-6 space-y-2">
-          {category.rows.map((row) => (
-            <Row
-              key={row.memberId}
-              row={row}
-              orgSlug={orgSlug}
-              isSubject={row.memberId === subjectMemberId}
-              isViewer={viewerMemberId !== null && row.memberId === viewerMemberId}
-            />
+          {category.rows.map((row, i) => (
+            <Reveal key={row.memberId} as="li" delay={Math.min(i, 9) * 0.045}>
+              <Row
+                row={row}
+                orgSlug={orgSlug}
+                isSubject={row.memberId === subjectMemberId}
+                isViewer={viewerMemberId !== null && row.memberId === viewerMemberId}
+              />
+            </Reveal>
           ))}
         </ol>
       )}
