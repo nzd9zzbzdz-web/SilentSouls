@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, ImageUp } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ReviewQueue } from "@/components/portal/ReviewQueue";
+import {
+  RenderReviewQueue,
+  type PendingRender,
+} from "@/components/portal/RenderReviewQueue";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
 import { activityEntries } from "@/lib/activity-entries";
@@ -9,6 +13,7 @@ import {
   listActivities,
   listActivityTypes,
   listMembers,
+  listMembersWithRender,
 } from "@/lib/queries";
 import type { Timestamp } from "firebase-admin/firestore";
 
@@ -29,6 +34,21 @@ export default async function ReviewQueuePage({
   ]);
   const typeById = new Map(types.map((t) => [t.id, t]));
   const memberById = new Map(members.map((m) => [m.id, m]));
+
+  // Member-uploaded character art waiting to be cleared for the public page.
+  // Existence + flag only — the images themselves stream from the render route.
+  const renders = await listMembersWithRender(
+    org.id,
+    members.map((m) => m.id),
+  );
+  const pendingRenders: PendingRender[] = members
+    .filter((m) => renders.get(m.id)?.approved === false)
+    .map((m) => ({
+      memberId: m.id,
+      roadName: m.roadName,
+      displayName: m.displayName,
+      imageUrl: `/api/orgs/${org.id}/members/${m.id}/render`,
+    }));
 
   const items = pending.map((activity) => ({
     id: activity.id,
@@ -61,6 +81,32 @@ export default async function ReviewQueuePage({
       </div>
 
       <ReviewQueue orgId={org.id} items={items} />
+
+      {/* Character art sits under the activity queue rather than on its own
+          page: it's the same job (an officer clearing member submissions) and
+          it arrives far too rarely to be worth a nav entry of its own. */}
+      <section aria-labelledby="render-review-heading" className="space-y-4">
+        <div>
+          <h2
+            id="render-review-heading"
+            className="flex items-center gap-2 text-lg font-semibold text-foreground"
+          >
+            <ImageUp className="size-5 text-primary" aria-hidden />
+            Character Art
+            {pendingRenders.length > 0 && (
+              <span className="font-stat rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">
+                {pendingRenders.length}
+              </span>
+            )}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Members can upload their own render. It shows in the portal right
+            away, but the public page keeps the silhouette until you clear it.
+          </p>
+        </div>
+
+        <RenderReviewQueue orgId={org.id} orgSlug={orgSlug} items={pendingRenders} />
+      </section>
     </div>
   );
 }

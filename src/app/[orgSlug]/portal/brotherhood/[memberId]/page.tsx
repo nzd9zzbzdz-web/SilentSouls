@@ -38,10 +38,12 @@ export default async function MemberDetailPage({
   if (!org) notFound();
   const access = await requireOrgRole(org.id, "member");
   const isSelf = access.memberId === memberId;
-  // Uploading someone's render stays admin-only — it's an arbitrary image that
-  // also reaches the public roster. Officers can review activities but don't
-  // get to restyle anyone's character screen.
+  // Uploading someone ELSE's render stays admin-only. Your own is yours, but a
+  // plain member's upload waits on an officer before the public roster shows
+  // it — see uploadCharacterRender.
   const canManageArt = access.role === "admin";
+  const needsApproval =
+    isSelf && !access.isSuper && access.role !== "admin" && access.role !== "officer";
   // Standing on your own mark and writing your own story are yours. Both are
   // re-gated server-side by requireSelfOrRole — this only decides what renders.
   const canEditSelf = canManageArt || isSelf;
@@ -59,6 +61,8 @@ export default async function MemberDetailPage({
   const uploadedArt = assetSnap.exists
     ? (assetSnap.data()?.dataUrl as string | undefined)
     : undefined;
+  // Absent ⇒ approved (everything from before self-service was admin-authored).
+  const artApproved = assetSnap.exists ? assetSnap.data()?.approved !== false : true;
 
   // Standings ride along in the same batch: loadLeaderboard reads members and
   // awards the profile doesn't otherwise need, and awaiting it after this
@@ -156,12 +160,14 @@ export default async function MemberDetailPage({
           stagePath={branding?.characterStagePath ?? DEFAULT_CHARACTER_STAGE}
           characterPath={uploadedArt ?? member.photoPath ?? CHARACTER_SILHOUETTE}
         />
-        {canManageArt && (
+        {canEditSelf && (
           <div className="mt-3">
             <CharacterArtUploader
               orgId={org.id}
               memberId={memberId}
               hasCustomArt={Boolean(uploadedArt)}
+              awaitingReview={Boolean(uploadedArt) && !artApproved}
+              needsApproval={needsApproval}
             />
           </div>
         )}

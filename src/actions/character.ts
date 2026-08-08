@@ -17,14 +17,22 @@ const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // raw upload cap
 const MAX_STORED_BYTES = 700 * 1024; // keep the Firestore doc well under 1MB
 
 /**
- * Org-admin: set a member's character render from an uploaded image.
+ * Set a member's character render from an uploaded image — their own, or
+ * anyone's if you're an admin.
+ *
+ * A render is the one member-supplied IMAGE that reaches the public site, so
+ * self-uploads land unapproved: the member sees it on their profile at once
+ * (the portal is behind the login), while the public roster keeps the
+ * silhouette until an officer approves it. Officers and admins clear their own
+ * uploads on the way in — they're the ones who'd be reviewing it anyway.
+ *
  * Light/checkerboard backgrounds are keyed out automatically; the result is
  * stored as a webp data URL in members/{id}/assets/character (small, read
  * only by the profile page — no Storage bucket required).
  */
 export async function uploadCharacterRender(
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ pending: boolean }>> {
   const orgId = formData.get("orgId");
   const memberId = formData.get("memberId");
   const file = formData.get("file");
@@ -40,7 +48,11 @@ export async function uploadCharacterRender(
   }
 
   try {
-    const access = await requireOrgRole(orgId, "admin");
+    const { access } = await requireSelfOrRole(orgId, memberId, "admin");
+    // Anyone who could review this anyway is trusted on the way in; a plain
+    // member's upload waits. isSuper is folded in — they outrank officers.
+    const selfApproves =
+      access.isSuper || access.role === "admin" || access.role === "officer";
     const memberRef = orgRef(orgId).collection("members").doc(memberId);
     if (!(await memberRef.get()).exists) {
       return { ok: false, error: "Member not found" };
@@ -85,30 +97,76 @@ export async function uploadCharacterRender(
 
     await memberRef.collection("assets").doc("character").set({
       dataUrl: `data:image/webp;base64,${stored.toString("base64")}`,
+      approved: selfApproves,
       updatedBy: access.user.uid,
       updatedAt: FieldValue.serverTimestamp(),
     });
     await writeAuditLog(orgId, {
       actorUid: access.user.uid,
-      action: "member.characterArt",
+      action: selfApproves ? "member.characterArt" : "member.characterArt.pending",
       targetPath: memberRef.path,
       detail: `${Math.round(stored.length / 1024)}KB render uploaded`,
     });
 
-    revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
+    revalidateRenderSurfaces(selfApproves);
+    return { ok: true, data: { pending: !selfApproves } };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+/**
+ * Officer/admin: approve a pending render, or reject it.
+ *
+ * Reject DELETES the art rather than flagging it. A rejected render is one an
+ * officer doesn't want the club wearing, and leaving it on the member's own
+ * profile forever — visible to everyone who opens their page — isn't a
+ * decision, it's a half-measure. The member can upload a different one.
+ */
+export async function reviewCharacterRender(raw: {
+  orgId: string;
+  memberId: string;
+  approve: boolean;
+}): Promise<ActionResult> {
+  try {
+    const access = await requireOrgRole(raw.orgId, "officer");
+    const assetRef = orgRef(raw.orgId)
+      .collection("members")
+      .doc(raw.memberId)
+      .collection("assets")
+      .doc("character");
+    if (!(await assetRef.get()).exists) {
+      return { ok: false, error: "No render to review" };
+    }
+
+    if (raw.approve) {
+      await assetRef.update({ approved: true });
+    } else {
+      await assetRef.delete();
+    }
+
+    await writeAuditLog(raw.orgId, {
+      actorUid: access.user.uid,
+      action: raw.approve ? "member.characterArt.approve" : "member.characterArt.reject",
+      targetPath: assetRef.path,
+    });
+
+    // Either way the PUBLIC roster changes: approve puts a face on the card,
+    // reject takes one off a member's profile.
+    revalidateRenderSurfaces(true);
     return { ok: true };
   } catch (e) {
     return failure(e);
   }
 }
 
-/** Org-admin: remove a member's uploaded render (falls back to silhouette). */
+/** Remove a render — your own, or anyone's as an admin. */
 export async function removeCharacterRender(raw: {
   orgId: string;
   memberId: string;
 }): Promise<ActionResult> {
   try {
-    const access = await requireOrgRole(raw.orgId, "admin");
+    const { access, isSelf } = await requireSelfOrRole(raw.orgId, raw.memberId, "admin");
     const assetRef = orgRef(raw.orgId)
       .collection("members")
       .doc(raw.memberId)
@@ -117,14 +175,26 @@ export async function removeCharacterRender(raw: {
     await assetRef.delete();
     await writeAuditLog(raw.orgId, {
       actorUid: access.user.uid,
-      action: "member.characterArt.remove",
+      action: `member.characterArt.remove${isSelf ? ".self" : ""}`,
       targetPath: assetRef.path,
     });
-    revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
+    revalidateRenderSurfaces(true);
     return { ok: true };
   } catch (e) {
     return failure(e);
   }
+}
+
+/**
+ * Every page a render appears on. The portal three always change; the public
+ * home page only when the change can reach it (an unapproved upload cannot,
+ * and revalidating it would throw away a good cache entry for nothing).
+ */
+function revalidateRenderSurfaces(touchesPublic: boolean) {
+  revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
+  revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
+  revalidatePath(`/[orgSlug]/portal/activities/review`, "page");
+  if (touchesPublic) revalidatePath(`/[orgSlug]`, "page");
 }
 
 /**

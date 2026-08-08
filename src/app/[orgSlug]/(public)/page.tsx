@@ -65,7 +65,11 @@ export default async function PublicHomePage({
           : undefined;
       return {
         id: member.id,
-        imageUrl: withRender.has(member.id)
+        // APPROVED renders only. A member's own upload is theirs to see in the
+        // portal the moment it lands, but it doesn't reach the shopfront until
+        // an officer says so — the render route enforces the same rule on the
+        // bytes, so this isn't the only thing standing between the two.
+        imageUrl: withRender.get(member.id)?.approved
           ? `/api/orgs/${org.id}/members/${member.id}/render`
           : (ownArt ?? CHARACTER_SILHOUETTE),
         tenureLabel: tenureLabel(joined, now),

@@ -42,6 +42,13 @@ export async function GET(
   const render = await getCharacterRender(orgId, memberId);
   if (!render) return new NextResponse(null, { status: 404 });
 
+  // A render awaiting an officer's approval is portal-only. Hiding it on the
+  // public CARD but still serving the bytes here would make the whole review
+  // step decorative — anyone who guessed this URL would have the image.
+  if (isPublicRequest && !render.approved) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const match = /^data:(image\/[a-z+]+);base64,([\s\S]*)$/.exec(render.dataUrl);
   if (!match) return new NextResponse(null, { status: 404 });
   const [, contentType, base64] = match;

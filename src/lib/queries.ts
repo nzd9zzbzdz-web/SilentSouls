@@ -143,20 +143,27 @@ export const listAwardsByMember = cache(
 export async function listMembersWithRender(
   orgId: string,
   memberIds: string[],
-): Promise<Set<string>> {
+): Promise<Map<string, { approved: boolean }>> {
   const results = await Promise.all(
     memberIds.map(async (memberId) => {
-      // .select() with no fields returns doc ids only — no image egress.
+      // .select("approved") returns that one field — still no image egress.
       const snap = await orgRef(orgId)
         .collection("members")
         .doc(memberId)
         .collection("assets")
-        .select()
+        .select("approved")
         .get();
-      return snap.docs.some((d) => d.id === "character") ? memberId : null;
+      const doc = snap.docs.find((d) => d.id === "character");
+      if (!doc) return null;
+      // Absent ⇒ approved, so every render uploaded before member self-service
+      // existed (all of them admin-authored) keeps showing publicly. Same
+      // "missing flag means the old behaviour" rule as patch.emblem.
+      return [memberId, { approved: doc.get("approved") !== false }] as const;
     }),
   );
-  return new Set(results.filter((id): id is string => id !== null));
+  // A Map rather than a Set so callers keep `.has()` for "is there art at all"
+  // (every portal surface) and gain `.get()?.approved` for the public roster.
+  return new Map(results.filter((r): r is NonNullable<typeof r> => r !== null));
 }
 
 /** The stored character render data URL, or null. Served by the render route. */
@@ -164,7 +171,7 @@ export const getCharacterRender = cache(
   async (
     orgId: string,
     memberId: string,
-  ): Promise<{ dataUrl: string; updatedAtMs: number } | null> => {
+  ): Promise<{ dataUrl: string; updatedAtMs: number; approved: boolean } | null> => {
     const snap = await orgRef(orgId)
       .collection("members")
       .doc(memberId)
@@ -176,6 +183,9 @@ export const getCharacterRender = cache(
     return {
       dataUrl: data.dataUrl,
       updatedAtMs: data.updatedAt?.toMillis?.() ?? 0,
+      // Absent ⇒ approved: everything uploaded before self-service was an
+      // admin's work. See listMembersWithRender.
+      approved: data.approved !== false,
     };
   },
 );
