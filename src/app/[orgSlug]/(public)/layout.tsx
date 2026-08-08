@@ -43,7 +43,7 @@ export default async function PublicLayout({
         name={branding.orgDisplayName}
         tagline={branding.tagline}
       />
-      <MusicPlayer src="/music/ravens-anthem.mp3" label="Club Anthem" />
+      <MusicPlayer videoId="vmqd7N7zOhM" label="Club Anthem" />
     </div>
   );
 }
