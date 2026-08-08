@@ -32,19 +32,21 @@ export default async function VolunteerResourcesPage({
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16">
-      <DisplayHeading className="text-4xl text-foreground">
-        Volunteer Resources
-      </DisplayHeading>
-      <p className="mt-3 max-w-2xl text-muted-foreground">
-        Tools and documents for our registered volunteers. New here? Come see us at
-        the community center on any Saturday to get started.
-      </p>
+    <div className="mx-auto max-w-6xl space-y-8 px-4 py-16">
+      <div>
+        <DisplayHeading className="text-4xl text-foreground">
+          Volunteer Resources
+        </DisplayHeading>
+        <p className="mt-3 max-w-2xl text-muted-foreground">
+          Tools and documents for our registered volunteers. New here? Come see us at
+          the community center on any Saturday to get started.
+        </p>
+      </div>
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-3">
+      <div className="grid gap-8 lg:grid-cols-3">
         <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2 lg:grid-cols-1 xl:grid-cols-2">
           {resources.map((resource) => (
-            <article key={resource.title} className="rounded-lg border border-border bg-card p-6">
+            <article key={resource.title} className="glass-card rounded-xl p-6">
               <resource.icon className="size-7 text-primary" aria-hidden />
               <h2 className="mt-3 font-semibold text-card-foreground">{resource.title}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

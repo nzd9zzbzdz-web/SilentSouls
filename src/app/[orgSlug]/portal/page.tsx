@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components/portal/map/ClubMap";
 import { requireOrgRole } from "@/lib/auth/session";
@@ -98,7 +99,7 @@ export default async function DashboardPage({
     : null;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <DisplayHeading className="text-3xl text-primary md:text-4xl">
@@ -110,14 +111,14 @@ export default async function DashboardPage({
               : org.name}
           </p>
         </div>
+        {/* Ember tier: reviewing the queue is this page's one true action. */}
         {(access.role === "officer" || access.role === "admin") && pendingCount > 0 && (
-          <Link
-            href={`/${orgSlug}/portal/activities/review`}
-            className="glow-gold flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90"
-          >
-            <ClipboardCheck className="size-4" aria-hidden />
-            {pendingCount} awaiting review
-          </Link>
+          <Button asChild>
+            <Link href={`/${orgSlug}/portal/activities/review`}>
+              <ClipboardCheck className="size-4" aria-hidden />
+              {pendingCount} awaiting review
+            </Link>
+          </Button>
         )}
       </div>
 
@@ -184,12 +185,9 @@ export default async function DashboardPage({
                 <p className="mt-1 text-sm text-muted-foreground">
                   Submit your first activity to start building your record.
                 </p>
-                <Link
-                  href={`/${orgSlug}/portal/activities`}
-                  className="mt-4 inline-flex min-h-11 items-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground"
-                >
-                  Log an activity
-                </Link>
+                <Button asChild variant="secondary" className="mt-4">
+                  <Link href={`/${orgSlug}/portal/activities`}>Log an activity</Link>
+                </Button>
               </div>
             ) : (
               <ul className="divide-y divide-border">

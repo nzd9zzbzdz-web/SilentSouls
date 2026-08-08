@@ -33,9 +33,9 @@ export default async function ActivitiesPage({
   const typeById = new Map(types.map((t) => [t.id, t]));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-8">
       <div>
-        <DisplayHeading className="text-3xl text-primary">Activities</DisplayHeading>
+        <DisplayHeading className="text-3xl text-primary md:text-4xl">Activities</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           Log your work for the club. An officer reviews every submission.
         </p>

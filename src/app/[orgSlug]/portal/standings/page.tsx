@@ -26,7 +26,7 @@ export default async function StandingsPage({
   const categories = await loadLeaderboard(org.id);
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-6xl space-y-8">
       <Leaderboard
         categories={categories}
         orgSlug={orgSlug}

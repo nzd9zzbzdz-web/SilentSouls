@@ -23,9 +23,9 @@ export default async function OrgAdminPage({
   ]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <DisplayHeading className="text-3xl text-primary">Member Administration</DisplayHeading>
+        <DisplayHeading className="text-3xl text-primary md:text-4xl">Member Administration</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           Create records, set ranks and portal roles, and invite members.
         </p>

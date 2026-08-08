@@ -81,10 +81,8 @@ function Row({
         href={`/${orgSlug}/portal/brotherhood/${row.memberId}`}
         aria-current={isSubject ? "true" : undefined}
         className={
-          "flex items-center gap-3 rounded-lg border p-3 transition-colors sm:gap-4 " +
-          (isSubject
-            ? "border-primary/60 bg-primary/10"
-            : "border-border bg-card/60 hover:border-primary/40")
+          "glass-card glass-hover flex items-center gap-3 rounded-lg p-3 sm:gap-4 " +
+          (isSubject ? "border-primary/60 bg-primary/10" : "")
         }
       >
         <Rank rank={row.rank} />
@@ -192,7 +190,7 @@ export function Leaderboard({
   return (
     <section
       aria-label="Standings"
-      className="texture-noise rounded-xl border border-primary/20 bg-card p-6 md:p-8"
+      className="texture-noise glass-card rounded-xl p-6 md:p-8"
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>

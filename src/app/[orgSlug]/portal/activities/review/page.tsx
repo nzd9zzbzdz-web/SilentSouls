@@ -47,9 +47,9 @@ export default async function ReviewQueuePage({
   }));
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-8">
       <div>
-        <DisplayHeading className="flex items-center gap-3 text-3xl text-primary">
+        <DisplayHeading className="flex items-center gap-3 text-3xl text-primary md:text-4xl">
           <ClipboardCheck className="size-7" aria-hidden />
           Review Queue
         </DisplayHeading>

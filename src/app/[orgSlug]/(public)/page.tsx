@@ -13,6 +13,7 @@ import {
 } from "@/lib/public-roster";
 import { CHARACTER_SILHOUETTE } from "@/lib/constants";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { Button } from "@/components/ui/button";
 import { HeroGalleryFilmstrip } from "@/components/public/HeroGalleryFilmstrip";
 import { BrotherhoodSection } from "@/components/public/BrotherhoodSection";
 import type { Timestamp } from "firebase-admin/firestore";
@@ -151,13 +152,14 @@ export default async function PublicHomePage({
                 "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us, but so does honor, and no brother of ours ever rides alone."}
             </p>
             <div className="mt-10">
-              <Link
-                href={`${base}/about`}
-                className="inline-flex min-h-12 items-center rounded-sm border px-10 text-sm font-semibold uppercase tracking-[0.22em] transition-colors duration-200 hover:bg-[#D9362B]/10"
-                style={{ borderColor: EMBER, color: EMBER }}
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="px-10 font-semibold uppercase tracking-[0.22em]"
               >
-                Learn More
-              </Link>
+                <Link href={`${base}/about`}>Learn More</Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -247,7 +249,7 @@ export default async function PublicHomePage({
               <Link
                 key={n.title}
                 href={`${base}/events`}
-                className="group overflow-hidden rounded-lg border border-[#941B22]/12 bg-[#151017] transition-colors hover:border-[#941B22]/40"
+                className="glass-card glass-hover group overflow-hidden rounded-xl"
               >
                 <div
                   className="flex aspect-[16/10] items-center justify-center"
@@ -286,13 +288,13 @@ export default async function PublicHomePage({
             The road is long and it isn&rsquo;t for everyone. If you think you belong
             with the Ravens, come prove it.
           </p>
-          <Link
-            href={`${base}/join`}
-            className="mt-8 inline-flex min-h-11 items-center rounded-sm px-8 text-xs font-semibold uppercase tracking-[0.16em] text-[#EEE7E8] transition-opacity duration-200 hover:opacity-90"
-            style={{ background: EMBER }}
+          {/* The page's one true action — ember tier. */}
+          <Button
+            asChild
+            className="mt-8 px-8 text-xs font-semibold uppercase tracking-[0.16em]"
           >
-            Start Your Prospect Run
-          </Link>
+            <Link href={`${base}/join`}>Start Your Prospect Run</Link>
+          </Button>
         </div>
       </section>
     </>

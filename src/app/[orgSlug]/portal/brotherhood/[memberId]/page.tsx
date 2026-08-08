@@ -128,36 +128,40 @@ export default async function MemberDetailPage({
   const ladders = composeLadders({ patches, awards, stats: member.stats });
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <CharacterPoseEditor
-        orgId={org.id}
-        memberId={memberId}
-        canEdit={canManageArt}
-        initialPose={member.characterPose}
-        orgName={branding?.orgDisplayName ?? org.name}
-        tagline={branding?.tagline}
-        roadName={member.roadName}
-        displayName={member.displayName}
-        memberNumber={member.memberNumber}
-        rankName={rank?.name ?? "Unranked"}
-        statusLabel={member.rapStatus ?? member.status}
-        panelTitle="Criminal Record"
-        stats={panelStats}
-        patches={stagePatches}
-        stagePath={branding?.characterStagePath ?? DEFAULT_CHARACTER_STAGE}
-        characterPath={uploadedArt ?? member.photoPath ?? CHARACTER_SILHOUETTE}
-      />
-      {canManageArt && (
-        <div className="mt-3">
-          <CharacterArtUploader
-            orgId={org.id}
-            memberId={memberId}
-            hasCustomArt={Boolean(uploadedArt)}
-          />
-        </div>
-      )}
+    <div className="mx-auto max-w-6xl space-y-8">
+      {/* Stage + its uploader are one block — the uploader is an adjunct
+          control that stays tight under the stage, outside the page rhythm. */}
+      <div>
+        <CharacterPoseEditor
+          orgId={org.id}
+          memberId={memberId}
+          canEdit={canManageArt}
+          initialPose={member.characterPose}
+          orgName={branding?.orgDisplayName ?? org.name}
+          tagline={branding?.tagline}
+          roadName={member.roadName}
+          displayName={member.displayName}
+          memberNumber={member.memberNumber}
+          rankName={rank?.name ?? "Unranked"}
+          statusLabel={member.rapStatus ?? member.status}
+          panelTitle="Criminal Record"
+          stats={panelStats}
+          patches={stagePatches}
+          stagePath={branding?.characterStagePath ?? DEFAULT_CHARACTER_STAGE}
+          characterPath={uploadedArt ?? member.photoPath ?? CHARACTER_SILHOUETTE}
+        />
+        {canManageArt && (
+          <div className="mt-3">
+            <CharacterArtUploader
+              orgId={org.id}
+              memberId={memberId}
+              hasCustomArt={Boolean(uploadedArt)}
+            />
+          </div>
+        )}
+      </div>
 
-      <Tabs defaultValue="service" className="mt-8 gap-4">
+      <Tabs defaultValue="service" className="gap-4">
         <TabsList>
           <TabsTrigger value="service">Service Record</TabsTrigger>
           <TabsTrigger value="emblems">

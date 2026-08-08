@@ -128,9 +128,9 @@ export default async function BrotherhoodPage({
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <div className="texture-noise rounded-xl border border-primary/20 bg-card p-6 md:p-8">
-        <DisplayHeading className="text-4xl text-primary">Brotherhood</DisplayHeading>
-        <p className="mt-2 text-sm text-muted-foreground">
+      <div className="texture-noise glass-card rounded-xl p-6 md:p-8">
+        <DisplayHeading className="text-3xl text-primary md:text-4xl">Brotherhood</DisplayHeading>
+        <p className="mt-1 text-sm text-muted-foreground">
           Every rider under the colors: the whole club, in order of the patch.
         </p>
         <div className="mt-8">

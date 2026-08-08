@@ -54,9 +54,9 @@ export default async function ProspectsPage({
     });
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <DisplayHeading className="text-3xl text-primary">Prospects</DisplayHeading>
+        <DisplayHeading className="text-3xl text-primary md:text-4xl">Prospects</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           Earning their patch, one requirement at a time.
         </p>

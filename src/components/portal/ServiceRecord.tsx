@@ -40,7 +40,7 @@ export function ServiceRecord({
   return (
     <section
       aria-label="Service Record"
-      className="texture-noise rounded-xl border border-primary/20 bg-card p-6 md:p-8"
+      className="texture-noise glass-card rounded-xl p-6 md:p-8"
     >
       <DisplayHeading as="h2" className="text-2xl text-primary md:text-3xl">
         Service Record

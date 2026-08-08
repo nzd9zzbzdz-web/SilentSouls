@@ -27,9 +27,9 @@ export default async function VestDesignerPage({
     snap.exists ? ((snap.data() as VestConfig).slots ?? defaultSlotsFor(surface)) : defaultSlotsFor(surface);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <DisplayHeading className="text-3xl text-primary">Vest Designer</DisplayHeading>
+        <DisplayHeading className="text-3xl text-primary md:text-4xl">Vest Designer</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           Position the slots that patches land in. No code required. Every change
           applies to every member&rsquo;s cut.

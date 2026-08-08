@@ -37,9 +37,9 @@ export default async function RecruitmentPage({
     .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt)); // oldest first
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <DisplayHeading className="text-3xl text-primary">Recruitment</DisplayHeading>
+        <DisplayHeading className="text-3xl text-primary md:text-4xl">Recruitment</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           People asking to prospect. Approve to bring them in, or decline.
         </p>

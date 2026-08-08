@@ -13,11 +13,16 @@ export default async function AboutPage({
   const branding = await getBranding(org.id, "public");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16">
-      <DisplayHeading className="text-4xl text-foreground">
-        About {branding?.orgDisplayName}
-      </DisplayHeading>
-      <div className="mt-6 space-y-4 leading-relaxed text-foreground">
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-16">
+      <div>
+        <DisplayHeading className="text-4xl text-foreground">
+          About {branding?.orgDisplayName}
+        </DisplayHeading>
+        <p className="mt-3 text-muted-foreground">
+          Who we are, and why we keep showing up.
+        </p>
+      </div>
+      <div className="space-y-4 leading-relaxed text-foreground">
         <p>
           {branding?.mission ??
             "We are a community organization dedicated to serving San Andreas."}
@@ -36,20 +41,22 @@ export default async function AboutPage({
         </p>
       </div>
 
-      <h2 className="mt-12 text-2xl font-semibold text-foreground">Our Values</h2>
-      <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-        {[
-          ["Loyalty to Community", "The people of San Andreas come first, always."],
-          ["Respect", "Every neighbor, every volunteer, every story matters."],
-          ["Commitment", "We finish what we start, and we keep our word."],
-          ["Brotherhood", "No one rides alone. No one struggles alone."],
-        ].map(([title, body]) => (
-          <li key={title} className="rounded-lg border border-border bg-card p-5">
-            <p className="font-semibold text-card-foreground">{title}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{body}</p>
-          </li>
-        ))}
-      </ul>
+      <section>
+        <h2 className="text-lg font-semibold text-foreground">Our Values</h2>
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+          {[
+            ["Loyalty to Community", "The people of San Andreas come first, always."],
+            ["Respect", "Every neighbor, every volunteer, every story matters."],
+            ["Commitment", "We finish what we start, and we keep our word."],
+            ["Brotherhood", "No one rides alone. No one struggles alone."],
+          ].map(([title, body]) => (
+            <li key={title} className="glass-card rounded-xl p-5">
+              <p className="font-semibold text-card-foreground">{title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{body}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

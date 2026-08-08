@@ -159,9 +159,9 @@ export default async function PatchWallPage({
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <div className="texture-noise rounded-xl border border-primary/20 bg-card p-6 md:p-8">
-        <DisplayHeading className="text-4xl text-primary">Patch Wall</DisplayHeading>
-        <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+      <div className="texture-noise glass-card rounded-xl p-6 md:p-8">
+        <DisplayHeading className="text-3xl text-primary md:text-4xl">Patch Wall</DisplayHeading>
+        <p className="mt-1 max-w-xl text-sm text-muted-foreground">
           Every patch tells a story. Earn yours on the road, in church, and when
           the club calls.
         </p>
@@ -189,9 +189,11 @@ export default async function PatchWallPage({
         ) : (
           <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {earned.map((patch) => (
+              // glass-card supplies the 1px frame; border-primary/40 re-tints
+              // it gold (single-property utilities sort after the shorthand).
               <li
                 key={patch.id}
-                className="glow-gold rounded-lg border border-primary/40 bg-card p-5"
+                className="glass-card glow-gold rounded-lg border-primary/40 p-5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex min-w-0 items-start gap-3">
@@ -230,7 +232,7 @@ export default async function PatchWallPage({
           {locked.map(({ patch, current, pct }) => (
             <li
               key={patch.id}
-              className="rounded-lg border border-border bg-card/60 p-5"
+              className="glass-card rounded-lg p-5"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 items-start gap-3">
@@ -279,7 +281,7 @@ export default async function PatchWallPage({
           ladders live on the member's own profile. */}
       {emblemsTotal > 0 && (
         <section aria-labelledby="emblems-heading">
-          <div className="rounded-xl border border-border bg-card/60 p-6">
+          <div className="glass-card rounded-xl p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h2
@@ -346,7 +348,10 @@ export default async function PatchWallPage({
 
       {/* Hall of Legends */}
       <section aria-labelledby="legends-heading">
-        <div className="texture-noise rounded-xl border border-primary/30 bg-gradient-to-b from-card to-background p-6">
+        {/* The gradient utility replaces only glass-card's background-image, so
+            it composes under the sheen (inset highlight + frame) — the
+            legendary fade survives the glass treatment. */}
+        <div className="texture-noise glass-card rounded-xl border-primary/30 bg-gradient-to-b from-card to-background p-6">
           <h2
             id="legends-heading"
             className="flex items-center gap-2 text-2xl text-primary"
@@ -364,7 +369,7 @@ export default async function PatchWallPage({
               {legends.map(({ patch, holder, reason }, i) => (
                 <li
                   key={`${patch.id}-${i}`}
-                  className="rounded-lg border border-primary/40 bg-card p-5"
+                  className="glass-card rounded-lg border-primary/40 p-5"
                 >
                   <p
                     className="text-xl text-primary"

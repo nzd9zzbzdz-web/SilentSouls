@@ -25,14 +25,16 @@ export default async function PublicEventsPage({
   const events = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ClubEvent, "id">) }));
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16">
-      <DisplayHeading className="text-4xl text-foreground">Upcoming Events</DisplayHeading>
-      <p className="mt-3 text-muted-foreground">
-        Join us. Every event is open to the community.
-      </p>
+    <div className="mx-auto max-w-4xl space-y-8 px-4 py-16">
+      <div>
+        <DisplayHeading className="text-4xl text-foreground">Upcoming Events</DisplayHeading>
+        <p className="mt-3 text-muted-foreground">
+          Join us. Every event is open to the community.
+        </p>
+      </div>
 
       {events.length === 0 ? (
-        <div className="mt-12 rounded-lg border border-border bg-card p-10 text-center">
+        <div className="glass-card rounded-xl p-10 text-center">
           <Calendar className="mx-auto size-10 text-muted-foreground" aria-hidden />
           <p className="mt-4 font-medium text-card-foreground">No events scheduled right now</p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -40,11 +42,11 @@ export default async function PublicEventsPage({
           </p>
         </div>
       ) : (
-        <ul className="mt-10 space-y-4">
+        <ul className="space-y-4">
           {events.map((event) => {
             const start = (event.startAt as Timestamp).toDate();
             return (
-              <li key={event.id} className="rounded-lg border border-border bg-card p-6">
+              <li key={event.id} className="glass-card rounded-xl p-6">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h2 className="text-lg font-semibold text-card-foreground">
                     {event.publicTitle ?? event.title}

@@ -56,9 +56,9 @@ export default async function ClubMapPage({
   });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-8">
       <div>
-        <DisplayHeading className="text-3xl text-primary">Club Map</DisplayHeading>
+        <DisplayHeading className="text-3xl text-primary md:text-4xl">Club Map</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           {canEditPins
             ? "Drop intel pins and track turf across San Andreas. The whole club sees this map."
