@@ -79,7 +79,7 @@ function Rung({
         onClick={onOpen}
         // Above the card's own click surface, so a rung opens itself rather
         // than the level the member is on.
-        className="relative z-10 flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-md p-1 text-center outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-primary/70"
+        className="relative z-10 flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-md p-1 text-center outline-none transition-[transform,background-color] hover:scale-105 hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-primary/70"
       >
         {rung.artUrl ? (
           // Artwork carries the state itself: earned emblems sit lit in their
@@ -169,12 +169,14 @@ function EmblemCloseUp({
       </p>
 
       <div className="mt-5 flex items-center justify-center gap-2">
+        {/* Full glass is fine on these two — they float once inside a dialog,
+            not in the ladder grid, so the blur budget allows it. */}
         <button
           type="button"
           aria-label="Previous level"
           disabled={index === 0}
           onClick={() => onIndex(index - 1)}
-          className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:text-primary disabled:pointer-events-none disabled:opacity-25"
+          className="glass glass-hover shrink-0 rounded-full p-2.5 text-muted-foreground outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/70 disabled:pointer-events-none disabled:opacity-25"
         >
           <ChevronLeft className="size-5" />
         </button>
@@ -220,7 +222,7 @@ function EmblemCloseUp({
           aria-label="Next level"
           disabled={index === ladder.rungs.length - 1}
           onClick={() => onIndex(index + 1)}
-          className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:text-primary disabled:pointer-events-none disabled:opacity-25"
+          className="glass glass-hover shrink-0 rounded-full p-2.5 text-muted-foreground outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/70 disabled:pointer-events-none disabled:opacity-25"
         >
           <ChevronRight className="size-5" />
         </button>
@@ -256,7 +258,7 @@ function EmblemCloseUp({
           progress as the card; the ones beyond it just name their price —
           a bar measured from zero would flatter a member who has barely
           started the climb. */}
-      <div className="mt-5 rounded-lg border border-border bg-card/60 px-4 py-3 text-center text-sm">
+      <div className="glass-card mt-5 rounded-lg px-4 py-3 text-center text-sm">
         {rung.earned ? (
           <p className="flex items-center justify-center gap-2 font-semibold" style={{ color: c }}>
             <Check className="size-4" strokeWidth={3} aria-hidden />
@@ -270,11 +272,14 @@ function EmblemCloseUp({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-label={`${ladder.label} progress toward ${rung.name}`}
-              className="h-1.5 overflow-hidden rounded-full bg-muted"
+              className="h-1.5 rounded-full bg-muted"
             >
               <div
                 className="h-full rounded-full bg-primary/70"
-                style={{ width: `${ladder.pct}%` }}
+                style={{
+                  width: `${ladder.pct}%`,
+                  boxShadow: "0 0 10px color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
               />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
@@ -303,7 +308,7 @@ function EmblemCloseUp({
               aria-label={r.name}
               aria-current={i === index}
               className={
-                "size-2 rounded-full transition-transform " +
+                "size-2 rounded-full outline-none transition-transform focus-visible:ring-2 focus-visible:ring-primary/70 " +
                 (i === index ? "scale-150" : "opacity-40 hover:opacity-80")
               }
               style={{ background: r.earned ? color(r) : "var(--muted-foreground)" }}
@@ -320,8 +325,12 @@ export function EmblemLadderCard({ ladder }: { ladder: EmblemLadderView }) {
   const maxed = ladder.remainingLabel === null;
   const next = ladder.rungs.find((r) => r.isNext) ?? null;
 
+  // glass-card, not glass: these tile two-up in a grid, and a blur per
+  // ladder would stack compositor passes. glass-hover because the whole
+  // card is one big button — the lift + ember edge is the hover cue the
+  // old border tint used to give.
   return (
-    <li className="relative rounded-lg border border-border bg-card/60 p-4 transition-colors hover:border-primary/40 sm:p-5">
+    <li className="glass-card glass-hover relative rounded-lg p-4 sm:p-5">
       {/* Click surface for the whole card, behind the rungs. A stretched button
           rather than a click handler on the card so it keeps a focus ring and
           reaches the keyboard. */}
@@ -364,11 +373,16 @@ export function EmblemLadderCard({ ladder }: { ladder: EmblemLadderView }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={`${ladder.label} progress toward ${next?.name ?? "complete"}`}
-        className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted"
+        // No overflow-hidden on the track: the fill rounds itself, and the
+        // clip would eat the ember glow the fill now throws.
+        className="mt-4 h-1.5 rounded-full bg-muted"
       >
         <div
           className={"h-full rounded-full " + (maxed ? "bg-primary" : "bg-primary/70")}
-          style={{ width: `${ladder.pct}%` }}
+          style={{
+            width: `${ladder.pct}%`,
+            boxShadow: "0 0 10px color-mix(in srgb, var(--primary) 45%, transparent)",
+          }}
         />
       </div>
 

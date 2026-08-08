@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { KeyRound, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getClientAuth } from "@/lib/firebase/client";
 
 function SignInForm({ orgSlug, orgId }: { orgSlug: string; orgId: string }) {
@@ -50,7 +51,7 @@ function SignInForm({ orgSlug, orgId }: { orgSlug: string; orgId: string }) {
   }
 
   return (
-    <div className="h-fit rounded-lg border border-border bg-card p-6">
+    <div className="h-fit rounded-lg glass-card p-6">
       <h2 className="flex items-center gap-2 font-semibold text-card-foreground">
         <KeyRound className="size-5 text-primary" aria-hidden />
         Volunteer Portal Sign-In
@@ -98,14 +99,10 @@ function SignInForm({ orgSlug, orgId }: { orgSlug: string; orgId: string }) {
             {error}
           </p>
         )}
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" disabled={pending} className="w-full">
           {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {pending ? "Signing in…" : "Sign In"}
-        </button>
+        </Button>
       </form>
     </div>
   );
@@ -115,7 +112,7 @@ export function VolunteerSignIn(props: { orgSlug: string; orgId: string }) {
   return (
     <Suspense
       fallback={
-        <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
+        <div className="h-64 animate-pulse rounded-lg glass-card" />
       }
     >
       <SignInForm {...props} />

@@ -201,16 +201,16 @@ export function CutViewer({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-center gap-1 rounded-full border border-border bg-card p-1">
+      <div className="glass flex items-center justify-center gap-1 rounded-full p-1">
         {(["front", "back"] as const).map((f) => (
           <button
             key={f}
             type="button"
             onClick={() => setFace(f)}
             className={cn(
-              "min-h-9 rounded-full px-6 text-sm font-semibold uppercase tracking-wider transition-colors",
+              "min-h-9 rounded-full px-6 text-sm font-semibold uppercase tracking-wider outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
               face === f
-                ? "bg-primary text-primary-foreground"
+                ? "glass glass-ember text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

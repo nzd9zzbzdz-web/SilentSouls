@@ -65,6 +65,13 @@ const ADMIN_NAV = [
   { href: "/admin/branding", label: "Branding", icon: Palette },
 ];
 
+// Ember treatment for the active nav item, layered over the sidebar's quiet
+// accent defaults from the call site so the shadcn primitives stay untouched.
+// The left edge is an inset shadow, not a border, so the row doesn't shift a
+// pixel when it activates; the second layer bleeds that edge into a soft glow.
+const NAV_ACTIVE =
+  "data-[active=true]:bg-primary/10 data-[active=true]:shadow-[inset_2px_0_0_var(--primary),inset_10px_0_14px_-12px_var(--primary)] [&[data-active=true]>svg]:text-primary";
+
 export function PortalShell({
   orgSlug,
   orgName,
@@ -119,7 +126,11 @@ export function PortalShell({
               <SidebarMenu>
                 {MAIN_NAV.map((item) => (
                   <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.href)}
+                      className={NAV_ACTIVE}
+                    >
                       <Link href={`${base}${item.href}`}>
                         <item.icon aria-hidden />
                         <span>{item.label}</span>
@@ -138,7 +149,11 @@ export function PortalShell({
                 <SidebarMenu>
                   {OFFICER_NAV.map((item) => (
                     <SidebarMenuItem key={item.label}>
-                      <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.href)}
+                        className={NAV_ACTIVE}
+                      >
                         <Link href={`${base}${item.href}`}>
                           <item.icon aria-hidden />
                           <span>{item.label}</span>
@@ -165,6 +180,7 @@ export function PortalShell({
                             ? pathname === `${base}/admin`
                             : isActive(item.href)
                         }
+                        className={NAV_ACTIVE}
                       >
                         <Link href={`${base}${item.href}`}>
                           <item.icon aria-hidden />
@@ -189,11 +205,14 @@ export function PortalShell({
                 {viewer.rankName}
               </p>
             </div>
+            {/* Quiet frosted chip — glass-hover's lift/ember edge is the hover
+                feedback, so the old accent-bg hover goes. No underglow: leaving
+                is not the action we want to advertise. */}
             <button
               type="button"
               onClick={handleLogout}
               aria-label="Sign out"
-              className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              className="glass glass-hover flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:text-sidebar-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <LogOut className="size-4" aria-hidden />
             </button>
@@ -202,7 +221,9 @@ export function PortalShell({
       </Sidebar>
 
       <SidebarInset className="bg-background">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur">
+        {/* glass-panel owns the bg/blur/border; zero every edge but the bottom
+            so it reads as the same hairline-under-header it always was. */}
+        <header className="glass-panel sticky top-0 z-30 flex h-14 items-center gap-3 border-x-0 border-t-0 px-4">
           <SidebarTrigger aria-label="Toggle sidebar" />
           <span className="text-sm text-muted-foreground">{orgName}</span>
         </header>

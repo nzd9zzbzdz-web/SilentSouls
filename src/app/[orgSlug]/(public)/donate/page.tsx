@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { HandCoins, PackageOpen, Wrench } from "lucide-react";
 import { getOrgBySlug } from "@/lib/tenant";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { Button } from "@/components/ui/button";
 
 export default async function DonatePage({
   params,
@@ -49,19 +50,18 @@ export default async function DonatePage({
         {ways.map((way) => (
           <article
             key={way.title}
-            className="flex flex-col rounded-lg border border-border bg-card p-6"
+            className="flex flex-col rounded-lg glass-card p-6"
           >
             <way.icon className="size-8 text-primary" aria-hidden />
             <h2 className="mt-4 text-lg font-semibold text-card-foreground">{way.title}</h2>
             <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
               {way.body}
             </p>
-            <button
-              type="button"
-              className="mt-6 flex min-h-11 cursor-pointer items-center justify-center rounded-md bg-accent px-4 text-sm font-semibold text-accent-foreground transition-opacity duration-200 hover:opacity-90"
-            >
+            {/* secondary, not ember: three equal ways to give — this page has
+                no single primary action to crown. */}
+            <Button type="button" variant="secondary" className="mt-6">
               {way.cta}
-            </button>
+            </Button>
           </article>
         ))}
       </div>

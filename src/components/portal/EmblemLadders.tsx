@@ -84,7 +84,9 @@ export function EmblemLadders({
   return (
     <section
       aria-label="Emblems"
-      className="texture-noise rounded-xl border border-primary/20 bg-card p-6 md:p-8"
+      // glass-card, not glass-panel: this section scrolls with the page, so
+      // its blur would re-sample on every frame for nothing.
+      className="texture-noise glass-card rounded-xl p-6 md:p-8"
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>

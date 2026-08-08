@@ -646,7 +646,7 @@ export function ClubMap({
                     return next;
                   })
                 }
-                className={`flex min-h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs transition-opacity ${
+                className={`glass glass-hover flex min-h-8 items-center gap-1.5 rounded-full px-3 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
                   hidden ? "opacity-40" : ""
                 }`}
               >
@@ -734,12 +734,52 @@ export function ClubMap({
         .club-popup-body { margin-top: 4px; font-size: 0.8rem; opacity: 0.85; overflow-wrap: anywhere; }
         .club-popup-meta { margin-top: 6px; font-size: 0.7rem; opacity: 0.6; }
         .club-popup-actions { display: flex; gap: 6px; margin-top: 8px; }
+        /* Glass idiom by hand: these are plain-DOM buttons inside Leaflet's
+           popup pane, where backdrop-filter is banned (the compositor would
+           re-sample the map on every pan frame) — so the frost is painted
+           with gradients only, mirroring the .glass utility's recipe. Danger
+           stays SOLID, same deliberate tier as the Button destructive
+           variant: a delete must never glow prettier than a save. */
         .club-popup-btn {
           min-height: 28px; padding: 0 10px; border-radius: 6px; cursor: pointer;
           font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
-          background: var(--secondary); color: var(--secondary-foreground); border: 1px solid var(--border);
+          color: var(--secondary-foreground);
+          border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+          background: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--foreground) 10%, transparent),
+            color-mix(in srgb, var(--foreground) 3%, transparent) 46%,
+            color-mix(in srgb, var(--background) 32%, transparent)
+          );
+          box-shadow:
+            inset 0 1px 0 color-mix(in srgb, var(--foreground) 16%, transparent),
+            inset 0 -1px 0 rgb(0 0 0 / 0.35);
+          transition: transform 0.18s ease, border-color 0.28s ease, box-shadow 0.28s ease;
         }
-        .club-popup-btn.danger { background: var(--destructive); color: #fff; border-color: transparent; }
+        @media (hover: hover) {
+          .club-popup-btn:hover {
+            transform: translateY(-1px);
+            border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+            box-shadow:
+              inset 0 1px 0 color-mix(in srgb, var(--foreground) 22%, transparent),
+              0 0 14px -4px color-mix(in srgb, var(--primary) 38%, transparent);
+          }
+        }
+        .club-popup-btn:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.55); }
+        .club-popup-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+        .club-popup-btn.danger {
+          background: var(--destructive); color: #fff; border-color: transparent;
+          box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14);
+        }
+        @media (hover: hover) {
+          .club-popup-btn.danger:hover {
+            /* No lift, no ember edge — solid darken only (Button parity). */
+            transform: none;
+            border-color: transparent;
+            background: color-mix(in srgb, var(--destructive) 90%, transparent);
+            box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14);
+          }
+        }
       `}</style>
     </div>
   );
@@ -832,16 +872,20 @@ function MarkerDialog({
               role="group"
               aria-label="Pin style"
             >
+              {/* glass-card, not glass: fifteen tiles in one grid, and a
+                  backdrop-filter apiece buys nothing inside an already-blurred
+                  dialog (perf rule in globals.css). Selected = ember tint under
+                  the same glass gradient. */}
               {MAP_PIN_STYLES.map((s) => (
                 <button
                   key={s.key}
                   type="button"
                   aria-pressed={style === s.key}
                   onClick={() => setStyle(s.key)}
-                  className={`flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-md border px-1 py-1.5 text-[0.65rem] transition-colors ${
+                  className={`glass-card glass-hover flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 text-[0.65rem] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
                     style === s.key
                       ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border text-muted-foreground hover:border-primary/50"
+                      : "text-muted-foreground"
                   }`}
                 >
                   <span aria-hidden>{s.glyph}</span>
@@ -961,14 +1005,19 @@ function TerritoryDialog({
                 type="button"
                 aria-pressed={color === null}
                 onClick={() => setColor(null)}
-                className={`flex min-h-8 items-center rounded-full border px-3 text-xs ${
+                className={`glass-card glass-hover flex min-h-8 items-center rounded-full px-3 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
                   color === null
-                    ? "border-primary text-foreground"
-                    : "border-border text-muted-foreground"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "text-muted-foreground"
                 }`}
               >
                 Auto
               </button>
+              {/* The inline ink color wins over glass-card's gradient — the
+                  swatch keeps its palette color and only inherits the glass
+                  edge/sheen. Selected ring stays border-foreground, not
+                  border-primary: half the palette is ember-adjacent and a
+                  primary ring would vanish on it. */}
               {TURF_PALETTE.map((c) => (
                 <button
                   key={c}
@@ -976,7 +1025,7 @@ function TerritoryDialog({
                   aria-pressed={color === c}
                   aria-label={`Color ${c}`}
                   onClick={() => setColor(c)}
-                  className={`size-8 rounded-full border-2 ${
+                  className={`glass-card glass-hover size-8 rounded-full border-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
                     color === c ? "border-foreground" : "border-transparent"
                   }`}
                   style={{ background: c }}

@@ -57,11 +57,14 @@ export function BrotherhoodSection({
         <ul className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {members.map((member) => (
             <li key={member.id}>
+              {/* glass-card, not glass: a roster-sized grid must not stack
+                  backdrop-filters. No underglow either — overflow-hidden (for
+                  the render zoom) would clip the bloom. */}
               <button
                 type="button"
                 onClick={() => setOpenId(member.id)}
                 aria-label={`${member.tenureLabel} — view larger`}
-                className="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors duration-200 hover:border-primary/50 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-xl glass-card glass-hover focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <span
                   aria-hidden
@@ -99,7 +102,7 @@ export function BrotherhoodSection({
         <div className="mt-12 text-center">
           <Link
             href={joinHref}
-            className="inline-flex min-h-11 items-center rounded-sm border border-primary px-8 text-xs font-semibold uppercase tracking-[0.16em] text-primary transition-colors duration-200 hover:bg-primary/10"
+            className="glass glass-ember glass-hover underglow inline-flex min-h-11 items-center rounded-md px-8 text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Ride With Us
           </Link>
@@ -129,7 +132,7 @@ export function BrotherhoodSection({
                   {open.bio ||
                     "This one keeps their story to themselves. Ride with us long enough and you might hear it."}
                 </p>
-                <DialogClose className="mt-8 inline-flex min-h-11 w-fit items-center rounded-sm border border-primary px-6 text-xs font-semibold uppercase tracking-[0.16em] text-primary transition-colors duration-200 hover:bg-primary/10">
+                <DialogClose className="glass glass-hover mt-8 inline-flex min-h-11 w-fit items-center rounded-md px-6 text-xs font-semibold uppercase tracking-[0.16em] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   Close
                 </DialogClose>
               </div>

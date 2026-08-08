@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Clock, Mail, MapPin } from "lucide-react";
 import { getOrgBySlug } from "@/lib/tenant";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import { Button } from "@/components/ui/button";
 
 export default async function ContactPage({
   params,
@@ -50,7 +51,7 @@ export default async function ContactPage({
           </div>
         </div>
 
-        <form className="space-y-4 rounded-lg border border-border bg-card p-6">
+        <form className="space-y-4 rounded-lg glass-card p-6">
           <div>
             <label htmlFor="contact-name" className="mb-1 block text-sm font-medium text-card-foreground">
               Your name <span aria-hidden="true" className="text-destructive">*</span>
@@ -89,12 +90,9 @@ export default async function ContactPage({
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
-          <button
-            type="submit"
-            className="flex min-h-11 w-full cursor-pointer items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90"
-          >
+          <Button type="submit" className="w-full">
             Send Message
-          </button>
+          </Button>
           <p className="text-xs text-muted-foreground">
             Message delivery coming soon. For now, visit us on Saturdays.
           </p>

@@ -65,12 +65,16 @@ export function PatchArtCell({
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
+      {/* glass-card, not glass: this cell repeats for every row of the patch
+          table, and sixty backdrop-blurs is a compositor bill. border-dashed
+          keeps the drop-frame affordance (single-property utilities sort after
+          glass-card's border shorthand, so the dash survives). */}
       <button
         type="button"
         disabled={pending}
         onClick={() => fileRef.current?.click()}
         aria-label={art ? `Replace artwork for ${patchName}` : `Add artwork for ${patchName}`}
-        className="flex size-11 shrink-0 items-center justify-center rounded-md border border-dashed border-border bg-muted/30 transition-colors hover:border-primary/60 disabled:opacity-50"
+        className="glass-card glass-hover flex size-11 shrink-0 items-center justify-center rounded-md border-dashed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
       >
         {pending ? (
           <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />

@@ -76,7 +76,7 @@ export function VestDesigner({
       {/* Stage */}
       <div>
         <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="flex gap-1 rounded-full border border-border bg-card p-1">
+          <div className="glass flex gap-1 rounded-full p-1">
             {(["front", "back"] as const).map((f) => (
               <button
                 key={f}
@@ -86,8 +86,8 @@ export function VestDesigner({
                   setSelected(null);
                 }}
                 className={cn(
-                  "min-h-8 rounded-full px-4 text-xs font-semibold uppercase tracking-wider transition-colors",
-                  surface === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                  "min-h-8 rounded-full px-4 text-xs font-semibold uppercase tracking-wider outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  surface === f ? "glass glass-ember text-primary-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {f}
@@ -121,15 +121,17 @@ export function VestDesigner({
                 setSelected(i);
                 setDragging(i);
               }}
-              className="absolute flex cursor-move flex-col items-center gap-1 focus-visible:outline-none"
+              className="group absolute flex cursor-move flex-col items-center gap-1 focus-visible:outline-none"
               style={{ left: `${s.u * 100}%`, top: `${s.v * 100}%`, transform: "translate(-50%,-50%)" }}
               aria-label={`Slot ${s.slot} at ${Math.round(s.u * 100)}, ${Math.round(s.v * 100)}`}
             >
+              {/* Keyboard focus lands on the diamond, not the outline-less
+                  button — tab order has to be visible on the stage too. */}
               <span
                 className={cn(
-                  "size-4 rotate-45 border-2 transition-shadow",
+                  "size-4 rotate-45 border-2 transition-shadow group-focus-visible:ring-2 group-focus-visible:ring-ring",
                   selected === i
-                    ? "border-primary bg-primary/40 shadow-[0_0_0_4px_rgba(84,33,63,0.25)]"
+                    ? "border-primary bg-primary/40 ring-4 ring-primary/25"
                     : "border-primary/70 bg-primary/10",
                 )}
               />
@@ -146,7 +148,7 @@ export function VestDesigner({
 
       {/* Inspector / actions */}
       <div className="space-y-4">
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="glass-card rounded-lg p-4">
           {sel ? (
             <div className="space-y-3">
               <div>

@@ -33,8 +33,12 @@ export function CharityHeader({
   const [open, setOpen] = useState(false);
   const base = `/${orgSlug}`;
 
+  // glass-panel, not a solid bar: the header is the only floating chrome on
+  // the public site, so it alone earns the blur. Side/top borders stripped —
+  // a full-bleed sticky bar only wants its bottom hairline. Overflow stays
+  // visible so the CTA's underglow can bloom past it.
   return (
-    <header className="sticky top-0 z-40 border-b border-[#941B22]/15 bg-[#050407]/95 backdrop-blur">
+    <header className="glass-panel sticky top-0 z-40 border-x-0 border-t-0">
       {/* Oversized club patch pinned to the far-left edge of the header,
           overhanging the bar onto the hero. z-10 keeps it above the nav;
           lg:pl on the bar reserves room so links never slide under it. */}
@@ -65,7 +69,7 @@ export function CharityHeader({
                   key={item.label}
                   aria-disabled
                   title="Coming soon"
-                  className="flex min-h-11 cursor-default items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#B8A0A5]"
+                  className="flex min-h-11 cursor-default items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground/60"
                 >
                   {item.label}
                 </span>
@@ -84,10 +88,13 @@ export function CharityHeader({
                     window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
                 className={cn(
-                  "flex min-h-11 items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] transition-colors duration-200",
+                  // Ember underline marks the active page; hovering a link
+                  // previews the same underline at half strength — quieter
+                  // than a background fill on floating glass.
+                  "flex min-h-11 items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] decoration-2 underline-offset-[6px] transition-colors duration-200",
                   active
-                    ? "text-[#D9362B] underline decoration-[#941B22] decoration-2 underline-offset-[6px]"
-                    : "text-[#B8A0A5] hover:text-[#EEE7E8]",
+                    ? "text-primary underline decoration-primary"
+                    : "text-muted-foreground hover:text-foreground hover:underline hover:decoration-primary/50",
                 )}
               >
                 {item.label}
@@ -96,7 +103,7 @@ export function CharityHeader({
           })}
           <Link
             href={`${base}/volunteer-resources`}
-            className="ml-3 flex min-h-11 items-center rounded-sm border border-[#941B22]/70 px-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#D9362B] transition-colors duration-200 hover:bg-[#D9362B] hover:text-[#EEE7E8]"
+            className="glass glass-hover underglow ml-3 flex min-h-11 items-center rounded-sm px-5 text-xs font-semibold uppercase tracking-[0.14em] text-primary"
           >
             Member Login
           </Link>
@@ -107,21 +114,24 @@ export function CharityHeader({
           onClick={() => setOpen(!open)}
           aria-expanded={open}
           aria-label={open ? "Close menu" : "Open menu"}
-          className="flex size-11 items-center justify-center rounded-sm text-[#EEE7E8] hover:bg-white/5 lg:hidden"
+          className="glass glass-hover flex size-11 items-center justify-center rounded-sm text-foreground lg:hidden"
         >
           {open ? <X className="size-5" aria-hidden /> : <Menu className="size-5" aria-hidden />}
         </button>
       </div>
 
       {open && (
-        <nav aria-label="Mobile" className="relative z-20 border-t border-[#941B22]/15 bg-[#050407] px-4 pb-4 lg:hidden">
+        // No background of its own — the menu lives inside the header, so the
+        // glass-panel blur behind it is already doing the legibility work a
+        // solid fill used to.
+        <nav aria-label="Mobile" className="relative z-20 border-t border-border/60 px-4 pb-4 lg:hidden">
           {NAV.map((item) =>
             item.href !== undefined ? (
               <Link
                 key={item.label}
                 href={`${base}${item.href}`}
                 onClick={() => setOpen(false)}
-                className="flex min-h-11 items-center rounded-sm px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#EEE7E8] hover:bg-white/5"
+                className="flex min-h-11 items-center rounded-sm px-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground hover:bg-foreground/5"
               >
                 {item.label}
               </Link>
@@ -129,7 +139,7 @@ export function CharityHeader({
               <span
                 key={item.label}
                 aria-disabled
-                className="flex min-h-11 items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#B8A0A5]"
+                className="flex min-h-11 items-center px-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground/60"
               >
                 {item.label}
               </span>
@@ -138,7 +148,7 @@ export function CharityHeader({
           <Link
             href={`${base}/volunteer-resources`}
             onClick={() => setOpen(false)}
-            className="mt-2 flex min-h-11 items-center justify-center rounded-sm border border-[#941B22]/70 px-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#D9362B]"
+            className="glass glass-hover underglow mt-2 flex min-h-11 items-center justify-center rounded-sm px-5 text-xs font-semibold uppercase tracking-[0.14em] text-primary"
           >
             Member Login
           </Link>

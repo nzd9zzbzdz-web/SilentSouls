@@ -6,8 +6,12 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
+      // glass-card, not glass-panel: cards render in grids and lists by the
+      // dozen, and the card tier paints the frosted look with gradients only —
+      // no backdrop-filter for the compositor to re-sample per card. It brings
+      // its own border/background/shadow, so the stock bg-card/shadow-sm go.
       className={cn(
-        "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm",
+        "glass-card flex flex-col gap-6 rounded-xl py-6 text-card-foreground",
         className
       )}
       {...props}

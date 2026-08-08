@@ -176,7 +176,7 @@ export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: strin
       <div
         role="region"
         aria-label={label}
-        className={`fixed bottom-20 right-5 z-40 overflow-hidden rounded-xl border border-primary/50 bg-background/95 shadow-xl backdrop-blur-md transition-[width] duration-200 ${
+        className={`glass-panel fixed bottom-20 right-5 z-40 overflow-hidden rounded-xl transition-[width] duration-200 ${
           stopped ? "hidden" : ""
         }`}
         style={{
@@ -191,7 +191,7 @@ export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: strin
             type="button"
             onClick={() => setMinimized((v) => !v)}
             aria-label={minimized ? "Expand player" : "Minimize player"}
-            className="shrink-0 rounded-full p-1 text-foreground/70 transition-colors hover:text-primary"
+            className="shrink-0 rounded-full p-1 text-muted-foreground outline-none transition-colors hover:bg-accent/40 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {minimized ? (
               <Maximize2 className="size-3.5" aria-hidden />
@@ -203,15 +203,19 @@ export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: strin
         <div ref={containerRef} className="aspect-video w-full [&_iframe]:size-full [&_iframe]:border-0" />
       </div>
 
+      {/* Ember glass only while the anthem plays — the pill is frosted at
+          rest and earns the primary tint once it's the live control. It's a
+          fixed float over the page, so the blur in `glass` is within the
+          perf rule, and nothing clips the underglow's below-edge bloom. */}
       <button
         type="button"
         onClick={togglePlayback}
         aria-label={playing ? `Pause ${label.toLowerCase()}` : `Play ${label.toLowerCase()}`}
         aria-pressed={playing}
-        className={`fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full border px-4 py-3 text-[0.7rem] font-semibold uppercase tracking-[0.16em] shadow-lg backdrop-blur-md transition-colors ${
+        className={`glass glass-hover underglow fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full px-4 py-3 text-[0.7rem] font-semibold uppercase tracking-[0.16em] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
           playing
-            ? "border-primary/70 bg-background/85 text-primary"
-            : "border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
+            ? "glass-ember text-primary-foreground"
+            : "text-foreground hover:text-primary"
         }`}
       >
         {playing ? (

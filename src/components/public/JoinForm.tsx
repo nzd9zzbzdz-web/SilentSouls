@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getClientAuth } from "@/lib/firebase/client";
 import { submitApplication } from "@/actions/applications";
 
@@ -70,7 +71,7 @@ export function JoinForm({ orgId }: { orgSlug: string; orgId: string }) {
 
   if (done) {
     return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center">
+      <div className="rounded-lg glass-card p-8 text-center">
         <CheckCircle2 className="mx-auto size-10 text-primary" aria-hidden />
         <h2 className="mt-3 text-lg font-semibold text-card-foreground">Application sent</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -82,7 +83,7 @@ export function JoinForm({ orgId }: { orgSlug: string; orgId: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-border bg-card p-6" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg glass-card p-6" noValidate>
       <div>
         <label htmlFor="j-road" className={LABEL}>
           Road name / handle you go by
@@ -121,14 +122,10 @@ export function JoinForm({ orgId }: { orgSlug: string; orgId: string }) {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-      >
+      <Button type="submit" disabled={pending} className="w-full">
         {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
         {pending ? "Submitting…" : "Submit application"}
-      </button>
+      </Button>
     </form>
   );
 }
