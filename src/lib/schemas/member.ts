@@ -29,6 +29,18 @@ export const updateMemberSchema = createMemberSchema.partial().extend({
 });
 export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
 
+/**
+ * Self-service bio. Same 600-char ceiling as the admin form — it writes the
+ * same field, and a member shouldn't get more room on the public site than an
+ * officer would give them. Empty clears it.
+ */
+export const saveMemberBioSchema = z.object({
+  orgId: z.string().min(1),
+  memberId: z.string().min(1),
+  bio: z.string().max(600, "Keep it under 600 characters"),
+});
+export type SaveMemberBioInput = z.infer<typeof saveMemberBioSchema>;
+
 export const deleteMemberSchema = z.object({
   orgId: z.string().min(1),
   memberId: z.string().min(1),

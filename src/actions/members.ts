@@ -10,7 +10,7 @@ import {
   adminDb,
   orgRef,
 } from "@/lib/firebase/admin";
-import { requireOrgRole } from "@/lib/auth/session";
+import { requireOrgRole, requireSelfOrRole } from "@/lib/auth/session";
 import { syncUserClaims } from "@/lib/auth/claims";
 import { checkMilestones } from "@/lib/milestones";
 import {
@@ -18,11 +18,13 @@ import {
   deleteMemberSchema,
   inviteMemberSchema,
   officerNoteSchema,
+  saveMemberBioSchema,
   updateMemberSchema,
   type CreateMemberInput,
   type DeleteMemberInput,
   type InviteMemberInput,
   type OfficerNoteInput,
+  type SaveMemberBioInput,
   type UpdateMemberInput,
 } from "@/lib/schemas/member";
 import type { ActionResult } from "./activities";
@@ -254,6 +256,55 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
 
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
     revalidatePath(`/[orgSlug]/portal/admin`, "page");
+    return { ok: true };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+/**
+ * Self-service bio: a member writing their own, or an admin writing anyone's.
+ *
+ * This is the one field a member can put in front of the outside world — the
+ * same `bio` the public roster reads — so two things matter. The editor says so
+ * out loud (see MemberBio), and every self-edit is tagged `.self` in the audit
+ * log, which is how an officer notices something that needs taking down.
+ *
+ * Deliberately its own action rather than opening `updateMember` to members:
+ * that one also moves rank, status and portal role, and the safest way to keep
+ * a member away from those fields is to never hand them the door.
+ */
+export async function saveMemberBio(raw: SaveMemberBioInput): Promise<ActionResult> {
+  const parsed = saveMemberBioSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const { orgId, memberId, bio } = parsed.data;
+
+  try {
+    const { access, isSelf } = await requireSelfOrRole(orgId, memberId, "admin");
+    const ref = orgRef(orgId).collection("members").doc(memberId);
+    if (!(await ref.get()).exists) {
+      return { ok: false, error: "Member not found" };
+    }
+
+    // Trimmed-empty clears it, matching the admin form — "save an empty box"
+    // is how you take your blurb back off the public site.
+    await ref.update({ bio: bio.trim() });
+
+    await orgRef(orgId).collection("auditLogs").add({
+      actorUid: access.user.uid,
+      action: `member.bio${isSelf ? ".self" : ""}`,
+      targetPath: ref.path,
+      detail: bio.trim() ? `${bio.trim().length} chars` : "cleared",
+      at: FieldValue.serverTimestamp(),
+    });
+
+    // The bio renders in two places and BOTH have to be revalidated: the
+    // profile, and the PUBLIC roster on the org home page. Miss the second and
+    // a member "removes" their blurb while the outside world still sees it.
+    revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
+    revalidatePath(`/[orgSlug]`, "page");
     return { ok: true };
   } catch (e) {
     return failure(e);

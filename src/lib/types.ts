@@ -172,8 +172,11 @@ export interface Member {
   rapStatus?: string;
   /**
    * In-character blurb shown on the PUBLIC site when this member is opened
-   * from the home page roster. Written by an admin, so treat it as the only
-   * member prose the outside world ever sees — nothing else on that card is.
+   * from the home page roster, and on their portal profile.
+   *
+   * Written by the member themselves (`saveMemberBio`) or by an admin — it is
+   * the only member-authored prose the outside world ever sees, so self-edits
+   * are tagged `member.bio.self` in the audit log for officers to spot.
    */
   bio?: string;
   rankId: string;

@@ -88,6 +88,31 @@ export async function requireOrgRole(
   return { user, role: entry.r, memberId: entry.m, isSuper: false };
 }
 
+/**
+ * Self-service gate: the member editing their OWN record, or anyone who clears
+ * `elevatedRole` editing anyone's.
+ *
+ * The ownership test compares `memberId` against the caller's CLAIM, never
+ * against anything the client posted — that is the whole security property.
+ * A member who rewrites the payload to another member's id simply falls
+ * through to the elevated check and gets refused.
+ *
+ * Not-self re-runs `requireOrgRole` rather than comparing roles inline, so
+ * rank order keeps exactly one definition. `getSessionUser` is request-cached,
+ * so the second call is not a second round trip.
+ */
+export async function requireSelfOrRole(
+  orgId: string,
+  memberId: string,
+  elevatedRole: SystemRole = "admin",
+): Promise<{ access: OrgAccess; isSelf: boolean }> {
+  const access = await requireOrgRole(orgId, "member");
+  if (access.memberId && access.memberId === memberId) {
+    return { access, isSelf: true };
+  }
+  return { access: await requireOrgRole(orgId, elevatedRole), isSelf: false };
+}
+
 export async function requireSuperAdmin(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) throw new AuthError("unauthenticated");

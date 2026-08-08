@@ -4,6 +4,7 @@ import { type StagePatch } from "@/components/portal/CharacterStage";
 import { CharacterPoseEditor } from "@/components/portal/CharacterPoseEditor";
 import { EmblemLadders } from "@/components/portal/EmblemLadders";
 import { Leaderboard } from "@/components/portal/Leaderboard";
+import { MemberBio } from "@/components/portal/MemberBio";
 import { ServiceRecord } from "@/components/portal/ServiceRecord";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { composeLadders, patchArtUrl } from "@/lib/patch-ladders";
@@ -36,9 +37,14 @@ export default async function MemberDetailPage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
   const access = await requireOrgRole(org.id, "member");
-  // Character art and placement are admin-only — officers can review activities
-  // but don't get to restyle anyone's character screen.
+  const isSelf = access.memberId === memberId;
+  // Uploading someone's render stays admin-only — it's an arbitrary image that
+  // also reaches the public roster. Officers can review activities but don't
+  // get to restyle anyone's character screen.
   const canManageArt = access.role === "admin";
+  // Standing on your own mark and writing your own story are yours. Both are
+  // re-gated server-side by requireSelfOrRole — this only decides what renders.
+  const canEditSelf = canManageArt || isSelf;
 
   const member = await getMember(org.id, memberId);
   if (!member) notFound();
@@ -135,7 +141,7 @@ export default async function MemberDetailPage({
         <CharacterPoseEditor
           orgId={org.id}
           memberId={memberId}
-          canEdit={canManageArt}
+          canEdit={canEditSelf}
           initialPose={member.characterPose}
           orgName={branding?.orgDisplayName ?? org.name}
           tagline={branding?.tagline}
@@ -160,6 +166,15 @@ export default async function MemberDetailPage({
           </div>
         )}
       </div>
+
+      <MemberBio
+        orgId={org.id}
+        memberId={memberId}
+        bio={member.bio ?? ""}
+        canEdit={canEditSelf}
+        isSelf={isSelf}
+        roadName={member.roadName}
+      />
 
       <Tabs defaultValue="service" className="gap-4">
         <TabsList>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 import { FieldValue, orgRef } from "@/lib/firebase/admin";
-import { requireOrgRole } from "@/lib/auth/session";
+import { requireOrgRole, requireSelfOrRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
 import {
   keyOutLightBackground,
@@ -153,7 +153,9 @@ export async function applyDefaultCharacterStage(raw: {
 }
 
 /**
- * Org-admin: save where a member's render stands on their stage.
+ * Save where a member's render stands on their stage — the member themselves,
+ * or an admin for anyone. Standing on your own mark is self-service: it's your
+ * character, and a pose is trivially reversible.
  *
  * Pass `pose: null` to clear it and fall back to DEFAULT_CHARACTER_POSE. Values
  * are clamped server-side rather than rejected — a drag that overshoots should
@@ -171,7 +173,7 @@ export async function saveCharacterPose(raw: {
   const { orgId, memberId, pose } = parsed.data;
 
   try {
-    const access = await requireOrgRole(orgId, "admin");
+    const { access, isSelf } = await requireSelfOrRole(orgId, memberId, "admin");
     const memberRef = orgRef(orgId).collection("members").doc(memberId);
     if (!(await memberRef.get()).exists) {
       return { ok: false, error: "Member not found" };
@@ -182,7 +184,11 @@ export async function saveCharacterPose(raw: {
     });
     await writeAuditLog(orgId, {
       actorUid: access.user.uid,
-      action: pose ? "member.characterPose" : "member.characterPose.reset",
+      // Self-edits are tagged so the log still answers "who moved this" at a
+      // glance now that it isn't always an admin.
+      action: pose
+        ? `member.characterPose${isSelf ? ".self" : ""}`
+        : `member.characterPose.reset${isSelf ? ".self" : ""}`,
       targetPath: memberRef.path,
       // Omit the key entirely on reset — Firestore rejects an explicit
       // `undefined`, which would fail the write after the pose already changed.
