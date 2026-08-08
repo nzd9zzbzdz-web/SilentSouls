@@ -23,6 +23,7 @@ export const MAP_PIN_STYLES: MapPinStyle[] = [
   { key: "deal", label: "Deal", glyph: "💰", color: "#d4af37" },
   { key: "weapons", label: "Weapons", glyph: "🔫", color: "#d35400" },
   { key: "product", label: "Product", glyph: "💊", color: "#27ae60" },
+  { key: "fruit", label: "Fruit Trees", glyph: "🍎", color: "#7cb342" },
   { key: "vehicle", label: "Vehicle", glyph: "🚗", color: "#34495e" },
   { key: "lookout", label: "Lookout", glyph: "👁️", color: "#1abc9c" },
   { key: "danger", label: "Danger", glyph: "⚠️", color: "#e74c3c" },
