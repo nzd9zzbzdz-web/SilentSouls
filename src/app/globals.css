@@ -157,6 +157,178 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Glass system ───────────────────────────────────────────────────
+   Frosted surfaces + ember underglow. Every value derives from the
+   org's branding vars via color-mix — a tenant with a green palette
+   gets green glass and green glow for free, so the no-hardcoded-brand
+   rule holds.
+
+   Tiers (wired up in ui/button.tsx):
+     ember   = the one primary action on a page (glass-ember)
+     frosted = default interactive surface   (glass)
+     etched  = quiet dismiss/back            (ghost variant, no glow)
+     blood   = destructive, stays SOLID — a delete that glows prettier
+               than a save teaches the wrong reflex.
+
+   Perf rule: backdrop-filter forces the compositor to re-sample what's
+   behind it. It is reserved for chrome and small floating elements
+   (buttons, the sticky header, dialogs, popovers, toasts). Repeated
+   in-flow surfaces — cards in grids, list rows — use glass-card: the
+   same look painted with gradients only, zero compositor cost. Never
+   put a backdrop-filter inside the Leaflet map panes or a long list. */
+
+/* Small interactive glass — buttons, chips, pills. */
+@utility glass {
+  border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--foreground) 10%, transparent),
+    color-mix(in srgb, var(--foreground) 3%, transparent) 46%,
+    color-mix(in srgb, var(--background) 32%, transparent)
+  );
+  backdrop-filter: blur(12px) saturate(135%);
+  -webkit-backdrop-filter: blur(12px) saturate(135%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--foreground) 16%, transparent),
+    inset 0 -1px 0 rgb(0 0 0 / 0.35),
+    0 10px 22px -14px rgb(0 0 0 / 0.9);
+}
+
+/* Primary-action tint over the same glass. Declared after `glass` so
+   composing "glass glass-ember" lets the tint win. */
+@utility glass-ember {
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 42%, transparent),
+    color-mix(in srgb, var(--primary) 27%, transparent) 50%,
+    color-mix(in srgb, var(--accent) 35%, transparent)
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--primary-foreground) 28%, transparent),
+    inset 0 -1px 0 rgb(0 0 0 / 0.3),
+    0 10px 24px -14px color-mix(in srgb, var(--primary) 80%, transparent);
+}
+
+/* Large floating chrome — dialogs, popovers, dropdowns, the header.
+   More card in the mix than `glass`: menus sit over body text and
+   must stay legible, atmosphere or not. */
+@utility glass-panel {
+  border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      transparent 40%
+    ),
+    color-mix(in srgb, var(--card) 86%, transparent);
+  backdrop-filter: blur(16px) saturate(125%);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--foreground) 12%, transparent),
+    0 18px 40px -28px rgb(0 0 0 / 1);
+}
+
+/* In-flow panels, grid cards, list rows — glass look, NO blur (perf). */
+@utility glass-card {
+  border: 1px solid color-mix(in srgb, var(--foreground) 9%, transparent);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--foreground) 6%, transparent),
+      transparent 45%
+    ),
+    color-mix(in srgb, var(--card) 92%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--foreground) 10%, transparent),
+    0 14px 32px -24px rgb(0 0 0 / 0.9);
+}
+
+/* Interactive lift + ember edge. Hover only exists on pointer devices —
+   without the guard, :hover sticks after a tap on touch screens. */
+@utility glass-hover {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease,
+    background-color 0.28s ease,
+    color 0.2s ease;
+}
+@media (hover: hover) {
+  .glass-hover:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--foreground) 22%, transparent),
+      0 14px 30px -16px rgb(0 0 0 / 0.95),
+      0 0 22px -4px color-mix(in srgb, var(--primary) 38%, transparent);
+  }
+}
+.glass-hover:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.55);
+}
+
+/* The bloom under a button. A pseudo-element, so it needs no wrapper —
+   but it extends 8px below the element, so keep overflow visible.
+   Fires on hover (pointer devices), keyboard focus, and press; never on
+   disabled controls. The focus ring stays the focus indicator — the
+   glow is atmosphere, not a11y. */
+@utility underglow {
+  position: relative;
+}
+.underglow::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -8px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--primary);
+  filter: blur(14px);
+  opacity: 0;
+  transform: scaleX(0.6);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .underglow:hover::after {
+    opacity: 0.55;
+    transform: scaleX(1);
+  }
+}
+.underglow:focus-visible::after {
+  opacity: 0.55;
+  transform: scaleX(1);
+}
+.underglow:active::after {
+  opacity: 0.8;
+  transform: scaleX(0.9);
+}
+.underglow:disabled::after,
+.underglow[aria-disabled="true"]::after {
+  display: none;
+}
+
+/* Glass must degrade to solid panels when the OS asks for less
+   transparency — unreadable soup is not a premium finish. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-ember,
+  .glass-panel,
+  .glass-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--card);
+  }
+  .glass-ember {
+    background: color-mix(in srgb, var(--primary) 65%, var(--background));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
