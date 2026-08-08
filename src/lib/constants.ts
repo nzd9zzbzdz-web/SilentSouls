@@ -83,6 +83,19 @@ export const CHARACTER_POSE_LIMITS = {
 export const DEFAULT_CHARACTER_STAGE = "/brand/character-stage.webp";
 
 /**
+ * What stands behind the figures on the public Brotherhood cards — the
+ * spotlight column of the same clubhouse the portal character screen uses,
+ * cut to portrait so a 3:4 card gets the light pool rather than a random
+ * slice of wall.
+ *
+ * A shipped constant rather than branding-only for the same reason as the
+ * hero clip: the public branding read has no fallback, so a branding-only
+ * field would stay invisible in production until that doc was separately
+ * rewritten. `branding.rosterBackdropPath` still overrides it.
+ */
+export const DEFAULT_ROSTER_BACKDROP = "/brand/roster-backdrop.webp";
+
+/**
  * The club anthem, streamed from YouTube by <MusicPlayer> on BOTH surfaces —
  * the public site and the portal. One id, one place: the two layouts must
  * never drift onto different tracks. Becomes a branding field the day a

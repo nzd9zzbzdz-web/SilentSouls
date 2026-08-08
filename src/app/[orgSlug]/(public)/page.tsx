@@ -8,10 +8,10 @@ import { listMembers, listMembersWithRender, listRanks } from "@/lib/queries";
 import {
   bySeniority,
   isPubliclyVisible,
-  tenureLabel,
+  publicCardLabel,
   type PublicRosterMember,
 } from "@/lib/public-roster";
-import { CHARACTER_SILHOUETTE } from "@/lib/constants";
+import { CHARACTER_SILHOUETTE, DEFAULT_ROSTER_BACKDROP } from "@/lib/constants";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Button } from "@/components/ui/button";
 import { HeroGalleryFilmstrip } from "@/components/public/HeroGalleryFilmstrip";
@@ -72,7 +72,7 @@ export default async function PublicHomePage({
         imageUrl: withRender.get(member.id)?.approved
           ? `/api/orgs/${org.id}/members/${member.id}/render`
           : (ownArt ?? CHARACTER_SILHOUETTE),
-        tenureLabel: tenureLabel(joined, now),
+        tenureLabel: publicCardLabel(member, joined, now),
         joinedAtMs: joined?.getTime() ?? Number.MAX_SAFE_INTEGER,
         bio: member.bio ?? "",
       };
@@ -228,7 +228,11 @@ export default async function PublicHomePage({
       </section>
 
       {/* ── The Brotherhood ── */}
-      <BrotherhoodSection members={brotherhood} joinHref={`${base}/join`} />
+      <BrotherhoodSection
+        members={brotherhood}
+        joinHref={`${base}/join`}
+        backdropPath={branding?.rosterBackdropPath ?? DEFAULT_ROSTER_BACKDROP}
+      />
 
       {/* ── Latest ── */}
       <section aria-labelledby="news-heading" className="bg-[#050407]">

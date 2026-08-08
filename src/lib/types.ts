@@ -82,6 +82,8 @@ export interface Branding {
   logoPath?: string;
   heroImagePath?: string; // full-bleed public hero backdrop
   characterStagePath?: string; // portal: backdrop art for member character screens
+  /** public: what stands behind the figures on the Brotherhood cards. */
+  rosterBackdropPath?: string;
   orgDisplayName: string;
   tagline?: string;
   mission?: string;
@@ -179,6 +181,13 @@ export interface Member {
    * are tagged `member.bio.self` in the audit log for officers to spot.
    */
   bio?: string;
+  /**
+   * Overrides the computed tenure caption on the PUBLIC Brotherhood card
+   * ("New to the colors", "3 years riding"). Club-authored, admin-only: it is
+   * the club's word on someone's standing, so "Founding member" or "Prez" is
+   * the org's call to make, not the member's. Empty/absent ⇒ computed tenure.
+   */
+  publicLabel?: string;
   rankId: string;
   status: MemberStatus;
   joinDate: Timestamp | Date;

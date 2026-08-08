@@ -47,6 +47,8 @@ interface MemberRow {
   joinDate: string;
   /** Public-site blurb; the only member prose the outside world sees. */
   bio: string;
+  /** Overrides the computed tenure caption on the public card. */
+  publicLabel: string;
 }
 
 interface RankOption {
@@ -82,6 +84,7 @@ export function MemberAdmin({
     joinDate: new Date().toISOString().slice(0, 10),
     role: "member" as SystemRole,
     bio: "",
+    publicLabel: "",
   });
   const [inviteTarget, setInviteTarget] = useState<MemberRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
@@ -103,6 +106,7 @@ export function MemberAdmin({
       joinDate: new Date().toISOString().slice(0, 10),
       role: "member",
       bio: "",
+      publicLabel: "",
     });
     setEditorOpen(true);
   }
@@ -117,6 +121,7 @@ export function MemberAdmin({
       joinDate: member.joinDate,
       role: member.role ?? "member",
       bio: member.bio,
+      publicLabel: member.publicLabel,
     });
     setEditorOpen(true);
   }
@@ -131,6 +136,7 @@ export function MemberAdmin({
         status: form.status,
         joinDate: new Date(form.joinDate),
         bio: form.bio.trim(),
+        publicLabel: form.publicLabel.trim(),
       };
       const roleChanged =
         editing?.hasAccount && editing.role !== null && form.role !== editing.role;
@@ -354,6 +360,23 @@ export function MemberAdmin({
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 Drives how long they&rsquo;ve been riding on the public site.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="member-public-label">Public card caption</Label>
+              <Input
+                id="member-public-label"
+                value={form.publicLabel}
+                maxLength={40}
+                onChange={(e) => setForm({ ...form, publicLabel: e.target.value })}
+                placeholder={form.joinDate ? "e.g. Founding member" : "e.g. Founding member"}
+                className="mt-1"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                The line under their picture on the public Brotherhood grid.
+                Leave it empty and it writes itself from the join date
+                (&ldquo;New to the colors&rdquo;, &ldquo;3 years riding&rdquo;).
               </p>
             </div>
 

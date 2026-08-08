@@ -23,9 +23,12 @@ import type { PublicRosterMember } from "@/lib/public-roster";
 export function BrotherhoodSection({
   members,
   joinHref,
+  backdropPath,
 }: {
   members: PublicRosterMember[];
   joinHref: string;
+  /** Clubhouse art behind every figure. Falls back to the ember wash alone. */
+  backdropPath?: string;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const open = members.find((m) => m.id === openId) ?? null;
@@ -66,6 +69,22 @@ export function BrotherhoodSection({
                 aria-label={`${member.tenureLabel} — view larger`}
                 className="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-xl glass-card glass-hover focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
+                {/* Clubhouse backdrop, then the ember wash over it. Both sit
+                    under the figure. The image is dimmed hard: it has to read
+                    as a room the rider is standing in, not compete with them —
+                    and every render is cut out with a transparent background,
+                    so whatever is behind shows through around the edges. */}
+                {backdropPath && (
+                  // eslint-disable-next-line @next/next/no-img-element -- static art, sized by CSS
+                  <img
+                    src={backdropPath}
+                    alt=""
+                    aria-hidden
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 size-full object-cover opacity-55 transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                )}
                 <span
                   aria-hidden
                   className="absolute inset-0 bg-[radial-gradient(120%_75%_at_50%_18%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_70%)]"
@@ -113,12 +132,21 @@ export function BrotherhoodSection({
         <DialogContent className="max-w-3xl overflow-hidden p-0 sm:max-w-3xl">
           {open && (
             <div className="grid gap-0 md:grid-cols-[1.1fr_1fr]">
-              <div className="relative flex min-h-[16rem] items-end justify-center bg-[radial-gradient(120%_80%_at_50%_10%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_70%)] md:min-h-[26rem]">
+              <div className="relative flex min-h-[16rem] items-end justify-center overflow-hidden bg-[radial-gradient(120%_80%_at_50%_10%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_70%)] md:min-h-[26rem]">
+                {backdropPath && (
+                  // eslint-disable-next-line @next/next/no-img-element -- static art, sized by CSS
+                  <img
+                    src={backdropPath}
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 size-full object-cover opacity-55"
+                  />
+                )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={open.imageUrl}
                   alt=""
-                  className="max-h-[26rem] w-auto object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.6)]"
+                  className="relative max-h-[26rem] w-auto object-contain drop-shadow-[0_18px_30px_rgba(0,0,0,0.6)]"
                 />
               </div>
 

@@ -48,6 +48,20 @@ export function bySeniority(a: PublicRosterMember, b: PublicRosterMember): numbe
  * Deliberately coarse: to the month under a year, to the year after that. A
  * precise join date is an identifying detail, and this is the public site.
  */
+/**
+ * What the card actually says: the club's own caption when an admin wrote one,
+ * otherwise the computed tenure. Kept here beside `tenureLabel` so the two can
+ * never drift apart — the fallback IS the feature.
+ */
+export function publicCardLabel(
+  member: Pick<Member, "publicLabel" | "joinDate">,
+  joined: Date | null,
+  now: Date,
+): string {
+  const custom = member.publicLabel?.trim();
+  return custom ? custom : tenureLabel(joined, now);
+}
+
 export function tenureLabel(joined: Date | null, now: Date): string {
   if (!joined || Number.isNaN(joined.getTime())) return "Riding with the club";
 

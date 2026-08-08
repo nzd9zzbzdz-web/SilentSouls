@@ -18,6 +18,12 @@ export const createMemberSchema = z.object({
   sponsorMemberId: z.string().optional(),
   /** Public-site blurb. Empty string clears it. */
   bio: z.string().max(600).optional(),
+  /**
+   * Caption on the public Brotherhood card. Empty string clears it and the
+   * computed tenure takes over. Short by design — it sits on one line under a
+   * portrait, and the card is deliberately anonymous.
+   */
+  publicLabel: z.string().max(40).optional(),
 });
 export type CreateMemberInput = z.infer<typeof createMemberSchema>;
 

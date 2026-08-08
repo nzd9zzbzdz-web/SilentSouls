@@ -118,6 +118,11 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
     // Trimmed-empty clears it, so an admin can take a bio back off the public
     // site without having to delete and recreate the member.
     if (fields.bio !== undefined) update.bio = fields.bio.trim();
+    // Same clearing rule: emptying the box hands the card back to the computed
+    // tenure label rather than leaving it blank.
+    if (fields.publicLabel !== undefined) {
+      update.publicLabel = fields.publicLabel.trim();
+    }
 
     // ── Portal role ────────────────────────────────────────────────────
     // Roles live on users/{uid}, not the member doc, because one account can
@@ -255,7 +260,13 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
     });
 
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
+    revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
     revalidatePath(`/[orgSlug]/portal/admin`, "page");
+    // bio, publicLabel, status and rank all change what the PUBLIC roster
+    // shows (or whether it lists this member at all). Without this an officer
+    // edits a bio and the outside world keeps the old one until something
+    // unrelated rebuilds the page.
+    revalidatePath(`/[orgSlug]`, "page");
     return { ok: true };
   } catch (e) {
     return failure(e);
