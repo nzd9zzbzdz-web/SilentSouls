@@ -33,8 +33,8 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   in the action's own response — a refresh doubles the render and the session
   verification. An action must revalidate EVERY page whose data it touched
   (that's what makes this safe). Refresh only after plain `fetch()` to API
-  routes (sign-in/out) or to restore server truth after a FAILED mutation
-  (ClubMap pin drag).
+  routes (sign-in/out) or to restore server truth after a FAILED optimistic
+  mutation that already moved client-only state.
 - Custom claims: `{ superAdmin?, orgs: { [orgId]: { r: role, m: memberId } } }`.
   Changed ONLY via `syncUserClaims()` which also revokes refresh tokens.
 - Session cookie verified with `verifySessionCookie(cookie, true)` in

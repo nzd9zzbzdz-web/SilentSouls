@@ -19,17 +19,6 @@ export const saveMapMarkerSchema = z.object({
 });
 export type SaveMapMarkerInput = z.infer<typeof saveMapMarkerSchema>;
 
-// Drag-to-move sends ONLY coordinates: sending the client's full snapshot
-// would silently revert label/style/description edits made by other members
-// since this viewer's page loaded (the map is collaboratively edited).
-export const moveMapMarkerSchema = z.object({
-  orgId: z.string().min(1),
-  markerId: z.string().min(1).max(80),
-  u: z.number().min(0).max(1),
-  v: z.number().min(0).max(1),
-});
-export type MoveMapMarkerInput = z.infer<typeof moveMapMarkerSchema>;
-
 export const deleteMapMarkerSchema = z.object({
   orgId: z.string().min(1),
   markerId: z.string().min(1).max(80),

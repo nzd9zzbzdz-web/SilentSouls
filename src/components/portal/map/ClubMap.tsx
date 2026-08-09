@@ -11,7 +11,6 @@
 // at module scope and must never run during SSR.
 
 import "leaflet/dist/leaflet.css";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type {
@@ -36,7 +35,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   deleteMapMarker,
   deleteMapTerritory,
-  moveMapMarker,
   saveMapMarker,
   saveMapTerritory,
 } from "@/actions/map";
@@ -117,7 +115,6 @@ export function ClubMap({
   /** Dashboard embed: view-only, no toolbar/search/chips. */
   compact?: boolean;
 }) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -211,23 +208,6 @@ export function ClubMap({
         : { crewName: "", label: "", color: null, points: drawPoints },
     );
     cancelDraw();
-  }
-
-  function persistMarkerMove(m: ClubMapMarker, p: MapPoint) {
-    startTransition(async () => {
-      // Position-only mutation — never resend label/style/description from this
-      // client's (possibly stale) snapshot; see moveMapMarker.
-      const result = await moveMapMarker({ orgId, markerId: m.id, u: p.u, v: p.v });
-      if (result.ok) {
-        toast.success(`"${m.label}" moved`);
-      } else {
-        toast.error(result.error ?? "Could not move the pin");
-        // A failed save leaves the Leaflet pin where it was dropped; refetch
-        // server truth to snap it back. (Success needs no refresh — the action
-        // revalidates the page.)
-        router.refresh();
-      }
-    });
   }
 
   /** Confirm + delete. Returns false when the user cancels the confirm. */
@@ -407,28 +387,23 @@ export function ClubMap({
         popupAnchor: [0, -14],
         html: `<span class="club-pin-dot" style="background:${style.color}">${style.glyph}</span>`,
       });
-      // Like the turf polygons below: pins must not swallow clicks (or be
-      // draggable) while the user is placing a pin or tracing a boundary —
-      // Leaflet markers don't bubble clicks to the map.
-      const modeArmed = placeMode || drawMode;
+      // Like the turf polygons below: pins must not swallow clicks while the
+      // user is placing a pin or tracing a boundary — Leaflet markers don't
+      // bubble clicks to the map.
+      // Pins are NEVER draggable: a placed pin is club intel, and a stray drag
+      // on a touchpad silently rewrites where the crew thinks a spot is. The
+      // only way to move one is delete + re-drop, which is deliberate and
+      // audited.
       const marker = L.marker(toLatLng(m), {
         icon,
-        interactive: !modeArmed,
-        draggable: editable && !modeArmed,
+        interactive: !(placeMode || drawMode),
         title: m.label,
       });
       marker.bindPopup(() => markerPopup(m));
-      if (editable) {
-        marker.on("dragend", () => {
-          const ll = marker.getLatLng();
-          persistMarkerMove(m, fromLatLng(ll.lat, ll.lng));
-        });
-      }
       marker.addTo(layer);
     }
-    // Repaint only when data/filters/permissions/modes change — not on every
-    // render, so an in-flight drag save doesn't snap the pin back to its stale
-    // coords.
+    // Repaint only when data/filters/permissions/modes change, not on every
+    // render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, visibleMarkers, editable, compact, canManage, placeMode, drawMode]);
 
