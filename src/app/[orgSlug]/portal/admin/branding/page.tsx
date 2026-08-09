@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { Palette } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
@@ -42,9 +43,9 @@ export default async function BrandingAdminPage({
   );
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <div className={`${PAGE_W.content} space-y-8`}>
       <div>
-        <DisplayHeading className="flex items-center gap-3 text-3xl text-primary md:text-4xl">
+        <DisplayHeading className="flex items-center gap-3 text-3xl text-foreground md:text-4xl">
           <Palette className="size-7" aria-hidden />
           Branding
         </DisplayHeading>

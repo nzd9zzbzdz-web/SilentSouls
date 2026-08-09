@@ -86,7 +86,7 @@ export function BrotherhoodRoster({
       <div className="flex flex-wrap items-center gap-x-5 gap-y-4 px-1">
         <div className="etched-plate relative min-w-56 flex-1 rounded-md">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/70"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <Input
@@ -94,12 +94,12 @@ export function BrotherhoodRoster({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search road name, legal name, or rank"
             aria-label="Search the brotherhood"
-            className="border-primary/35 pl-9"
+            className="pl-9"
           />
         </div>
         <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
           <SelectTrigger
-            className="etched-plate w-44 border-primary/35"
+            className="etched-plate w-44"
             aria-label="Sort members"
           >
             {/* Explicit children: Radix resolves item text only after hydration,
@@ -129,7 +129,7 @@ export function BrotherhoodRoster({
           <div className="flex items-baseline gap-3 border-b border-border pb-2">
             <h2
               id={`tier-${key}`}
-              className="text-sm font-semibold uppercase tracking-[0.18em] text-primary"
+              className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground/70"
             >
               {label}
             </h2>
@@ -142,9 +142,13 @@ export function BrotherhoodRoster({
             className={cn(
               "mt-4 grid gap-4",
               // Officers ride bigger: fewer columns, so their frames read first.
+              // The column count deliberately stops climbing past `xl` — the
+              // gallery width is spent on BIGGER cards, not more of them. A
+              // sixth column on a wide monitor would hand the extra pixels
+              // straight back and leave the renders the size they were.
               key === "officers"
                 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
-                : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+                : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
             )}
           >
             {list.map((member) => (

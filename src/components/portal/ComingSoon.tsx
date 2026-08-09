@@ -16,7 +16,7 @@ export function ComingSoon({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <DisplayHeading className="text-3xl text-primary">{title}</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground">{title}</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">{blurb}</p>
       </div>
       <Card>

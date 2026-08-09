@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components/portal/map/ClubMap";
 import { requireOrgRole } from "@/lib/auth/session";
@@ -53,9 +54,9 @@ export default async function ClubMapPage({
   }));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className={`${PAGE_W.gallery} space-y-8`}>
       <div>
-        <DisplayHeading className="text-3xl text-primary md:text-4xl">Club Map</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground md:text-4xl">Club Map</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           {canEditPins
             ? "Drop intel pins and track turf across San Andreas. The whole club sees this map."

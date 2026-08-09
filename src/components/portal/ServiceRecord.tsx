@@ -42,7 +42,7 @@ export function ServiceRecord({
       aria-label="Service Record"
       className="texture-noise glass-card rounded-xl p-6 md:p-8"
     >
-      <DisplayHeading as="h2" className="text-2xl text-primary md:text-3xl">
+      <DisplayHeading as="h2" className="text-2xl text-foreground md:text-3xl">
         Service Record
       </DisplayHeading>
       <p className="mt-1 text-sm text-muted-foreground">

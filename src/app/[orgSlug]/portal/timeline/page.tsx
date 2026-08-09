@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { Flag, History as HistoryIcon, Home, Trophy, Users } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,9 +37,9 @@ export default async function TimelinePage({
   }));
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className={`${PAGE_W.form} space-y-6`}>
       <div>
-        <DisplayHeading className="text-3xl text-primary">Timeline</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground">Timeline</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           The history of the brotherhood, written as it happens.
         </p>

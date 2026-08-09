@@ -90,7 +90,7 @@ export function EmblemLadders({
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <DisplayHeading as="h2" className="text-2xl text-primary md:text-3xl">
+          <DisplayHeading as="h2" className="text-2xl text-foreground md:text-3xl">
             Emblems
           </DisplayHeading>
           <p className="mt-1 text-sm text-muted-foreground">

@@ -209,7 +209,7 @@ export function Leaderboard({
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <DisplayHeading as="h2" className="text-2xl text-primary md:text-3xl">
+          <DisplayHeading as="h2" className="text-2xl text-foreground md:text-3xl">
             Standings
           </DisplayHeading>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -220,9 +220,8 @@ export function Leaderboard({
         <Select value={category?.statKey ?? ""} onValueChange={setStatKey}>
           <SelectTrigger
             aria-label="Leaderboard category"
-            className="border-primary/40"
-          >
-            <Trophy className="size-4 text-primary" aria-hidden />
+            className=""          >
+            <Trophy className="size-4 text-muted-foreground" aria-hidden />
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>

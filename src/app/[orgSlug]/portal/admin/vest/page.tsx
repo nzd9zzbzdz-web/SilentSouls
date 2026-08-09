@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { getOrgBySlug } from "@/lib/tenant";
 import { requireOrgRole } from "@/lib/auth/session";
 import { orgRef } from "@/lib/firebase/admin";
@@ -27,9 +28,9 @@ export default async function VestDesignerPage({
     snap.exists ? ((snap.data() as VestConfig).slots ?? defaultSlotsFor(surface)) : defaultSlotsFor(surface);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className={`${PAGE_W.content} space-y-8`}>
       <div>
-        <DisplayHeading className="text-3xl text-primary md:text-4xl">Vest Designer</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground md:text-4xl">Vest Designer</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           Position the slots that patches land in. No code required. Every change
           applies to every member&rsquo;s cut.

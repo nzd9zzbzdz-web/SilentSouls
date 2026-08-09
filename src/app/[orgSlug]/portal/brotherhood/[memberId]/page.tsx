@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { CharacterArtUploader } from "@/components/portal/CharacterArtUploader";
 import { type StagePatch } from "@/components/portal/CharacterStage";
 import { CharacterPoseEditor } from "@/components/portal/CharacterPoseEditor";
@@ -138,7 +139,7 @@ export default async function MemberDetailPage({
   const ladders = composeLadders({ patches, awards, stats: member.stats });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className={`${PAGE_W.gallery} space-y-8`}>
       {/* Stage + its uploader are one block — the uploader is an adjunct
           control that stays tight under the stage, outside the page rhythm. */}
       <div>

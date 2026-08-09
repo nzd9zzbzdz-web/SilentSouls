@@ -71,6 +71,12 @@ const ADMIN_NAV = [
   { href: "/admin/branding", label: "Branding", icon: Palette },
 ];
 
+// Group headings read as structure, not as links: small, tracked, and well
+// under the weight of the rows beneath them. No red — a section label is not
+// a state.
+const NAV_GROUP_LABEL =
+  "text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45";
+
 // Ember treatment for the active nav item, layered over the sidebar's quiet
 // accent defaults from the call site so the shadcn primitives stay untouched.
 // The left edge is an inset shadow, not a border, so the row doesn't shift a
@@ -132,7 +138,13 @@ export function PortalShell({
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      {/* The rail is its own surface, not a card floating on the page: darker
+          ground (--sidebar, below the page's Void Black), a hairline in the
+          club's bone neutral, and one soft ember bleed off the right edge.
+          The glow is the only red here that isn't a state — it's the seam
+          between two rooms, and it's kept low enough to read as light rather
+          than as a border. */}
+      <Sidebar className="border-r-sidebar-border shadow-[12px_0_34px_-26px_var(--primary)]">
         <SidebarHeader className="px-4 py-4">
           <Link href={base} className="block">
             <span
@@ -149,9 +161,12 @@ export function PortalShell({
           </Link>
         </SidebarHeader>
         <SidebarSeparator />
-        <SidebarContent>
+        {/* gap-7 rather than the component's gap-2: Clubhouse, Officer and
+            Administration are three different kinds of permission, and at the
+            default spacing they read as one long list of links. */}
+        <SidebarContent className="gap-7 pt-2">
           <SidebarGroup>
-            <SidebarGroupLabel>Clubhouse</SidebarGroupLabel>
+            <SidebarGroupLabel className={NAV_GROUP_LABEL}>Clubhouse</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {mainNav.map((item) => (
@@ -174,7 +189,7 @@ export function PortalShell({
 
           {(role === "officer" || role === "admin") && (
             <SidebarGroup>
-              <SidebarGroupLabel>Officer</SidebarGroupLabel>
+              <SidebarGroupLabel className={NAV_GROUP_LABEL}>Officer</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {OFFICER_NAV.map((item) => (
@@ -198,7 +213,7 @@ export function PortalShell({
 
           {role === "admin" && (
             <SidebarGroup>
-              <SidebarGroupLabel>Administration</SidebarGroupLabel>
+              <SidebarGroupLabel className={NAV_GROUP_LABEL}>Administration</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {ADMIN_NAV.map((item) => (

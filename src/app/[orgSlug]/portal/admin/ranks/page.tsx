@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -46,10 +47,10 @@ export default async function RanksAdminPage({
   const outOfDate = missing.length + stale.length;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className={`${PAGE_W.form} space-y-8`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <DisplayHeading className="flex items-center gap-3 text-3xl text-primary md:text-4xl">
+          <DisplayHeading className="flex items-center gap-3 text-3xl text-foreground md:text-4xl">
             <Shield className="size-7" aria-hidden />
             Ranks
           </DisplayHeading>

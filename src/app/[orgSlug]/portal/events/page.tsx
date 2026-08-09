@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { Calendar, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -74,9 +75,9 @@ export default async function EventsPage({
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className={`${PAGE_W.content} space-y-6`}>
       <div>
-        <DisplayHeading className="text-3xl text-primary">Events</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground">Events</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           Rides, church, operations, and community appearances. RSVP and attendance
           arrive with the events milestone.

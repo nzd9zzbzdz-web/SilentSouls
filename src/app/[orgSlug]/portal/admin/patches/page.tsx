@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { BackfillAwardsButton } from "@/components/portal/BackfillAwardsButton";
 import { BulkPatchArtUpload } from "@/components/portal/BulkPatchArtUpload";
@@ -26,10 +27,10 @@ export default async function PatchAdminPage({
   ]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className={`${PAGE_W.content} space-y-8`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <DisplayHeading className="text-3xl text-primary md:text-4xl">Patch Management</DisplayHeading>
+          <DisplayHeading className="text-3xl text-foreground md:text-4xl">Patch Management</DisplayHeading>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
             Define requirements, adjust thresholds, and hand out the honors only
             leadership can give. Thresholds are only checked when an activity is

@@ -1,6 +1,11 @@
 import type { Branding } from "@/lib/types";
 
-const COLOR_VAR_MAP: Record<keyof Branding["colors"], string> = {
+/** The tokens that map straight through. The sidebar pair is deliberately
+ *  absent: those have fallbacks and are emitted by hand below. */
+const COLOR_VAR_MAP: Record<
+  Exclude<keyof Branding["colors"], "sidebar" | "sidebarBorder">,
+  string
+> = {
   background: "--background",
   foreground: "--foreground",
   card: "--card",
@@ -40,13 +45,18 @@ export function BrandStyle({
   // Popover mirrors card; sidebar tokens follow the same surface.
   lines.push(`--popover: ${branding.colors.card};`);
   lines.push(`--popover-foreground: ${branding.colors.cardForeground};`);
-  lines.push(`--sidebar: ${branding.colors.card};`);
+  // The rail gets its own ground when the org supplies one. Falling back to
+  // `card` is what every org had before the field existed — absent ⇒ the old
+  // behaviour, the same rule as patch.emblem and render.approved.
+  lines.push(`--sidebar: ${branding.colors.sidebar ?? branding.colors.card};`);
   lines.push(`--sidebar-foreground: ${branding.colors.cardForeground};`);
   lines.push(`--sidebar-primary: ${branding.colors.primary};`);
   lines.push(`--sidebar-primary-foreground: ${branding.colors.primaryForeground};`);
   lines.push(`--sidebar-accent: ${branding.colors.secondary};`);
   lines.push(`--sidebar-accent-foreground: ${branding.colors.secondaryForeground};`);
-  lines.push(`--sidebar-border: ${branding.colors.border};`);
+  lines.push(
+    `--sidebar-border: ${branding.colors.sidebarBorder ?? branding.colors.border};`,
+  );
   lines.push(`--sidebar-ring: ${branding.colors.ring};`);
   lines.push(`--font-display: ${branding.fonts.display};`);
   lines.push(`--font-body: ${branding.fonts.body};`);

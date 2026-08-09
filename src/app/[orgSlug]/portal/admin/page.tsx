@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { MemberAdmin } from "@/components/portal/MemberAdmin";
 import { requireOrgRole } from "@/lib/auth/session";
@@ -23,9 +24,9 @@ export default async function OrgAdminPage({
   ]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className={`${PAGE_W.content} space-y-8`}>
       <div>
-        <DisplayHeading className="text-3xl text-primary md:text-4xl">Member Administration</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground md:text-4xl">Member Administration</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           Create records, set ranks and portal roles, and invite members.
         </p>

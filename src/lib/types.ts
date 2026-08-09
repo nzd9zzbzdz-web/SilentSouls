@@ -70,6 +70,15 @@ export interface BrandingColors {
   border: string;
   input: string;
   ring: string;
+  /**
+   * The nav rail's own ground. Absent ⇒ `card`, which is what every org had
+   * before the rail was given its own surface, so nothing changes for them.
+   * Set it DARKER than `background` to make the rail read as recessed — the
+   * page is the lit room, the rail is the wall it's cut into.
+   */
+  sidebar?: string;
+  /** The rail's right edge. Absent ⇒ `border`. */
+  sidebarBorder?: string;
 }
 
 export interface Branding {

@@ -115,6 +115,32 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
 - **No hardcoded brand colors/names in components.** Branding comes from
   `organizations/{orgId}/branding/{public|portal}` docs → `<BrandStyle>` injects
   CSS vars scoped to `[data-surface]`. Brand values are seed data only.
+- **Ember is spent on state, not on structure.** Red (`--primary`) is earned by:
+  the active nav item, hover/focus, officer + President standing, numbers that
+  matter (patch counts, headcounts, progress), and alerts. Everything else —
+  card and panel borders, page headings, dividers, ambient glows, icon tints in
+  body copy — takes a neutral. The neutral is Weathered Bone, not grey:
+  `border: rgba(184,160,165,0.14)`. This is enforced at the TOKEN, which is why
+  it holds: a red `--border` put crimson on every bordered thing in the club
+  before a component asked for it. The portal's one non-state red is the
+  hierarchy plate's own heading — the club's front door, kept deliberately.
+  The public shopfront keeps its original palette; this rule is portal-side.
+- **The nav rail has its own ground.** `colors.sidebar` / `colors.sidebarBorder`
+  are optional on `BrandingColors`; absent ⇒ `card` / `border`, which is what
+  every org had before they existed. Ravens sets `#030206`, BELOW the page's
+  Void Black, so the rail reads as recessed rather than as a floating card.
+- **Portal page widths come from `PAGE_W`** (`src/lib/page-width.ts`), never a
+  per-page `max-w-*`. Three values: `form` (a column of controls), `content`
+  (mixed reading + data, and the dashboard — its territory embed is the
+  portrait island and letterboxes when the card gets wide), `gallery` (the
+  roster wall, patch wall, full map, character screen). The roster grid stops
+  adding columns at `xl` on purpose: the extra width buys BIGGER cards, not
+  more of them.
+- The Brotherhood hierarchy plate is capped at `max-w-[58rem]` inside the
+  gallery column. That number is measured against the OLD page width (72rem),
+  not the new one — the plate is fixed-aspect painted art laid out at
+  `height:auto`, so its height is purely a function of its width. Sizing it as
+  a fraction of the wider column would make it taller while looking like a cut.
 - **`scripts/lib/branding.ts` is the single source of truth** for org name +
   portal/public branding. seed/bootstrap/apply-branding/update-public-branding/
   migrate-cut all import it — never re-declare these values in a script (they

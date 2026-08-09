@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { Shirt } from "lucide-react";
 import { getOrgBySlug } from "@/lib/tenant";
 import { requireOrgRole } from "@/lib/auth/session";
@@ -44,9 +45,9 @@ export default async function MyCutPage({
   ];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className={`${PAGE_W.content} space-y-6`}>
       <div>
-        <DisplayHeading className="text-3xl text-primary">My Cut</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground">My Cut</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           &ldquo;{summary.roadName}&rdquo;
           {summary.displayName && (

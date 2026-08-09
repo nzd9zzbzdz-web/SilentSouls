@@ -65,16 +65,19 @@
   --accent-foreground: #EEE7E8;
   --destructive: #941B22;
   --destructive-foreground: #EEE7E8;
-  --border: rgba(148, 27, 34, 0.28);
-  --input: rgba(148, 27, 34, 0.40);
+  /* Structure is weathered bone, not crimson — ember is reserved for state.
+     See scripts/lib/branding.ts, which is the source of truth these mirror. */
+  --border: rgba(184, 160, 165, 0.14);
+  --input: rgba(184, 160, 165, 0.24);
   --ring: #D9362B;
-  --sidebar: #151017;
+  /* Below Void Black: the rail reads as recessed, not as a floating card. */
+  --sidebar: #030206;
   --sidebar-foreground: #EEE7E8;
   --sidebar-primary: #D9362B;
   --sidebar-primary-foreground: #EEE7E8;
   --sidebar-accent: #2D111F;
   --sidebar-accent-foreground: #EEE7E8;
-  --sidebar-border: rgba(148, 27, 34, 0.28);
+  --sidebar-border: rgba(184, 160, 165, 0.16);
   --sidebar-ring: #D9362B;
 }
 

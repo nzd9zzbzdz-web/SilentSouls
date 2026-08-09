@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { getOrgBySlug } from "@/lib/tenant";
 import { requireOrgRole } from "@/lib/auth/session";
 import { orgRef } from "@/lib/firebase/admin";
@@ -37,9 +38,9 @@ export default async function RecruitmentPage({
     .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt)); // oldest first
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className={`${PAGE_W.form} space-y-8`}>
       <div>
-        <DisplayHeading className="text-3xl text-primary md:text-4xl">Recruitment</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground md:text-4xl">Recruitment</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           People asking to prospect. Approve to bring them in, or decline.
         </p>

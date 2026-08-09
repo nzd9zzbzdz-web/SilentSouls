@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { ClipboardCheck, ImageUp } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ReviewQueue } from "@/components/portal/ReviewQueue";
@@ -67,9 +68,9 @@ export default async function ReviewQueuePage({
   }));
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <div className={`${PAGE_W.content} space-y-8`}>
       <div>
-        <DisplayHeading className="flex items-center gap-3 text-3xl text-primary md:text-4xl">
+        <DisplayHeading className="flex items-center gap-3 text-3xl text-foreground md:text-4xl">
           <ClipboardCheck className="size-7" aria-hidden />
           Review Queue
         </DisplayHeading>

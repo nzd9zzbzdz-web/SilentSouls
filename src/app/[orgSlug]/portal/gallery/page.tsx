@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { Image as ImageIcon, ShieldCheck } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { GalleryUploader } from "@/components/portal/GalleryUploader";
@@ -62,9 +63,9 @@ export default async function PortalGalleryPage({
   const publicCount = approved.filter((p) => p.visibility === "public").length;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className={`${PAGE_W.gallery} space-y-8`}>
       <div>
-        <DisplayHeading className="flex items-center gap-3 text-3xl text-primary md:text-4xl">
+        <DisplayHeading className="flex items-center gap-3 text-3xl text-foreground md:text-4xl">
           <ImageIcon className="size-7" aria-hidden />
           Gallery
         </DisplayHeading>

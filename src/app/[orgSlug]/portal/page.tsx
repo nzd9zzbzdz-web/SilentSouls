@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PAGE_W } from "@/lib/page-width";
 import { notFound } from "next/navigation";
 import {
   Activity as ActivityIcon,
@@ -98,10 +99,10 @@ export default async function DashboardPage({
     : null;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className={`${PAGE_W.content} space-y-8`}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <DisplayHeading className="text-3xl text-primary md:text-4xl">
+          <DisplayHeading className="text-3xl text-foreground md:text-4xl">
             {member ? `Welcome back, "${member.roadName}"` : "Welcome, Platform Owner"}
           </DisplayHeading>
           <p className="mt-1 text-sm text-muted-foreground">

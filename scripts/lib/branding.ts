@@ -34,9 +34,19 @@ export const portalBranding: Branding = {
     accent: "#54213F",
     accentForeground: "#EEE7E8",
     destructive: "#941B22",
-    border: "rgba(148,27,34,0.28)",
-    input: "rgba(148,27,34,0.40)",
+    // Structural lines are WEATHERED BONE, not crimson. Every bordered thing
+    // in the portal reads through this one value — cards, inputs, dividers,
+    // table rules — so a red border token put red on every surface in the
+    // club before a single component asked for it. Ember is now spent on
+    // state (active nav, hover, officers, alerts), not on structure.
+    border: "rgba(184,160,165,0.14)",
+    input: "rgba(184,160,165,0.24)",
+    // Focus ring stays ember: focus IS a state.
     ring: "#D9362B",
+    // Below Void Black, so the rail reads as recessed rather than as another
+    // card floating on the page.
+    sidebar: "#030206",
+    sidebarBorder: "rgba(184,160,165,0.16)",
   },
   fonts: {
     display: "var(--font-blackletter)",

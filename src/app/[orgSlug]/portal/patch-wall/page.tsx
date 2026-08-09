@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PAGE_W } from "@/lib/page-width";
 import { notFound } from "next/navigation";
 import { ArrowRight, Award, Crown, Gem, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -153,9 +154,9 @@ export default async function PatchWallPage({
     .sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className={`${PAGE_W.gallery} space-y-8`}>
       <div className="texture-noise glass-card rounded-xl p-6 md:p-8">
-        <DisplayHeading className="text-3xl text-primary md:text-4xl">Patch Wall</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground md:text-4xl">Patch Wall</DisplayHeading>
         <p className="mt-1 max-w-xl text-sm text-muted-foreground">
           Every patch tells a story. Earn yours on the road, in church, and when
           the club calls.
@@ -174,7 +175,7 @@ export default async function PatchWallPage({
           id="earned-heading"
           className="flex items-center gap-2 text-lg font-semibold text-foreground"
         >
-          <Award className="size-5 text-primary" aria-hidden />
+          <Award className="size-5 text-muted-foreground" aria-hidden />
           Earned
         </h2>
         {earned.length === 0 ? (
@@ -184,15 +185,16 @@ export default async function PatchWallPage({
         ) : (
           <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {earned.map((patch, i) => (
-              // glass-card supplies the 1px frame; border-primary/40 re-tints
-              // it gold (single-property utilities sort after the shorthand).
+              // glass-card supplies the 1px frame, in the neutral border
+              // token — an earned patch is called out by `glow-gold` and by
+              // its own name, not by re-tinting the box it sits in.
               // The patches light up in sequence — the wall filling in, which
               // is the one thing on this page worth animating.
               <Reveal
                 as="li"
                 key={patch.id}
                 delay={Math.min(i, 8) * 0.05}
-                className="glass-card glow-gold rounded-lg border-primary/40 p-5"
+                className="glass-card glow-gold rounded-lg p-5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex min-w-0 items-start gap-3">
@@ -287,7 +289,7 @@ export default async function PatchWallPage({
                   id="emblems-heading"
                   className="flex items-center gap-2 text-lg font-semibold text-foreground"
                 >
-                  <Gem className="size-5 text-primary" aria-hidden />
+                  <Gem className="size-5 text-muted-foreground" aria-hidden />
                   Emblems
                 </h2>
                 <p className="mt-1 max-w-lg text-sm text-muted-foreground">
@@ -350,10 +352,10 @@ export default async function PatchWallPage({
         {/* The gradient utility replaces only glass-card's background-image, so
             it composes under the sheen (inset highlight + frame) — the
             legendary fade survives the glass treatment. */}
-        <div className="texture-noise glass-card rounded-xl border-primary/30 bg-gradient-to-b from-card to-background p-6">
+        <div className="texture-noise glass-card rounded-xl bg-gradient-to-b from-card to-background p-6">
           <h2
             id="legends-heading"
-            className="flex items-center gap-2 text-2xl text-primary"
+            className="flex items-center gap-2 text-2xl text-foreground"
             style={{ fontFamily: "var(--font-display)" }}
           >
             <Crown className="size-6" aria-hidden />
@@ -368,7 +370,7 @@ export default async function PatchWallPage({
               {legends.map(({ patch, holder, reason }, i) => (
                 <li
                   key={`${patch.id}-${i}`}
-                  className="glass-card rounded-lg border-primary/40 p-5"
+                  className="glass-card rounded-lg p-5"
                 >
                   <p
                     className="text-xl text-primary"

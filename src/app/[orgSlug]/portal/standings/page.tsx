@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { Leaderboard } from "@/components/portal/Leaderboard";
 import { requireOrgRole } from "@/lib/auth/session";
 import { loadLeaderboard } from "@/lib/leaderboard-data";
@@ -26,7 +27,7 @@ export default async function StandingsPage({
   const categories = await loadLeaderboard(org.id);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className={`${PAGE_W.content} space-y-8`}>
       <Leaderboard
         categories={categories}
         orgSlug={orgSlug}

@@ -368,6 +368,10 @@ function ChainStack({
 }) {
   return (
     <div className="texture-noise glass-card rounded-xl p-6 md:p-8">
+      {/* Ember on purpose, and the only page heading in the portal that keeps
+          it — this is the club's front door. It matches the painted plate's
+          heading above, which is the same title in the other rendering; the
+          two must not disagree just because a club has five officers or three. */}
       <DisplayHeading className="text-3xl text-primary md:text-4xl">{title}</DisplayHeading>
       <p className="mt-1 text-sm text-muted-foreground">{blurb}</p>
 

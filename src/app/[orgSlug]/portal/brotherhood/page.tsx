@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import type { Timestamp } from "firebase-admin/firestore";
 import { BrotherhoodRoster } from "@/components/portal/roster/BrotherhoodRoster";
 import { ChainOfCommand } from "@/components/portal/roster/ChainOfCommand";
@@ -127,20 +128,40 @@ export default async function BrotherhoodPage({
     .sort((a, b) => a.rankOrder - b.rankOrder || a.memberNumber - b.memberNumber);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className={`${PAGE_W.gallery} space-y-8`}>
       {/* The heading rides inside the engraved plate, so it belongs to the
-          component rather than the page — see ChainOfCommand. */}
-      <ChainOfCommand
-        orgSlug={orgSlug}
-        title="Brotherhood"
-        blurb="Every rider under the colors: the whole club, in order of the patch."
-        officers={officers}
-        counts={{
-          riding: riding.length,
-          officers: officers.length,
-          prospecting: riding.filter((m) => m.tier === "prospects").length,
-        }}
-      />
+          component rather than the page — see ChainOfCommand.
+
+          The plate is painted art at a fixed 1556×720, laid out at
+          width:100% / height:auto with every face and nameplate pinned to
+          that art's own pixel grid. Its height is therefore purely a function
+          of its width — so on the wide gallery column it would grow by a
+          third rather than shrink.
+
+          58rem is measured against what the banner used to be, not against
+          the new column: the page was max-w-6xl (72rem), so 58/72 renders the
+          plate about 19% shorter than it stands today — the reduction that was
+          actually asked for. Sizing it as a fraction of the NEW width would
+          have made it taller than before while looking like a cut.
+
+          The inset is deliberate and generous rather than slight, so the plate
+          reads as a framed piece over the wall instead of a banner that failed
+          to reach the edges. It stays the club's front door; it stops being
+          the whole page. (If the art is ever re-cropped shorter, drop this
+          wrapper and let it run full width — see PLATE in ChainOfCommand.) */}
+      <div className="mx-auto w-full max-w-[58rem]">
+        <ChainOfCommand
+          orgSlug={orgSlug}
+          title="Brotherhood"
+          blurb="Every rider under the colors: the whole club, in order of the patch."
+          officers={officers}
+          counts={{
+            riding: riding.length,
+            officers: officers.length,
+            prospecting: riding.filter((m) => m.tier === "prospects").length,
+          }}
+        />
+      </div>
 
       <BrotherhoodRoster
         orgSlug={orgSlug}

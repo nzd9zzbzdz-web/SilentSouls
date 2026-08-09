@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PAGE_W } from "@/lib/page-width";
 import { Landmark, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
@@ -37,9 +38,9 @@ export default async function ChurchPage({
   const history = meetings.filter((m) => (m.startAt as Timestamp).toMillis() < now);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className={`${PAGE_W.content} space-y-6`}>
       <div>
-        <DisplayHeading className="text-3xl text-primary">Church</DisplayHeading>
+        <DisplayHeading className="text-3xl text-foreground">Church</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           Mandatory means mandatory. Attendance counts toward your record.
         </p>
