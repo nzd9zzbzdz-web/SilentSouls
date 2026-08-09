@@ -30,13 +30,10 @@ export function RosterCard({
   orgSlug,
   member,
   viewerCanManageArt,
-  backdropPath,
 }: {
   orgSlug: string;
   member: RosterMember;
   viewerCanManageArt: boolean;
-  /** Club backdrop behind the figure (branding.portalRosterBackdropPath). */
-  backdropPath?: string;
 }) {
   const { hasRender, isOfficer, isPresident } = member;
 
@@ -52,23 +49,6 @@ export function RosterCard({
         isPresident && "ring-1 ring-primary/50",
       )}
     >
-      {/* Clubhouse backdrop, then the ember wash over it — both under the
-          figure. Dimmed hard for the reason the public wall dims it: it has to
-          read as a room the rider stands in, not compete with them, and every
-          render is cut out with a transparent background so whatever is behind
-          shows through around the edges. */}
-      {backdropPath && (
-        // eslint-disable-next-line @next/next/no-img-element -- static art, sized by CSS
-        <img
-          src={backdropPath}
-          alt=""
-          aria-hidden
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 size-full object-cover opacity-55 transition-transform duration-500 group-hover:scale-[1.03]"
-        />
-      )}
-
       {/* Stage light behind the figure */}
       <div
         aria-hidden

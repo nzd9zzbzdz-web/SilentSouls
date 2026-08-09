@@ -96,17 +96,6 @@ export const DEFAULT_CHARACTER_STAGE = "/brand/character-stage.webp";
 export const DEFAULT_ROSTER_BACKDROP = "/brand/roster-backdrop.webp";
 
 /**
- * The engraved plate behind the portal's Chain of Command.
- *
- * NOT an admin-swappable BRANDING_ART row, and deliberately so: the rings,
- * nameplates, connectors and stat bar are painted INTO this image, and
- * <ChainOfCommand> positions live text on top of them from measured
- * coordinates. Swapping the art without re-measuring would slide every name
- * off its plate. New art means a new coordinate table, not just a new file.
- */
-export const CHAIN_OF_COMMAND_PLATE = "/brand/chain-of-command.webp";
-
-/**
  * The club anthem, streamed from YouTube by <MusicPlayer> on BOTH surfaces —
  * the public site and the portal. One id, one place: the two layouts must
  * never drift onto different tracks. Becomes a branding field the day a

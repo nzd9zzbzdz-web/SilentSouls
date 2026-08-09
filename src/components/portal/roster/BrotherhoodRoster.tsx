@@ -45,14 +45,11 @@ export function BrotherhoodRoster({
   members,
   pastColors,
   viewerCanManageArt,
-  backdropPath,
 }: {
   orgSlug: string;
   members: RosterMember[];
   pastColors: RosterMember[];
   viewerCanManageArt: boolean;
-  /** Club backdrop drawn behind every figure on the wall. */
-  backdropPath?: string;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("rank");
@@ -80,13 +77,10 @@ export function BrotherhoodRoster({
 
   return (
     <div className="space-y-8">
-      {/* Framed to match the plate above: `etched-plate` draws the outer
-          stroke, each control's own border is the inner one. The extra
-          gap absorbs the 3px outline-offset so the strokes don't touch. */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-4 px-1">
-        <div className="etched-plate relative min-w-56 flex-1 rounded-md">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-56 flex-1">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/70"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <Input
@@ -94,14 +88,11 @@ export function BrotherhoodRoster({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search road name, legal name, or rank"
             aria-label="Search the brotherhood"
-            className="border-primary/35 pl-9"
+            className="pl-9"
           />
         </div>
         <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-          <SelectTrigger
-            className="etched-plate w-44 border-primary/35"
-            aria-label="Sort members"
-          >
+          <SelectTrigger className="w-44" aria-label="Sort members">
             {/* Explicit children: Radix resolves item text only after hydration,
                 which would leave the trigger blank on first paint. */}
             <SelectValue>
@@ -153,7 +144,6 @@ export function BrotherhoodRoster({
                 orgSlug={orgSlug}
                 member={member}
                 viewerCanManageArt={viewerCanManageArt}
-                backdropPath={backdropPath}
               />
             ))}
           </div>

@@ -38,11 +38,14 @@ function artRef(orgId: string, key: BrandingArtKey) {
 }
 
 function revalidateFor(key: BrandingArtKey) {
-  // Where each slot is drawn is the table's business, not this action's — an
-  // if/else here is what goes stale the day a third slot lands.
+  // The branding doc is read by the layouts, so revalidate those surfaces
+  // rather than a single page.
   revalidatePath(`/[orgSlug]/portal/admin/branding`, "page");
-  for (const { path, type } of BRANDING_ART[key].revalidates) {
-    revalidatePath(path, type);
+  if (key === "rosterBackdrop") {
+    revalidatePath(`/[orgSlug]`, "page"); // public roster cards
+  } else {
+    revalidatePath(`/[orgSlug]/portal`, "layout"); // portal branding
+    revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
   }
 }
 

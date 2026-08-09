@@ -244,20 +244,6 @@
     0 14px 32px -24px rgb(0 0 0 / 0.9);
 }
 
-/* Etched double-stroke frame, matched to the border painted into the
-   chain-of-command plate so the controls beneath it read as the same piece
-   of hardware.
-
-   Only the OUTER stroke and the ember bloom live here — the control inside
-   keeps drawing its own border as the inner stroke. That's what makes the
-   pair, and it leaves the control's focus-visible ring completely alone
-   (a wrapper that repainted the border would have swallowed it). */
-@utility etched-plate {
-  outline: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
-  outline-offset: 3px;
-  box-shadow: 0 0 22px -10px color-mix(in srgb, var(--primary) 70%, transparent);
-}
-
 /* Interactive lift + ember edge. Hover only exists on pointer devices —
    without the guard, :hover sticks after a tap on touch screens. */
 @utility glass-hover {

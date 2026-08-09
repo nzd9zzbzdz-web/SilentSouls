@@ -14,16 +14,7 @@ export interface BrandingArtSpec {
   /** Which branding doc the path field lives on. */
   surface: "public" | "portal";
   /** The Branding field this art fills in. */
-  field: keyof Pick<
-    Branding,
-    "rosterBackdropPath" | "portalRosterBackdropPath" | "characterStagePath"
-  >;
-  /**
-   * Pages whose render this art changes. The upload/reset actions revalidate
-   * every entry — kept here rather than in the action so a new row can't ship
-   * with art that only appears after a redeploy.
-   */
-  revalidates: readonly { readonly path: string; readonly type: "page" | "layout" }[];
+  field: keyof Pick<Branding, "rosterBackdropPath" | "characterStagePath">;
   /** Stored dimensions — the frame the art is cropped to fill. */
   width: number;
   height: number;
@@ -51,25 +42,6 @@ export const BRANDING_ART = {
     position: "centre",
     fallback: DEFAULT_ROSTER_BACKDROP,
     ratioHint: "Portrait, 3:4 (e.g. 900×1200). Anything else is cropped to fit.",
-    revalidates: [{ path: "/[orgSlug]", type: "page" }],
-  },
-  portalRosterBackdrop: {
-    label: "Portal roster backdrop",
-    blurb: "Behind every rider on the portal Brotherhood wall, inside the login.",
-    surface: "portal",
-    field: "portalRosterBackdropPath",
-    // Same 3:4 card as the public grid — the two walls draw the same shape.
-    width: 600,
-    height: 800,
-    position: "centre",
-    // Ships pointing at the same clubhouse art as the public wall, so the
-    // portal cards read as a room from day one. Upload here to diverge.
-    fallback: DEFAULT_ROSTER_BACKDROP,
-    ratioHint: "Portrait, 3:4 (e.g. 900×1200). Anything else is cropped to fit.",
-    revalidates: [
-      { path: "/[orgSlug]/portal", type: "layout" },
-      { path: "/[orgSlug]/portal/brotherhood", type: "page" },
-    ],
   },
   characterStage: {
     label: "Character stage",
@@ -84,10 +56,6 @@ export const BRANDING_ART = {
     position: "top",
     fallback: DEFAULT_CHARACTER_STAGE,
     ratioHint: "Landscape, 3:2 (e.g. 1800×1200). Anything else is cropped to fit.",
-    revalidates: [
-      { path: "/[orgSlug]/portal", type: "layout" },
-      { path: "/[orgSlug]/portal/brotherhood/[memberId]", type: "page" },
-    ],
   },
 } as const satisfies Record<string, BrandingArtSpec>;
 

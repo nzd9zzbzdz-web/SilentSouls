@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Timestamp } from "firebase-admin/firestore";
+import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { BrotherhoodRoster } from "@/components/portal/roster/BrotherhoodRoster";
 import { ChainOfCommand } from "@/components/portal/roster/ChainOfCommand";
 import type { RosterMember, TierKey } from "@/components/portal/roster/types";
 import { requireOrgRole } from "@/lib/auth/session";
-import { getBranding, getOrgBySlug } from "@/lib/tenant";
+import { getOrgBySlug } from "@/lib/tenant";
 import {
   listAwardsByMember,
   listMembers,
@@ -14,7 +15,7 @@ import {
   listRanks,
 } from "@/lib/queries";
 import { patchArtUrl } from "@/lib/patch-ladders";
-import { CHARACTER_SILHOUETTE, DEFAULT_ROSTER_BACKDROP } from "@/lib/constants";
+import { CHARACTER_SILHOUETTE } from "@/lib/constants";
 import type { Member, Rank, Rarity } from "@/lib/types";
 
 const RARITY_WEIGHT: Record<Rarity, number> = {
@@ -47,14 +48,13 @@ export default async function BrotherhoodPage({
   // Only admins can upload character art, so only they get the nudge.
   const viewerCanManageArt = access.role === "admin";
 
-  const [members, ranks, patches, awardsByMember, artVersions, branding] = await Promise.all([
+  const [members, ranks, patches, awardsByMember, artVersions] = await Promise.all([
     listMembers(org.id),
     listRanks(org.id),
     listPatches(org.id),
     listAwardsByMember(org.id),
     // Ids and timestamps only — the artwork itself streams from the art route.
     listPatchArtVersions(org.id),
-    getBranding(org.id, "portal"),
   ]);
   // Existence only — the stored renders are served by the render route.
   const withRender = await listMembersWithRender(
@@ -128,26 +128,29 @@ export default async function BrotherhoodPage({
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      {/* The heading rides inside the engraved plate, so it belongs to the
-          component rather than the page — see ChainOfCommand. */}
-      <ChainOfCommand
-        orgSlug={orgSlug}
-        title="Brotherhood"
-        blurb="Every rider under the colors: the whole club, in order of the patch."
-        officers={officers}
-        counts={{
-          riding: riding.length,
-          officers: officers.length,
-          prospecting: riding.filter((m) => m.tier === "prospects").length,
-        }}
-      />
+      <div className="texture-noise glass-card rounded-xl p-6 md:p-8">
+        <DisplayHeading className="text-3xl text-primary md:text-4xl">Brotherhood</DisplayHeading>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Every rider under the colors: the whole club, in order of the patch.
+        </p>
+        <div className="mt-8">
+          <ChainOfCommand
+            orgSlug={orgSlug}
+            officers={officers}
+            counts={{
+              riding: riding.length,
+              officers: officers.length,
+              prospecting: riding.filter((m) => m.tier === "prospects").length,
+            }}
+          />
+        </div>
+      </div>
 
       <BrotherhoodRoster
         orgSlug={orgSlug}
         members={riding}
         pastColors={pastColors}
         viewerCanManageArt={viewerCanManageArt}
-        backdropPath={branding?.portalRosterBackdropPath ?? DEFAULT_ROSTER_BACKDROP}
       />
     </div>
   );

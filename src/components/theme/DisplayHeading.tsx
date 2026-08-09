@@ -7,19 +7,16 @@ import { cn } from "@/lib/utils";
 export function DisplayHeading({
   as: Tag = "h1",
   className,
-  style,
   children,
 }: {
   as?: "h1" | "h2" | "h3";
   className?: string;
-  /** Merged under the display font — a caller can't swap the typeface out. */
-  style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
   return (
     <Tag
       className={cn("tracking-wide", className)}
-      style={{ ...style, fontFamily: "var(--font-display)" }}
+      style={{ fontFamily: "var(--font-display)" }}
     >
       {children}
     </Tag>
