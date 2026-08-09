@@ -90,6 +90,13 @@ export interface Branding {
   orgDisplayName: string;
   tagline?: string;
   mission?: string;
+  /**
+   * public: the club's story on the About page, one entry per paragraph.
+   * `mission` stays the short line — it also runs on the home page.
+   */
+  story?: string[];
+  /** public: the closing lines under the story, set in the display face. */
+  creed?: string[];
 }
 
 export interface Rank {

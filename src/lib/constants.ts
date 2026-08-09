@@ -107,6 +107,32 @@ export const DEFAULT_ROSTER_BACKDROP = "/brand/roster-backdrop.webp";
 export const CHAIN_OF_COMMAND_PLATE = "/brand/chain-of-command.webp";
 
 /**
+ * How the club tells its own story, on the public About page.
+ *
+ * Shipped constants rather than branding-only, for the same reason as the
+ * roster backdrop: the public branding read has no fallback, so a
+ * branding-only field would stay blank in production until that doc was
+ * separately rewritten. `branding.story` / `branding.creed` still override,
+ * and `scripts/lib/branding.ts` seeds both.
+ */
+export const CLUB_STORY = [
+  "The 0% Ravens of Death MC were born from men who had grown tired of living by everyone else's rules. The founders came together with one goal: build a brotherhood where loyalty meant everything and nobody could tell them how to live.",
+  "The name Ravens of Death came from the club's belief that every member had already left their old life behind. The raven represented intelligence, freedom, and survival, while “Death” represented the death of the person they used to be. The 0% stood for their refusal to live as a traditional 1% club. They weren't interested in following another club's path — they wanted to create their own.",
+  "The original brothers earned their reputation through the streets, riding together, protecting their territory, and standing shoulder-to-shoulder when trouble came knocking. Their patch quickly became a symbol of loyalty and fearlessness.",
+  "To the Ravens, the patch isn't clothing — it's a promise. Every member is expected to respect the club, protect their brothers, and never betray the people who stood beside them. Anyone can wear a leather vest, but earning the Ravens patch is something entirely different.",
+  "The club has never pretended to be respectable. They live outside the normal boundaries of society and aren't afraid to make enemies. Rival clubs, law enforcement, and anyone who threatens their family can quickly find themselves on the wrong side of the Ravens.",
+  "Despite their reputation, the club's strongest weapon has always been its brotherhood. Money comes and goes, bikes can be replaced, and territory can be lost — but loyalty is permanent.",
+  "Today, the 0% Ravens of Death MC continue to ride under one banner. They aren't looking for acceptance, approval, or permission.",
+];
+
+/** The three lines the story closes on. */
+export const CLUB_CREED = [
+  "They ride because they're brothers.",
+  "They fight because they're family.",
+  "And once you're a Raven, you never ride alone.",
+];
+
+/**
  * The club anthem, streamed from YouTube by <MusicPlayer> on BOTH surfaces —
  * the public site and the portal. One id, one place: the two layouts must
  * never drift onto different tracks. Becomes a branding field the day a

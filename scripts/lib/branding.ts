@@ -12,6 +12,7 @@
  *   Weathered Bone #B8A0A5 · Ash White #EEE7E8
  */
 import type { Branding } from "../../src/lib/types";
+import { CLUB_CREED, CLUB_STORY } from "../../src/lib/constants";
 
 export const ORG_DISPLAY_NAME = "Ravens of Death MC";
 export const ORG_LEGAL_NAME = "Ravens of Death MC San Andreas";
@@ -76,4 +77,9 @@ export const publicBranding: Branding = {
   tagline: "Brotherhood · Loyalty · Respect · Death",
   mission:
     "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us, but so does honor, and no brother of ours ever rides alone.",
+  // The About page's long-form history. Kept here so a seed or an
+  // apply-branding run writes it, but the page also ships CLUB_STORY /
+  // CLUB_CREED as defaults — a live org renders the story with no data change.
+  story: CLUB_STORY,
+  creed: CLUB_CREED,
 };
