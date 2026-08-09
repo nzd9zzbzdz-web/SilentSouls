@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import { FieldValue, adminAuth, adminDb, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { syncUserClaims } from "@/lib/auth/claims";
@@ -181,6 +182,8 @@ export async function approveApplication(
     // Rebuild claims + revoke stale tokens so the new membership is immediately live.
     await syncUserClaims(uid);
 
+    // Approval creates the member record and grants the portal role.
+    revalidateOrgTags(orgId, "members", "roles", "org");
     revalidatePath(`/[orgSlug]/portal/recruitment`, "page");
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
     return { ok: true };

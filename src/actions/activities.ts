@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import { FieldValue, adminDb, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { approveActivityTx, EngineError, type EngineResult } from "@/lib/patch-engine";
@@ -103,6 +104,9 @@ export async function reviewActivity(
 
     if (decision === "approved") {
       const result = await approveActivityTx(orgId, activityId, access.user.uid, reviewNote);
+      // The engine moves member stats and may award patches — both are cached
+      // reads behind the roster, wall, profile and dashboard.
+      revalidateOrgTags(orgId, "members", "awards");
       revalidatePath(`/[orgSlug]/portal/activities/review`, "page");
       return { ok: true, data: result };
     }

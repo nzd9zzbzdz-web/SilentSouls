@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import sharp from "sharp";
 import { FieldValue, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
@@ -37,9 +38,10 @@ function artRef(orgId: string, key: BrandingArtKey) {
   return orgRef(orgId).collection("brandingArt").doc(key);
 }
 
-function revalidateFor(key: BrandingArtKey) {
+function revalidateFor(orgId: string, key: BrandingArtKey) {
   // Where each slot is drawn is the table's business, not this action's — an
   // if/else here is what goes stale the day a third slot lands.
+  revalidateOrgTags(orgId, "branding");
   revalidatePath(`/[orgSlug]/portal/admin/branding`, "page");
   for (const { path, type } of BRANDING_ART[key].revalidates) {
     revalidatePath(path, type);
@@ -125,7 +127,7 @@ export async function uploadBrandingArt(formData: FormData): Promise<ActionResul
       detail: `${spec.label}: ${Math.round(stored.length / 1024)}KB`,
     });
 
-    revalidateFor(key as BrandingArtKey);
+    revalidateFor(orgId, key as BrandingArtKey);
     return { ok: true };
   } catch (e) {
     return failure(e);
@@ -157,7 +159,7 @@ export async function resetBrandingArt(raw: {
       detail: spec.label,
     });
 
-    revalidateFor(raw.key);
+    revalidateFor(raw.orgId, raw.key);
     return { ok: true };
   } catch (e) {
     return failure(e);

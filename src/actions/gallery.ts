@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import sharp from "sharp";
 import { FieldValue, adminDb, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
@@ -156,7 +157,7 @@ export async function uploadGalleryPhoto(
       }`,
     });
 
-    revalidateGallerySurfaces(publish);
+    revalidateGallerySurfaces(orgId, publish);
     return {
       ok: true,
       data: { photoId: photoRef.id, pending: !canReview, published: publish },
@@ -212,7 +213,7 @@ export async function reviewGalleryPhoto(raw: {
 
     // A pending photo was never public, and rejection deletes one that wasn't
     // either — neither can change the shopfront, so its cache stands.
-    revalidateGallerySurfaces(false);
+    revalidateGallerySurfaces(orgId, false);
     return { ok: true };
   } catch (e) {
     return failure(e);
@@ -254,7 +255,7 @@ export async function setGalleryVisibility(raw: {
       targetPath: photoRef.path,
     });
 
-    revalidateGallerySurfaces(true);
+    revalidateGallerySurfaces(orgId, true);
     return { ok: true };
   } catch (e) {
     return failure(e);
@@ -287,7 +288,7 @@ export async function updateGalleryCaption(raw: {
       detail: caption || "(cleared)",
     });
 
-    revalidateGallerySurfaces(photo.visibility === "public");
+    revalidateGallerySurfaces(orgId, photo.visibility === "public");
     return { ok: true };
   } catch (e) {
     return failure(e);
@@ -314,7 +315,7 @@ export async function deleteGalleryPhoto(raw: {
       targetPath: `organizations/${orgId}/gallery/${photoId}`,
     });
 
-    revalidateGallerySurfaces(photo.visibility === "public");
+    revalidateGallerySurfaces(orgId, photo.visibility === "public");
     return { ok: true };
   } catch (e) {
     return failure(e);
@@ -361,7 +362,8 @@ async function deletePhotoDocs(orgId: string, photoId: string) {
  * shopfront over a pending upload would throw away a good cache entry for a
  * photo no visitor can see.
  */
-function revalidateGallerySurfaces(touchesPublic: boolean) {
+function revalidateGallerySurfaces(orgId: string, touchesPublic: boolean) {
+  revalidateOrgTags(orgId, "gallery");
   revalidatePath(`/[orgSlug]/portal/gallery`, "page");
   if (touchesPublic) {
     revalidatePath(`/[orgSlug]/gallery`, "page");

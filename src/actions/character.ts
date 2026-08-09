@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import sharp from "sharp";
 import { FieldValue, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole, requireSelfOrRole } from "@/lib/auth/session";
@@ -108,7 +109,7 @@ export async function uploadCharacterRender(
       detail: `${Math.round(stored.length / 1024)}KB render uploaded`,
     });
 
-    revalidateRenderSurfaces(selfApproves);
+    revalidateRenderSurfaces(orgId, selfApproves);
     return { ok: true, data: { pending: !selfApproves } };
   } catch (e) {
     return failure(e);
@@ -153,7 +154,7 @@ export async function reviewCharacterRender(raw: {
 
     // Either way the PUBLIC roster changes: approve puts a face on the card,
     // reject takes one off a member's profile.
-    revalidateRenderSurfaces(true);
+    revalidateRenderSurfaces(raw.orgId, true);
     return { ok: true };
   } catch (e) {
     return failure(e);
@@ -178,7 +179,7 @@ export async function removeCharacterRender(raw: {
       action: `member.characterArt.remove${isSelf ? ".self" : ""}`,
       targetPath: assetRef.path,
     });
-    revalidateRenderSurfaces(true);
+    revalidateRenderSurfaces(raw.orgId, true);
     return { ok: true };
   } catch (e) {
     return failure(e);
@@ -190,7 +191,9 @@ export async function removeCharacterRender(raw: {
  * home page only when the change can reach it (an unapproved upload cannot,
  * and revalidating it would throw away a good cache entry for nothing).
  */
-function revalidateRenderSurfaces(touchesPublic: boolean) {
+function revalidateRenderSurfaces(orgId: string, touchesPublic: boolean) {
+  // Renders live in members/*/assets, behind the members tag.
+  revalidateOrgTags(orgId, "members");
   revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
   revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
   revalidatePath(`/[orgSlug]/portal/activities/review`, "page");
@@ -215,6 +218,7 @@ export async function applyDefaultCharacterStage(raw: {
       action: "branding.characterStage",
       targetPath: `organizations/${raw.orgId}/branding/portal`,
     });
+    revalidateOrgTags(raw.orgId, "branding");
     revalidatePath(`/[orgSlug]/portal`, "layout");
     return { ok: true };
   } catch (e) {
@@ -269,6 +273,7 @@ export async function saveCharacterPose(raw: {
         : {}),
     });
 
+    revalidateOrgTags(orgId, "members");
     revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
     return { ok: true };
   } catch (e) {

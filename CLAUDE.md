@@ -78,6 +78,38 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   `immutable` and a re-upload lands at a new URL. `getCut` puts that URL in
   `patch.imagePath`, which the render model already reads. Art is always
   optional — every surface falls back to the lettered badge.
+- **Org-scoped reads are cached across requests** (`src/lib/cache.ts`). Firestore
+  bills per document RETURNED and this project is on the free tier (50k/day);
+  an uncached dashboard cost ~380 reads, so an evening of six members clicking
+  around could black out the site. `orgCached(keyPrefix, tagsFor, ttl, loader)`
+  wraps a loader in `unstable_cache` + React `cache()`; tags are org-scoped
+  (`orgTags`), so one tenant's write can never flush or serve another's.
+  - **Every mutating action must call `revalidateOrgTags(orgId, ...)`** next to
+    its `revalidatePath` calls. `revalidatePath` re-renders a page but does NOT
+    clear a tagged data-cache entry, so without it the rebuilt page renders the
+    rows the action just replaced. Adding a write to a cached collection without
+    adding its tag is the one way to break this layer.
+  - It uses `updateTag`, not `revalidateTag`: actions return the re-rendered page
+    in their own response (never `router.refresh()`), and `revalidateTag(t,"max")`
+    would serve the stale copy into exactly that render. `updateTag` is
+    Server-Actions-only — which is why no action module may be imported by a
+    route handler or a page.
+  - **Never cache anything derived from the session.** `getSessionUser` /
+    `requireOrgRole` stay per-request; a cached authz decision is a privilege
+    bug, and the revocation check is the point of them. Access gates live in the
+    page or route ABOVE the cached read, never inside it.
+  - Cached values round-trip through JSON, so Firestore `Timestamp`s, `Map`s and
+    `Set`s are encoded on the way in and rebuilt on the way out — ~40 call sites
+    do `.toMillis()` on cached data. `tests/lib/cache.test.ts` is that contract.
+  - Caching is **off outside production** (`NODE_ENV`), because `npm run seed`
+    wipes and rebuilds the emulator without firing any tag, and a warm cache
+    would serve the previous club back at you.
+  - `use cache` was NOT used: it needs the app-wide `cacheComponents` flag, and
+    its default store is in-memory (near-zero hit rate on Vercel's serverless
+    runtime for request-time-dynamic portal pages). The durable `use cache:
+    remote` needs the same flag, which turns every uncached dynamic read across
+    ~25 pages into a build error needing Suspense boundaries. `unstable_cache`
+    keeps working as a separate layer after that migration.
 - Officer-only data lives in **subcollections** (`members/*/notes`) — rules can't
   hide fields on a parent doc.
 - **No hardcoded brand colors/names in components.** Branding comes from

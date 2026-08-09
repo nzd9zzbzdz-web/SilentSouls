@@ -1,11 +1,14 @@
 import "server-only";
 import { cache } from "react";
 import { FieldPath, adminDb, orgRef } from "@/lib/firebase/admin";
+import { TTL, orgCached, orgTags } from "@/lib/cache";
 import type {
   Activity,
   ActivityType,
   AwardedPatch,
   GalleryPhoto,
+  MapMarker,
+  MapTerritory,
   Member,
   Patch,
   Rank,
@@ -13,14 +16,25 @@ import type {
   SystemRole,
 } from "@/lib/types";
 
-// Small, stable collections — fetched once per request via React cache().
+// Small, stable collections. `orgCached` holds them ACROSS requests (see
+// src/lib/cache.ts — Firestore bills per document returned and the free tier is
+// 50k/day) and React-cache()s them within one render on top. Every mutating
+// action clears the matching tag via `revalidateOrgTags`.
 
-export const listRanks = cache(async (orgId: string): Promise<Rank[]> => {
-  const snap = await orgRef(orgId).collection("ranks").orderBy("order").get();
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Rank, "id">) }));
-});
+export const listRanks = orgCached(
+  "ranks",
+  (orgId) => [orgTags.ranks(orgId)],
+  TTL.reference,
+  async (orgId: string): Promise<Rank[]> => {
+    const snap = await orgRef(orgId).collection("ranks").orderBy("order").get();
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Rank, "id">) }));
+  },
+);
 
-export const listActivityTypes = cache(
+export const listActivityTypes = orgCached(
+  "activityTypes",
+  (orgId) => [orgTags.activityTypes(orgId)],
+  TTL.reference,
   async (orgId: string): Promise<ActivityType[]> => {
     const snap = await orgRef(orgId)
       .collection("activityTypes")
@@ -33,10 +47,20 @@ export const listActivityTypes = cache(
   },
 );
 
-export const listPatches = cache(async (orgId: string): Promise<Patch[]> => {
-  const snap = await orgRef(orgId).collection("patches").get();
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Patch, "id">) }));
-});
+// The single biggest read on most pages: 15 club patches plus 55 criminal
+// record emblems, re-read by the dashboard, wall, cut, profile and admin.
+export const listPatches = orgCached(
+  "patches",
+  (orgId) => [orgTags.patches(orgId)],
+  TTL.reference,
+  async (orgId: string): Promise<Patch[]> => {
+    const snap = await orgRef(orgId).collection("patches").get();
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Patch, "id">),
+    }));
+  },
+);
 
 /**
  * Which patches have artwork, and the version of each — patch id → updatedAt in
@@ -45,7 +69,10 @@ export const listPatches = cache(async (orgId: string): Promise<Patch[]> => {
  * rather than sixty base64 blobs. The bytes come from the art route, which the
  * browser fetches in parallel and caches (see `patchArtUrl`).
  */
-export const listPatchArtVersions = cache(
+export const listPatchArtVersions = orgCached(
+  "patchArtVersions",
+  (orgId) => [orgTags.patchArt(orgId)],
+  TTL.reference,
   async (orgId: string): Promise<Map<string, number>> => {
     const snap = await orgRef(orgId).collection("patchArt").select("updatedAt").get();
     return new Map(
@@ -58,7 +85,10 @@ export const listPatchArtVersions = cache(
 );
 
 /** One patch's artwork, for the route that streams it. */
-export const getPatchArt = cache(
+export const getPatchArt = orgCached(
+  "patchArt",
+  (orgId) => [orgTags.patchArt(orgId)],
+  TTL.reference,
   async (
     orgId: string,
     patchId: string,
@@ -71,15 +101,26 @@ export const getPatchArt = cache(
   },
 );
 
-export const listMembers = cache(async (orgId: string): Promise<Member[]> => {
-  const snap = await orgRef(orgId)
-    .collection("members")
-    .orderBy("memberNumber")
-    .get();
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Member, "id">) }));
-});
+export const listMembers = orgCached(
+  "members",
+  (orgId) => [orgTags.members(orgId)],
+  TTL.club,
+  async (orgId: string): Promise<Member[]> => {
+    const snap = await orgRef(orgId)
+      .collection("members")
+      .orderBy("memberNumber")
+      .get();
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Member, "id">),
+    }));
+  },
+);
 
-export const getMember = cache(
+export const getMember = orgCached(
+  "member",
+  (orgId) => [orgTags.members(orgId)],
+  TTL.club,
   async (orgId: string, memberId: string): Promise<Member | null> => {
     const snap = await orgRef(orgId).collection("members").doc(memberId).get();
     return snap.exists
@@ -88,7 +129,10 @@ export const getMember = cache(
   },
 );
 
-export const listMemberAwards = cache(
+export const listMemberAwards = orgCached(
+  "memberAwards",
+  (orgId) => [orgTags.awards(orgId)],
+  TTL.club,
   async (orgId: string, memberId: string): Promise<AwardedPatch[]> => {
     const snap = await orgRef(orgId)
       .collection("awardedPatches")
@@ -106,7 +150,10 @@ export const listMemberAwards = cache(
  * first. Written by the member actions since the club was created; nothing read
  * it until the profile's Service Record, so old members already have history.
  */
-export const listServiceRecord = cache(
+export const listServiceRecord = orgCached(
+  "serviceRecord",
+  (orgId) => [orgTags.members(orgId)],
+  TTL.club,
   async (orgId: string, memberId: string): Promise<ServiceRecordEntry[]> => {
     const snap = await orgRef(orgId)
       .collection("members")
@@ -121,20 +168,48 @@ export const listServiceRecord = cache(
   },
 );
 
-/** Every award in the org, grouped by member — one read for a whole roster. */
-export const listAwardsByMember = cache(
-  async (orgId: string): Promise<Map<string, AwardedPatch[]>> => {
+/** Every award in the org — one read behind both groupings below. */
+const listAllAwards = orgCached(
+  "allAwards",
+  (orgId) => [orgTags.awards(orgId)],
+  TTL.club,
+  async (orgId: string): Promise<AwardedPatch[]> => {
     const snap = await orgRef(orgId).collection("awardedPatches").get();
-    const byMember = new Map<string, AwardedPatch[]>();
-    for (const d of snap.docs) {
-      const award = { id: d.id, ...(d.data() as Omit<AwardedPatch, "id">) };
-      const list = byMember.get(award.memberId);
-      if (list) list.push(award);
-      else byMember.set(award.memberId, [award]);
-    }
-    return byMember;
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<AwardedPatch, "id">),
+    }));
   },
 );
+
+/** Every award in the org, grouped by member — one read for a whole roster. */
+export const listAwardsByMember = cache(
+  async (orgId: string): Promise<Map<string, AwardedPatch[]>> =>
+    groupAwards(await listAllAwards(orgId), (a) => a.memberId),
+);
+
+/**
+ * The same single read, grouped by patch. The Hall of Legends needs holders per
+ * patch; asking Firestore `where patchId ==` once per legendary patch was a
+ * query per patch on every wall load, for rows this already has in hand.
+ */
+export const listAwardsByPatch = cache(
+  async (orgId: string): Promise<Map<string, AwardedPatch[]>> =>
+    groupAwards(await listAllAwards(orgId), (a) => a.patchId),
+);
+
+function groupAwards(
+  awards: AwardedPatch[],
+  key: (a: AwardedPatch) => string,
+): Map<string, AwardedPatch[]> {
+  const grouped = new Map<string, AwardedPatch[]>();
+  for (const award of awards) {
+    const list = grouped.get(key(award));
+    if (list) list.push(award);
+    else grouped.set(key(award), [award]);
+  }
+  return grouped;
+}
 
 /**
  * Which members have an uploaded character render, without pulling the
@@ -145,30 +220,49 @@ export async function listMembersWithRender(
   orgId: string,
   memberIds: string[],
 ): Promise<Map<string, { approved: boolean }>> {
-  const results = await Promise.all(
-    memberIds.map(async (memberId) => {
-      // .select("approved") returns that one field — still no image egress.
-      const snap = await orgRef(orgId)
-        .collection("members")
-        .doc(memberId)
-        .collection("assets")
-        .select("approved")
-        .get();
-      const doc = snap.docs.find((d) => d.id === "character");
-      if (!doc) return null;
-      // Absent ⇒ approved, so every render uploaded before member self-service
-      // existed (all of them admin-authored) keeps showing publicly. Same
-      // "missing flag means the old behaviour" rule as patch.emblem.
-      return [memberId, { approved: doc.get("approved") !== false }] as const;
-    }),
-  );
-  // A Map rather than a Set so callers keep `.has()` for "is there art at all"
-  // (every portal surface) and gain `.get()?.approved` for the public roster.
-  return new Map(results.filter((r): r is NonNullable<typeof r> => r !== null));
+  // Keyed on the ids asked for, not just the org — the roster and the public
+  // page pass different slices, and a cache entry that ignored them would
+  // answer one page's question with the other's data.
+  return loadRendersFor(orgId, [...memberIds].sort().join(","));
 }
 
+const loadRendersFor = orgCached(
+  "membersWithRender",
+  (orgId) => [orgTags.members(orgId)],
+  TTL.club,
+  async (
+    orgId: string,
+    idList: string,
+  ): Promise<Map<string, { approved: boolean }>> => {
+    const memberIds = idList ? idList.split(",") : [];
+    const results = await Promise.all(
+      memberIds.map(async (memberId) => {
+        // .select("approved") returns that one field — still no image egress.
+        const snap = await orgRef(orgId)
+          .collection("members")
+          .doc(memberId)
+          .collection("assets")
+          .select("approved")
+          .get();
+        const doc = snap.docs.find((d) => d.id === "character");
+        if (!doc) return null;
+        // Absent ⇒ approved, so every render uploaded before member self-service
+        // existed (all of them admin-authored) keeps showing publicly. Same
+        // "missing flag means the old behaviour" rule as patch.emblem.
+        return [memberId, { approved: doc.get("approved") !== false }] as const;
+      }),
+    );
+    // A Map rather than a Set so callers keep `.has()` for "is there art at all"
+    // (every portal surface) and gain `.get()?.approved` for the public roster.
+    return new Map(results.filter((r): r is NonNullable<typeof r> => r !== null));
+  },
+);
+
 /** The stored character render data URL, or null. Served by the render route. */
-export const getCharacterRender = cache(
+export const getCharacterRender = orgCached(
+  "characterRender",
+  (orgId) => [orgTags.members(orgId)],
+  TTL.club,
   async (
     orgId: string,
     memberId: string,
@@ -197,7 +291,10 @@ export const getCharacterRender = cache(
  * default" without pulling half a megabyte of base64 to find out — and without
  * guessing from the path, which is set to the shipped default by the seeder.
  */
-export const listBrandingArtKeys = cache(
+export const listBrandingArtKeys = orgCached(
+  "brandingArtKeys",
+  (orgId) => [orgTags.branding(orgId)],
+  TTL.reference,
   async (orgId: string): Promise<Set<string>> => {
     const snap = await orgRef(orgId).collection("brandingArt").select().get();
     return new Set(snap.docs.map((d) => d.id));
@@ -205,7 +302,10 @@ export const listBrandingArtKeys = cache(
 );
 
 /** Uploaded branding scene art (roster backdrop, character stage), or null. */
-export const getBrandingArt = cache(
+export const getBrandingArt = orgCached(
+  "brandingArt",
+  (orgId) => [orgTags.branding(orgId)],
+  TTL.reference,
   async (
     orgId: string,
     key: string,
@@ -231,7 +331,10 @@ export const getBrandingArt = cache(
  * the collection is small enough that one cached read serving all of them beats
  * three indexed queries.
  */
-export const listGalleryPhotos = cache(
+export const listGalleryPhotos = orgCached(
+  "galleryPhotos",
+  (orgId) => [orgTags.gallery(orgId)],
+  TTL.club,
   async (orgId: string): Promise<GalleryPhoto[]> => {
     const snap = await orgRef(orgId)
       .collection("gallery")
@@ -245,7 +348,10 @@ export const listGalleryPhotos = cache(
 );
 
 /** One photo's metadata — the gate the streaming route checks before serving. */
-export const getGalleryPhoto = cache(
+export const getGalleryPhoto = orgCached(
+  "galleryPhoto",
+  (orgId) => [orgTags.gallery(orgId)],
+  TTL.club,
   async (orgId: string, photoId: string): Promise<GalleryPhoto | null> => {
     const snap = await orgRef(orgId).collection("gallery").doc(photoId).get();
     return snap.exists
@@ -254,8 +360,12 @@ export const getGalleryPhoto = cache(
   },
 );
 
-/** One photo's bytes, for the route that streams them. */
-export const getGalleryArt = cache(
+/** One photo's bytes, for the route that streams them. Safe to hold across
+ *  requests: the upload ladder caps a stored photo at 700KB. */
+export const getGalleryArt = orgCached(
+  "galleryArt",
+  (orgId) => [orgTags.gallery(orgId)],
+  TTL.club,
   async (
     orgId: string,
     photoId: string,
@@ -271,11 +381,55 @@ export const getGalleryArt = cache(
 );
 
 /**
+ * Club map intel. Both callers read the SAME entry at the widest limit and
+ * slice in memory — the dashboard embed used to run its own 200-marker query,
+ * so a member who opened the dashboard and then the map paid for the pins
+ * twice. At 200 markers plus 50 zones the embed alone was the most expensive
+ * thing on the portal's landing page.
+ */
+export const listMapMarkers = orgCached(
+  "mapMarkers",
+  (orgId) => [orgTags.map(orgId)],
+  TTL.club,
+  async (orgId: string): Promise<MapMarker[]> => {
+    const snap = await orgRef(orgId)
+      .collection("mapMarkers")
+      .orderBy("createdAt", "desc")
+      .limit(500)
+      .get();
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<MapMarker, "id">),
+    }));
+  },
+);
+
+export const listMapTerritories = orgCached(
+  "mapTerritories",
+  (orgId) => [orgTags.map(orgId)],
+  TTL.club,
+  async (orgId: string): Promise<MapTerritory[]> => {
+    const snap = await orgRef(orgId)
+      .collection("mapTerritories")
+      .orderBy("createdAt", "desc")
+      .limit(100)
+      .get();
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<MapTerritory, "id">),
+    }));
+  },
+);
+
+/**
  * Portal role per linked uid for this org. Roles live on `users/{uid}` rather
  * than the member doc — one account can belong to several orgs — so the member
  * admin has to join the two to show who is an admin.
  */
-export const listOrgRoles = cache(
+export const listOrgRoles = orgCached(
+  "orgRoles",
+  (orgId) => [orgTags.roles(orgId)],
+  TTL.club,
   async (orgId: string): Promise<Map<string, SystemRole>> => {
     const snap = await adminDb
       .collection("users")

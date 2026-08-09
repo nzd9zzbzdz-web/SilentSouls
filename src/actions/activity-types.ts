@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import { orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
@@ -214,6 +215,9 @@ export async function syncDefaultActivityTypes(
       });
     }
 
+    // A sync can add types, install patches, strip emblems off cut layouts and
+    // fold legacy rapSheets into member stats — every cached reference read.
+    revalidateOrgTags(orgId, "activityTypes", "patches", "members");
     revalidatePath(`/[orgSlug]/portal/admin/activity-types`, "page");
     revalidatePath(`/[orgSlug]/portal/admin/patches`, "page");
     revalidatePath(`/[orgSlug]/portal/activities`, "page");

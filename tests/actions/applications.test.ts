@@ -12,7 +12,14 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
 process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = "applications-test-isolated";
 
-vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+vi.mock("next/cache", () => ({
+  revalidatePath: () => {},
+  // Actions clear cached reads via updateTag (see src/lib/cache.ts). No Server
+  // Action context here, and NODE_ENV!=="production" means nothing is cached
+  // in tests anyway — the stub just has to exist.
+  updateTag: () => {},
+  unstable_cache: (fn: unknown) => fn,
+}));
 
 // Controllable auth gate — each test sets `mockAccess` to the approver it wants.
 let mockAccess: {

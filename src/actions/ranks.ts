@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import { orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
@@ -129,6 +130,7 @@ export async function syncDefaultRanks(
       });
     }
 
+    revalidateOrgTags(orgId, "ranks");
     revalidatePath(`/[orgSlug]/portal/admin/ranks`, "page");
     revalidatePath(`/[orgSlug]/portal/admin`, "page");
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");

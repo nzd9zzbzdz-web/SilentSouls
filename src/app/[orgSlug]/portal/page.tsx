@@ -17,13 +17,13 @@ import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
 import { describeActivity } from "@/lib/activity-entries";
-import { orgRef } from "@/lib/firebase/admin";
-import type { MapMarker, MapTerritory } from "@/lib/types";
 import {
   countPending,
   getMember,
   listActivities,
   listActivityTypes,
+  listMapMarkers,
+  listMapTerritories,
   listMemberAwards,
   listMembers,
   listPatches,
@@ -42,37 +42,34 @@ export default async function DashboardPage({
   const access = await requireOrgRole(org.id, "member");
 
   const member = access.memberId ? await getMember(org.id, access.memberId) : null;
-  const [patches, types, recent, pendingCount, markerSnap, territorySnap] =
+  const [patches, types, recent, pendingCount, allMarkers, allTerritories] =
     await Promise.all([
       listPatches(org.id),
       listActivityTypes(org.id),
       listActivities(org.id, { limit: 8 }),
       access.role !== "member" ? countPending(org.id) : Promise.resolve(0),
-      orgRef(org.id).collection("mapMarkers").orderBy("createdAt", "desc").limit(200).get(),
-      orgRef(org.id).collection("mapTerritories").orderBy("createdAt", "desc").limit(50).get(),
+      listMapMarkers(org.id),
+      listMapTerritories(org.id),
     ]);
-  const mapMarkers: ClubMapMarker[] = markerSnap.docs.map((d) => {
-    const m = d.data() as Omit<MapMarker, "id">;
-    return {
-      id: d.id,
-      label: m.label,
-      style: m.style,
-      description: m.description ?? "",
-      u: m.u,
-      v: m.v,
-      droppedBy: null, // compact embed skips attribution
-    };
-  });
-  const mapTerritories: ClubMapTerritory[] = territorySnap.docs.map((d) => {
-    const t = d.data() as Omit<MapTerritory, "id">;
-    return {
-      id: d.id,
-      crewName: t.crewName,
-      label: t.label ?? "",
-      color: t.color ?? null,
-      points: t.points ?? [],
-    };
-  });
+  // Shares the map page's cache entry and trims here — the embed showed a
+  // narrower slice, but querying for it separately meant paying for the pins
+  // twice for anyone who opened both pages.
+  const mapMarkers: ClubMapMarker[] = allMarkers.slice(0, 200).map((m) => ({
+    id: m.id,
+    label: m.label,
+    style: m.style,
+    description: m.description ?? "",
+    u: m.u,
+    v: m.v,
+    droppedBy: null, // compact embed skips attribution
+  }));
+  const mapTerritories: ClubMapTerritory[] = allTerritories.slice(0, 50).map((t) => ({
+    id: t.id,
+    crewName: t.crewName,
+    label: t.label ?? "",
+    color: t.color ?? null,
+    points: t.points ?? [],
+  }));
   const awards = access.memberId
     ? await listMemberAwards(org.id, access.memberId)
     : [];

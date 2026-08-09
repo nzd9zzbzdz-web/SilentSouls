@@ -3,9 +3,12 @@ import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components/portal/map/ClubMap";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
-import { orgRef } from "@/lib/firebase/admin";
-import { getMember, listMembers } from "@/lib/queries";
-import type { MapMarker, MapTerritory } from "@/lib/types";
+import {
+  getMember,
+  listMapMarkers,
+  listMapTerritories,
+  listMembers,
+} from "@/lib/queries";
 
 export default async function ClubMapPage({
   params,
@@ -22,38 +25,32 @@ export default async function ClubMapPage({
   const canManage = access.isSuper || access.role !== "member";
   const canEditPins = canManage || viewer?.status === "patched";
 
-  const [markerSnap, territorySnap, members] = await Promise.all([
-    orgRef(org.id).collection("mapMarkers").orderBy("createdAt", "desc").limit(500).get(),
-    orgRef(org.id).collection("mapTerritories").orderBy("createdAt", "desc").limit(100).get(),
+  const [rawMarkers, rawTerritories, members] = await Promise.all([
+    listMapMarkers(org.id),
+    listMapTerritories(org.id),
     listMembers(org.id),
   ]);
   const roadNameById = new Map(members.map((m) => [m.id, m.roadName]));
 
-  const markers: ClubMapMarker[] = markerSnap.docs.map((d) => {
-    const m = d.data() as Omit<MapMarker, "id">;
-    return {
-      id: d.id,
-      label: m.label,
-      style: m.style,
-      description: m.description ?? "",
-      u: m.u,
-      v: m.v,
-      droppedBy: m.createdByMemberId
-        ? (roadNameById.get(m.createdByMemberId) ?? null)
-        : null,
-    };
-  });
+  const markers: ClubMapMarker[] = rawMarkers.map((m) => ({
+    id: m.id,
+    label: m.label,
+    style: m.style,
+    description: m.description ?? "",
+    u: m.u,
+    v: m.v,
+    droppedBy: m.createdByMemberId
+      ? (roadNameById.get(m.createdByMemberId) ?? null)
+      : null,
+  }));
 
-  const territories: ClubMapTerritory[] = territorySnap.docs.map((d) => {
-    const t = d.data() as Omit<MapTerritory, "id">;
-    return {
-      id: d.id,
-      crewName: t.crewName,
-      label: t.label ?? "",
-      color: t.color ?? null,
-      points: t.points ?? [],
-    };
-  });
+  const territories: ClubMapTerritory[] = rawTerritories.map((t) => ({
+    id: t.id,
+    crewName: t.crewName,
+    label: t.label ?? "",
+    color: t.color ?? null,
+    points: t.points ?? [],
+  }));
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">

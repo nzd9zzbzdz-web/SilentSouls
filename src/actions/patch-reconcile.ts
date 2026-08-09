@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import { Timestamp, adminDb, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
@@ -179,6 +180,8 @@ export async function reconcilePatchAwards(
         (stale.length > 12 ? ` +${stale.length - 12} more` : ""),
     });
 
+    // Reconcile can revoke awards AND rewrite member patchCount.
+    revalidateOrgTags(orgId, "awards", "members");
     revalidatePath(`/[orgSlug]/portal/admin/patches`, "page");
     revalidatePath(`/[orgSlug]/portal/patch-wall`, "page");
     revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");

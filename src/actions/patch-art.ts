@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import sharp from "sharp";
 import { FieldValue, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
@@ -36,7 +37,8 @@ function artRef(orgId: string, patchId: string) {
   return orgRef(orgId).collection("patchArt").doc(patchId);
 }
 
-function revalidateArt() {
+function revalidateArt(orgId: string) {
+  revalidateOrgTags(orgId, "patchArt");
   revalidatePath(`/[orgSlug]/portal/admin/patches`, "page");
   revalidatePath(`/[orgSlug]/portal/patch-wall`, "page");
   revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
@@ -104,7 +106,7 @@ export async function uploadPatchArt(formData: FormData): Promise<ActionResult> 
       detail: `${Math.round(stored.length / 1024)}KB artwork uploaded`,
     });
 
-    revalidateArt();
+    revalidateArt(orgId);
     return { ok: true };
   } catch (e) {
     return failure(e);
@@ -124,7 +126,7 @@ export async function removePatchArt(raw: {
       action: "patch.art.remove",
       targetPath: artRef(raw.orgId, raw.patchId).path,
     });
-    revalidateArt();
+    revalidateArt(raw.orgId);
     return { ok: true };
   } catch (e) {
     return failure(e);

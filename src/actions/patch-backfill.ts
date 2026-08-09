@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import { FieldValue, Timestamp, adminDb, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
@@ -134,6 +135,7 @@ export async function backfillPatchAwards(
       });
     }
 
+    revalidateOrgTags(orgId, "awards");
     revalidatePath(`/[orgSlug]/portal/admin/patches`, "page");
     revalidatePath(`/[orgSlug]/portal/patch-wall`, "page");
     revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");

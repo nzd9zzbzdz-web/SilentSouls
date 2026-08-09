@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import { FieldValue, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { manualAwardTx, EngineError } from "@/lib/patch-engine";
@@ -48,6 +49,7 @@ export async function upsertPatch(
       targetPath: col.doc(patchId).path,
       at: FieldValue.serverTimestamp(),
     });
+    revalidateOrgTags(input.orgId, "patches");
     revalidatePath(`/[orgSlug]/portal/admin/patches`, "page");
     return { ok: true, data: { patchId } };
   } catch (e) {
@@ -70,6 +72,7 @@ export async function manualAward(
     const awarded = await manualAwardTx(orgId, memberId, patchId, access.user.uid, reason);
     // An award touches the wall, the admin table, the member's profile, and
     // (for worn patches) their cut.
+    revalidateOrgTags(orgId, "awards");
     revalidatePath(`/[orgSlug]/portal/patch-wall`, "page");
     revalidatePath(`/[orgSlug]/portal/admin/patches`, "page");
     revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");

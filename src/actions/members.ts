@@ -2,6 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import {
   FieldPath,
   FieldValue,
@@ -85,6 +86,7 @@ export async function createMember(
     } catch (err) {
       console.error("checkMilestones (member_added) failed post-commit:", err);
     }
+    revalidateOrgTags(input.orgId, "members", "org");
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
     revalidatePath(`/[orgSlug]/portal/admin`, "page");
     return { ok: true, data: { memberId } };
@@ -259,6 +261,8 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
       at: FieldValue.serverTimestamp(),
     });
 
+    // A rank or role change moves the roster AND the portal-role join.
+    revalidateOrgTags(orgId, "members", "roles");
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
     revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
     revalidatePath(`/[orgSlug]/portal/admin`, "page");
@@ -314,6 +318,7 @@ export async function saveMemberBio(raw: SaveMemberBioInput): Promise<ActionResu
     // The bio renders in two places and BOTH have to be revalidated: the
     // profile, and the PUBLIC roster on the org home page. Miss the second and
     // a member "removes" their blurb while the outside world still sees it.
+    revalidateOrgTags(orgId, "members");
     revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
     revalidatePath(`/[orgSlug]`, "page");
     return { ok: true };
@@ -428,6 +433,9 @@ export async function deleteMember(raw: DeleteMemberInput): Promise<ActionResult
 
     await org.update({ memberCount: FieldValue.increment(-1) });
 
+    // A removal takes the member, their awards, their portal role, and a seat
+    // off the org's memberCount — four cached reads.
+    revalidateOrgTags(orgId, "members", "awards", "roles", "org");
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
     revalidatePath(`/[orgSlug]/portal/admin`, "page");
     return { ok: true };
@@ -576,6 +584,8 @@ export async function acceptInvite(raw: {
     });
 
     await syncUserClaims(uid);
+    // Accepting links the uid onto the member doc and grants the portal role.
+    revalidateOrgTags(orgId, "members", "roles");
     return { ok: true };
   } catch (e) {
     if (e instanceof InviteError) return { ok: false, error: e.message };

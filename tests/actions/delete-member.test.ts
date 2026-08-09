@@ -11,7 +11,14 @@ process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
 process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
 process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = "delete-member-test-isolated";
 
-vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+vi.mock("next/cache", () => ({
+  revalidatePath: () => {},
+  // Actions clear cached reads via updateTag (see src/lib/cache.ts). No Server
+  // Action context here, and NODE_ENV!=="production" means nothing is cached
+  // in tests anyway — the stub just has to exist.
+  updateTag: () => {},
+  unstable_cache: (fn: unknown) => fn,
+}));
 // The acting admin is "admin-1" / member m-admin throughout.
 vi.mock("@/lib/auth/session", () => ({
   requireOrgRole: async () => ({

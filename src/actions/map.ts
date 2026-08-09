@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateOrgTags } from "@/lib/cache";
 import { FieldValue, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole, type OrgAccess } from "@/lib/auth/session";
 import { getMember } from "@/lib/queries";
@@ -33,7 +34,8 @@ async function assertPatched(access: OrgAccess, orgId: string): Promise<string |
   return null;
 }
 
-function revalidateMap() {
+function revalidateMap(orgId: string) {
+  revalidateOrgTags(orgId, "map");
   revalidatePath(`/[orgSlug]/portal/map`, "page");
   revalidatePath(`/[orgSlug]/portal`, "page"); // dashboard embed
 }
@@ -86,7 +88,7 @@ export async function saveMapMarker(
       at: FieldValue.serverTimestamp(),
     });
 
-    revalidateMap();
+    revalidateMap(input.orgId);
     return { ok: true, data: { markerId } };
   } catch (e) {
     return failure(e);
@@ -115,7 +117,7 @@ export async function deleteMapMarker(raw: DeleteMapMarkerInput): Promise<Action
       at: FieldValue.serverTimestamp(),
     });
 
-    revalidateMap();
+    revalidateMap(orgId);
     return { ok: true };
   } catch (e) {
     return failure(e);
@@ -166,7 +168,7 @@ export async function saveMapTerritory(
       at: FieldValue.serverTimestamp(),
     });
 
-    revalidateMap();
+    revalidateMap(input.orgId);
     return { ok: true, data: { territoryId } };
   } catch (e) {
     return failure(e);
@@ -197,7 +199,7 @@ export async function deleteMapTerritory(
       at: FieldValue.serverTimestamp(),
     });
 
-    revalidateMap();
+    revalidateMap(orgId);
     return { ok: true };
   } catch (e) {
     return failure(e);

@@ -6,9 +6,9 @@ import { Reveal } from "@/components/motion/Reveal";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
-import { orgRef } from "@/lib/firebase/admin";
 import {
   getMember,
+  listAwardsByPatch,
   listMemberAwards,
   listMembers,
   listPatchArtVersions,
@@ -16,7 +16,7 @@ import {
 } from "@/lib/queries";
 import { composeLadders, patchArtUrl, remainingLabel } from "@/lib/patch-ladders";
 import { CRIMINAL_RECORD_ROWS, STAT_LABELS } from "@/lib/constants";
-import type { AwardedPatch, Patch } from "@/lib/types";
+import type { Patch } from "@/lib/types";
 
 /** Stats a member can actually see — the Criminal Record panel on their profile. */
 const TRACKED_STATS = new Set(CRIMINAL_RECORD_ROWS.map((r) => r.statKey));
@@ -99,23 +99,17 @@ export default async function PatchWallPage({
     : [];
   const earnedIds = new Set(myAwards.map((a) => a.patchId));
 
-  // Hall of Legends: every legendary award across the club.
+  // Hall of Legends: every legendary award across the club. One grouped read of
+  // awardedPatches rather than a `where patchId ==` query per legendary patch.
   const legendaryPatches = patches.filter((p) => p.category === "legendary");
-  const legendaryAwardSnaps = await Promise.all(
-    legendaryPatches.map((p) =>
-      orgRef(org.id).collection("awardedPatches").where("patchId", "==", p.id).get(),
-    ),
-  );
+  const awardsByPatch = await listAwardsByPatch(org.id);
   const memberById = new Map(members.map((m) => [m.id, m]));
-  const legends = legendaryPatches.flatMap((patch, i) =>
-    legendaryAwardSnaps[i].docs.map((d) => {
-      const award = d.data() as AwardedPatch;
-      return {
-        patch,
-        holder: memberById.get(award.memberId),
-        reason: award.reason,
-      };
-    }),
+  const legends = legendaryPatches.flatMap((patch) =>
+    (awardsByPatch.get(patch.id) ?? []).map((award) => ({
+      patch,
+      holder: memberById.get(award.memberId),
+      reason: award.reason,
+    })),
   );
 
   // This page is about the cut. Criminal-record emblems are earned the same way
