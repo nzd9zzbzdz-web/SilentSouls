@@ -34,7 +34,7 @@ export default async function PatchAdminPage({
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
             Define requirements, adjust thresholds, and hand out the honors only
             leadership can give. Thresholds are only checked when an activity is
-            approved — after changing one, backfill so members who already
+            approved. After changing one, backfill so members who already
             cleared it get it now.
           </p>
         </div>

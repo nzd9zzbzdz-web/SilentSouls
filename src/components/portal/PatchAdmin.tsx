@@ -421,7 +421,7 @@ export function PatchAdmin({
               {form.emblem ? (
                 <div className="flex min-h-11 items-end pb-2">
                   <p className="text-xs text-muted-foreground">
-                    Emblems aren&apos;t worn on the cut — they show as a levelled
+                    Emblems aren&apos;t worn on the cut. They show as a levelled
                     ladder on the member&apos;s profile.
                   </p>
                 </div>

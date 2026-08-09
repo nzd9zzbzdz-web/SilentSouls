@@ -32,7 +32,7 @@ export function SyncActivityTypesButton({ orgId }: { orgId: string }) {
       if (d.cutsCleaned > 0) parts.push(`${d.cutsCleaned} cut(s) cleaned`);
       if (d.membersMigrated > 0) parts.push(`${d.membersMigrated} rap sheet(s) moved to stats`);
       toast.success(
-        parts.length === 0 ? "Already up to date — nothing to change" : parts.join(" · "),
+        parts.length === 0 ? "Already up to date, nothing to change" : parts.join(" · "),
       );
     });
   }

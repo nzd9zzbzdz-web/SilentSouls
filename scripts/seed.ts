@@ -431,10 +431,10 @@ async function seed() {
     u: number; v: number; createdByMemberId: string;
   }> = [
     { id: "mk-clubhouse", label: "The Clubhouse", style: "clubhouse", description: "Home. Sandy Shores. Colors on the wall, prospects on the door.", u: 0.63, v: 0.4, createdByMemberId: "m-reaper" },
-    { id: "mk-sheriff", label: "Sandy Shores Sheriff", style: "cops", description: "BCSO substation — they watch the clubhouse from here. Assume eyes.", u: 0.6, v: 0.38, createdByMemberId: "m-six" },
-    { id: "mk-grapeseed", label: "Rival hangout — Grapeseed", style: "rival", description: "Lost MC drink at the farmhouse most nights. Do not ride through alone.", u: 0.68, v: 0.32, createdByMemberId: "m-thorn" },
+    { id: "mk-sheriff", label: "Sandy Shores Sheriff", style: "cops", description: "BCSO substation. They watch the clubhouse from here, so assume eyes.", u: 0.6, v: 0.38, createdByMemberId: "m-six" },
+    { id: "mk-grapeseed", label: "Rival hangout, Grapeseed", style: "rival", description: "Lost MC drink at the farmhouse most nights. Do not ride through alone.", u: 0.68, v: 0.32, createdByMemberId: "m-thorn" },
     { id: "mk-paleto", label: "Paleto fuel stop", style: "run", description: "Standard rally point on the northern run. Regroup before the coast road.", u: 0.42, v: 0.14, createdByMemberId: "m-six" },
-    { id: "mk-legion", label: "Legion Square meet", style: "meet", description: "Neutral ground for city sit-downs. Public, cameras everywhere — behave.", u: 0.42, v: 0.75, createdByMemberId: "m-reaper" },
+    { id: "mk-legion", label: "Legion Square meet", style: "meet", description: "Neutral ground for city sit-downs. Public, cameras everywhere, so behave.", u: 0.42, v: 0.75, createdByMemberId: "m-reaper" },
   ];
   for (const mk of mapMarkers) {
     const { id, ...data } = mk;

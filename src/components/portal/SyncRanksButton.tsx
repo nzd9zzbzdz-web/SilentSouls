@@ -28,7 +28,7 @@ export function SyncRanksButton({ orgId }: { orgId: string }) {
       if (d.updated.length > 0) parts.push(`updated ${d.updated.join(", ")}`);
       if (d.visualsWritten > 0) parts.push(`${d.visualsWritten} cut visual(s) written`);
       toast.success(
-        parts.length === 0 ? "Already up to date — nothing to change" : parts.join(" · "),
+        parts.length === 0 ? "Already up to date, nothing to change" : parts.join(" · "),
       );
     });
   }

@@ -140,7 +140,7 @@ function Rung({
         <span className="sr-only">
           {rung.earned
             ? `Earned${rung.awardedLabel ? ` ${rung.awardedLabel}` : ""}.`
-            : `Locked — ${rung.description}.`}{" "}
+            : `Locked. ${rung.description}.`}{" "}
           Open close-up.
         </span>
       </button>
@@ -291,7 +291,7 @@ function EmblemCloseUp({
         ) : (
           <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Lock className="size-3.5" aria-hidden />
-            Locked — needs{" "}
+            Locked, needs{" "}
             <span className="font-stat text-foreground">{rung.thresholdLabel}</span>{" "}
             {ladder.label.toLowerCase()}
           </p>
@@ -340,7 +340,7 @@ export function EmblemLadderCard({ ladder }: { ladder: EmblemLadderView }) {
         className="absolute inset-0 z-0 cursor-pointer rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
       >
         <span className="sr-only">
-          {ladder.label} — open the level {ladder.rungs[ladder.activeIndex]?.name} close-up
+          {ladder.label}, open the level {ladder.rungs[ladder.activeIndex]?.name} close-up
         </span>
       </button>
 

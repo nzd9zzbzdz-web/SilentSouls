@@ -79,7 +79,7 @@ export async function uploadBrandingArt(formData: FormData): Promise<ActionResul
     if ((meta.width ?? 0) < spec.width || (meta.height ?? 0) < spec.height) {
       return {
         ok: false,
-        error: `Image is too small — needs to be at least ${spec.width}×${spec.height}px`,
+        error: `Image is too small. It needs to be at least ${spec.width}×${spec.height}px`,
       };
     }
 

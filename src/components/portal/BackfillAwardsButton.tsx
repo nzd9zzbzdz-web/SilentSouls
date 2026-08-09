@@ -26,7 +26,7 @@ export function BackfillAwardsButton({ orgId }: { orgId: string }) {
       const d = result.data!;
       toast.success(
         d.awardsCreated === 0
-          ? `Nothing to award — all ${d.membersChecked} member(s) are up to date`
+          ? `Nothing to award. All ${d.membersChecked} member(s) are up to date`
           : `${d.awardsCreated} award(s) across ${d.membersAwarded} member(s)`,
       );
     });

@@ -79,8 +79,8 @@ export default async function RanksAdminPage({
               officer table
             </>
           )}
-          . <span className="font-semibold">Sync default ranks</span> fixes it —
-          nothing already assigned to a member is removed.
+          . <span className="font-semibold">Sync default ranks</span> fixes it.
+          Nothing already assigned to a member is removed.
         </p>
       )}
 

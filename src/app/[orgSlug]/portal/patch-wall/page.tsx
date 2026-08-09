@@ -293,7 +293,7 @@ export default async function PatchWallPage({
                   Emblems
                 </h2>
                 <p className="mt-1 max-w-lg text-sm text-muted-foreground">
-                  The criminal record, levelled. Not worn on the cut — these are
+                  The criminal record, levelled. Not worn on the cut. These are
                   yours alone, five ranks deep on every count.
                 </p>
               </div>

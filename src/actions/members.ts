@@ -137,7 +137,7 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
       if (!linkedUidForRole) {
         return {
           ok: false,
-          error: "This member has no portal account yet — invite them to set a role",
+          error: "This member has no portal account yet. Invite them to set a role",
         };
       }
       // Exiling/retiring deletes the membership outright. Granting a role in
@@ -145,7 +145,7 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
       if (fields.status === "exiled" || fields.status === "retired") {
         return {
           ok: false,
-          error: "Can't set a portal role while retiring or exiling — access is removed",
+          error: "Can't set a portal role while retiring or exiling. Access is removed",
         };
       }
       const userSnap = await adminDb.collection("users").doc(linkedUidForRole).get();
@@ -165,7 +165,7 @@ export async function updateMember(raw: UpdateMemberInput): Promise<ActionResult
             .select()
             .get();
           if (admins.size <= 1) {
-            return { ok: false, error: "This is the last admin — promote someone first" };
+            return { ok: false, error: "This is the last admin. Promote someone first" };
           }
         }
         roleChange = { uid: linkedUidForRole, from, to: fields.role };
@@ -384,7 +384,7 @@ export async function deleteMember(raw: DeleteMemberInput): Promise<ActionResult
           .select()
           .get();
         if (admins.size <= 1) {
-          return { ok: false, error: "This is the last admin — promote someone first" };
+          return { ok: false, error: "This is the last admin. Promote someone first" };
         }
       }
     }

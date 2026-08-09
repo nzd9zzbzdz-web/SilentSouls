@@ -172,6 +172,13 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
 - The club activity set is **criminal-record-first**: only Club Ride and Church
   survive from the original 13 spec types. Retired stat keys stay in `STAT_KEYS`
   so historical values still render.
+- **Never use an em dash (—) in user-visible text.** Sean's standing rule, and
+  it is absolute: no em dashes anywhere a member or a visitor can read them.
+  That covers JSX copy, string literals, toasts and error messages, aria-labels,
+  placeholders, and the club content in `constants.ts` (story, creed, values).
+  Rewrite the sentence so it reads naturally without one: a full stop, a
+  semicolon, a colon, a comma, or parentheses. Do not swap in an en dash or a
+  hyphen and call it done. Code comments are not user-visible and are exempt.
 - Blackletter display font only via `<DisplayHeading>` / `var(--font-display)` —
   never in body text.
 - Cut layouts store normalized u/v (0..1) coords per vest surface — designed for a

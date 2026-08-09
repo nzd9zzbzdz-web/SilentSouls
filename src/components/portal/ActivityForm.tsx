@@ -157,7 +157,7 @@ export function ActivityForm({
           Activity types <span aria-hidden="true" className="text-destructive">*</span>
         </legend>
         <p className="text-xs text-muted-foreground">
-          Check everything this ticket covers. Types with a box take an amount —
+          Check everything this ticket covers. Types with a box take an amount;
           the name carries the unit.
         </p>
         <div

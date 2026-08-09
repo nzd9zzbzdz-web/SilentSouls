@@ -26,7 +26,7 @@ const RARITY_WEIGHT: Record<Rarity, number> = {
 };
 
 function fmtJoined(d?: Date): string {
-  return d ? d.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "—";
+  return d ? d.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "N/A";
 }
 
 function tierOf(member: Member, rank?: Rank): TierKey {

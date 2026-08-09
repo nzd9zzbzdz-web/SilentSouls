@@ -39,7 +39,7 @@ export function ReconcileAwardsButton({ orgId }: { orgId: string }) {
         return;
       }
       if (result.data!.length === 0) {
-        toast.success("Nothing to revoke — every award matches the record");
+        toast.success("Nothing to revoke. Every award matches the record");
         return;
       }
       setStale(result.data!);

@@ -393,7 +393,7 @@ export function MemberAdmin({
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 Shown to the public when someone opens this member on the home
-                page. Their road name and rank never leave the portal — this is
+                page. Their road name and rank never leave the portal, so this is
                 the only thing written about them out there. {form.bio.length}/600
               </p>
             </div>
@@ -540,7 +540,7 @@ export function MemberAdmin({
             <DialogTitle>Delete &ldquo;{deleteTarget?.roadName}&rdquo;?</DialogTitle>
             <DialogDescription>
               Permanently removes {deleteTarget?.displayName} and everything tied to
-              them — logged activities, earned patches, officer notes, service
+              them: logged activities, earned patches, officer notes, service
               record and cut. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
@@ -549,7 +549,7 @@ export function MemberAdmin({
             <p className="rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
               Looking to remove someone who left the club? <strong>Edit</strong> them
               and set their status to <strong>Retired</strong> or{" "}
-              <strong>Exiled</strong> instead — that revokes portal access but keeps
+              <strong>Exiled</strong> instead. That revokes portal access but keeps
               their history under Past Colors.
             </p>
             <div>

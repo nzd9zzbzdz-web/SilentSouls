@@ -131,7 +131,7 @@ export function BulkPatchArtUpload({
             <DialogDescription>
               {done
                 ? `${done.ok} uploaded${done.failed.length ? `, ${done.failed.length} failed` : ""}.`
-                : "Files are matched to patches by name. Check the list before uploading — anything unmatched is skipped."}
+                : "Files are matched to patches by name. Check the list before uploading; anything unmatched is skipped."}
             </DialogDescription>
           </DialogHeader>
 

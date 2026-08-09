@@ -711,7 +711,7 @@ export function ClubMap({
         .club-popup-actions { display: flex; gap: 6px; margin-top: 8px; }
         /* Glass idiom by hand: these are plain-DOM buttons inside Leaflet's
            popup pane, where backdrop-filter is banned (the compositor would
-           re-sample the map on every pan frame) — so the frost is painted
+           re-sample the map on every pan frame), so the frost is painted
            with gradients only, mirroring the .glass utility's recipe. Danger
            stays SOLID, same deliberate tier as the Button destructive
            variant: a delete must never glow prettier than a save. */
@@ -748,7 +748,7 @@ export function ClubMap({
         }
         @media (hover: hover) {
           .club-popup-btn.danger:hover {
-            /* No lift, no ember edge — solid darken only (Button parity). */
+            /* No lift, no ember edge: solid darken only (Button parity). */
             transform: none;
             border-color: transparent;
             background: color-mix(in srgb, var(--destructive) 90%, transparent);
@@ -837,7 +837,7 @@ function MarkerDialog({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               maxLength={80}
-              placeholder="e.g. Rival hangout — Grapeseed"
+              placeholder="e.g. Rival hangout, Grapeseed"
             />
           </div>
           <div className="space-y-2">

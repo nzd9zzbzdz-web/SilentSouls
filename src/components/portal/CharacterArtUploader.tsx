@@ -46,7 +46,7 @@ export function CharacterArtUploader({
       if (result.ok) {
         toast.success(
           result.data?.pending
-            ? "Uploaded — an officer will clear it for the public page"
+            ? "Uploaded. An officer will clear it for the public page"
             : "Character model updated",
         );
       } else {

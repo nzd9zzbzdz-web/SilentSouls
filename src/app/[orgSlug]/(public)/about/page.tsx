@@ -59,7 +59,7 @@ export default async function AboutPage({
           The club's own patch, at size, next to the title. Every other
           public page opens on an image; this one used to open on 16px of
           padding and a heading in a black field. */}
-      <section className="relative overflow-hidden border-b border-border">
+      <section className="relative overflow-hidden">
         <div
           aria-hidden
           className="absolute inset-0"
@@ -106,22 +106,38 @@ export default async function AboutPage({
       </section>
 
       {/* ── The story, as acts ───────────────────────────────────────
-          Alternating grounds give the page a pulse. The measure stays at
-          reading width; it is the BAND that goes full-bleed, which is what
-          stops the column reading as stranded in a void. */}
-      {story.map((paragraph, i) => {
-        const lifted = i % 2 === 1;
-        const title = titles[i];
-        return (
-          <section
-            key={paragraph.slice(0, 48)}
-            // Full card, not a wash of it: at 45% over Void Black the lift was
-            // about two values and the alternation simply didn't read, which
-            // left the rhythm doing nothing. The bands have to be visibly two
-            // grounds or they may as well be one.
-            className={lifted ? "bg-card" : "bg-background"}
-          >
-            <div className="mx-auto max-w-3xl px-6 py-14 md:py-16">
+          ONE ground for the whole story, not a band per act. Alternating
+          grounds gave every act a hard edge top and bottom, and at full
+          width that reads as grey stripes across the page rather than as
+          rhythm. The depth comes from a single slow gradient down the
+          section plus a soft pool of light behind each act, both of which
+          fade rather than step, so the eye never meets a line.
+
+          The rhythm is carried by the chapter marks and the space instead. */}
+      <div
+        className="relative"
+        style={{
+          background:
+            "linear-gradient(180deg, var(--background) 0%, color-mix(in srgb, var(--card) 55%, var(--background)) 45%, var(--background) 100%)",
+        }}
+      >
+        {story.map((paragraph, i) => {
+          const title = titles[i];
+          return (
+            <section key={paragraph.slice(0, 48)} className="relative">
+              {/* A wide, very soft pool behind the act, nudged to alternating
+                  sides. It gives the page movement at exactly the strength
+                  where you feel it and don't see it. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: `radial-gradient(70% 60% at ${
+                    i % 2 === 0 ? "28%" : "72%"
+                  } 50%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 72%)`,
+                }}
+              />
+              <div className="relative mx-auto max-w-3xl px-6 py-14 md:py-16">
               <Reveal>
                 {title && (
                   <div className="mb-5 flex items-baseline gap-4">
@@ -157,15 +173,16 @@ export default async function AboutPage({
                   {paragraph}
                 </p>
               </Reveal>
-            </div>
-          </section>
-        );
-      })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
 
       {/* ── The badges ───────────────────────────────────────────────
           The four emblems the club actually wears, as a rule between the
           story and its closing lines. */}
-      <section className="border-y border-border bg-background">
+      <section className="bg-background">
         <div className="mx-auto flex max-w-3xl items-center justify-center gap-6 px-6 py-12 sm:gap-10 md:gap-16">
           {EMBLEMS.map((e) => (
             <Image
@@ -217,7 +234,7 @@ export default async function AboutPage({
       )}
 
       {/* ── What we stand on ─────────────────────────────────────────── */}
-      <section className="border-t border-border bg-card">
+      <section className="bg-background">
         <div className="mx-auto max-w-5xl px-6 py-20">
           <div className="text-center">
             <p className="text-[0.7rem] uppercase tracking-[0.3em] text-muted-foreground">

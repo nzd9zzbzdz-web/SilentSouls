@@ -53,7 +53,7 @@ export function BrotherhoodSection({
           <p className="mx-auto mt-4 max-w-xl leading-relaxed text-muted-foreground">
             {members.length === 0
               ? "Nobody has been patched in yet. The colors are earned, and the first riders to earn them will stand here."
-              : `${members.length} riding. We don't put names to faces out here — but every one of them earned the patch on their back.`}
+              : `${members.length} riding. We don't put names to faces out here, but every one of them earned the patch on their back.`}
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export function BrotherhoodSection({
               <button
                 type="button"
                 onClick={() => setOpenId(member.id)}
-                aria-label={`${member.tenureLabel} — view larger`}
+                aria-label={`${member.tenureLabel}, view larger`}
                 className="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-xl glass-card glass-hover focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 {/* Clubhouse backdrop, then the ember wash over it. Both sit

@@ -44,7 +44,7 @@ export function GalleryUploader({
       if (result.ok) {
         toast.success(
           result.data?.pending
-            ? "Posted — an officer will clear it for the club"
+            ? "Posted. An officer will clear it for the club"
             : result.data?.published
               ? "Posted and published to the public site"
               : "Posted to the club wall",
