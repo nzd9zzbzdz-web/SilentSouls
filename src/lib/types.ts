@@ -84,6 +84,9 @@ export interface Branding {
   characterStagePath?: string; // portal: backdrop art for member character screens
   /** public: what stands behind the figures on the Brotherhood cards. */
   rosterBackdropPath?: string;
+  /** portal: the same, for the Brotherhood wall behind the login. Its own
+   *  field so the club can dress the private wall differently. */
+  portalRosterBackdropPath?: string;
   orgDisplayName: string;
   tagline?: string;
   mission?: string;
