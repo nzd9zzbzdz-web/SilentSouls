@@ -45,11 +45,14 @@ export function BrotherhoodRoster({
   members,
   pastColors,
   viewerCanManageArt,
+  backdropPath,
 }: {
   orgSlug: string;
   members: RosterMember[];
   pastColors: RosterMember[];
   viewerCanManageArt: boolean;
+  /** Club backdrop drawn behind every figure on the wall. */
+  backdropPath?: string;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("rank");
@@ -150,6 +153,7 @@ export function BrotherhoodRoster({
                 orgSlug={orgSlug}
                 member={member}
                 viewerCanManageArt={viewerCanManageArt}
+                backdropPath={backdropPath}
               />
             ))}
           </div>

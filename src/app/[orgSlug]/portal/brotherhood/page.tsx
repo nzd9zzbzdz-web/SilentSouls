@@ -4,7 +4,7 @@ import { BrotherhoodRoster } from "@/components/portal/roster/BrotherhoodRoster"
 import { ChainOfCommand } from "@/components/portal/roster/ChainOfCommand";
 import type { RosterMember, TierKey } from "@/components/portal/roster/types";
 import { requireOrgRole } from "@/lib/auth/session";
-import { getOrgBySlug } from "@/lib/tenant";
+import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import {
   listAwardsByMember,
   listMembers,
@@ -14,7 +14,7 @@ import {
   listRanks,
 } from "@/lib/queries";
 import { patchArtUrl } from "@/lib/patch-ladders";
-import { CHARACTER_SILHOUETTE } from "@/lib/constants";
+import { CHARACTER_SILHOUETTE, DEFAULT_ROSTER_BACKDROP } from "@/lib/constants";
 import type { Member, Rank, Rarity } from "@/lib/types";
 
 const RARITY_WEIGHT: Record<Rarity, number> = {
@@ -47,13 +47,14 @@ export default async function BrotherhoodPage({
   // Only admins can upload character art, so only they get the nudge.
   const viewerCanManageArt = access.role === "admin";
 
-  const [members, ranks, patches, awardsByMember, artVersions] = await Promise.all([
+  const [members, ranks, patches, awardsByMember, artVersions, branding] = await Promise.all([
     listMembers(org.id),
     listRanks(org.id),
     listPatches(org.id),
     listAwardsByMember(org.id),
     // Ids and timestamps only — the artwork itself streams from the art route.
     listPatchArtVersions(org.id),
+    getBranding(org.id, "portal"),
   ]);
   // Existence only — the stored renders are served by the render route.
   const withRender = await listMembersWithRender(
@@ -146,6 +147,7 @@ export default async function BrotherhoodPage({
         members={riding}
         pastColors={pastColors}
         viewerCanManageArt={viewerCanManageArt}
+        backdropPath={branding?.portalRosterBackdropPath ?? DEFAULT_ROSTER_BACKDROP}
       />
     </div>
   );
