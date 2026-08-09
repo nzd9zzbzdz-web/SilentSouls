@@ -5,6 +5,7 @@ import type {
   Activity,
   ActivityType,
   AwardedPatch,
+  GalleryPhoto,
   Member,
   Patch,
   Rank,
@@ -210,6 +211,56 @@ export const getBrandingArt = cache(
     key: string,
   ): Promise<{ dataUrl: string; updatedAtMs: number } | null> => {
     const snap = await orgRef(orgId).collection("brandingArt").doc(key).get();
+    const data = snap.data();
+    if (!snap.exists || typeof data?.dataUrl !== "string") return null;
+    return {
+      dataUrl: data.dataUrl,
+      updatedAtMs: data.updatedAt?.toMillis?.() ?? 0,
+    };
+  },
+);
+
+/**
+ * Every gallery photo's METADATA, newest first — caption, state, dimensions,
+ * blur placeholder. Never the image: the bytes sit in the sibling `galleryArt`
+ * collection and stream from the gallery route, so a wall showing two hundred
+ * photos costs two hundred small documents rather than two hundred blobs.
+ *
+ * Unfiltered on purpose. Every caller wants a different slice (the club sees
+ * approved plus its own pending, the public site sees approved-and-public), and
+ * the collection is small enough that one cached read serving all of them beats
+ * three indexed queries.
+ */
+export const listGalleryPhotos = cache(
+  async (orgId: string): Promise<GalleryPhoto[]> => {
+    const snap = await orgRef(orgId)
+      .collection("gallery")
+      .orderBy("createdAt", "desc")
+      .get();
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<GalleryPhoto, "id">),
+    }));
+  },
+);
+
+/** One photo's metadata — the gate the streaming route checks before serving. */
+export const getGalleryPhoto = cache(
+  async (orgId: string, photoId: string): Promise<GalleryPhoto | null> => {
+    const snap = await orgRef(orgId).collection("gallery").doc(photoId).get();
+    return snap.exists
+      ? { id: snap.id, ...(snap.data() as Omit<GalleryPhoto, "id">) }
+      : null;
+  },
+);
+
+/** One photo's bytes, for the route that streams them. */
+export const getGalleryArt = cache(
+  async (
+    orgId: string,
+    photoId: string,
+  ): Promise<{ dataUrl: string; updatedAtMs: number } | null> => {
+    const snap = await orgRef(orgId).collection("galleryArt").doc(photoId).get();
     const data = snap.data();
     if (!snap.exists || typeof data?.dataUrl !== "string") return null;
     return {

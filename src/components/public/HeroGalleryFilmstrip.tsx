@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { GalleryPhoto } from "@/lib/gallery";
+import type { GalleryImage } from "@/lib/gallery";
 
 /**
  * Full-bleed auto-scrolling filmstrip for the public hero. Every photo is
@@ -14,7 +14,7 @@ import type { GalleryPhoto } from "@/lib/gallery";
  */
 const FEATHER = 64;
 
-export function HeroGalleryFilmstrip({ photos }: { photos: GalleryPhoto[] }) {
+export function HeroGalleryFilmstrip({ photos }: { photos: GalleryImage[] }) {
   if (photos.length === 0) return null;
 
   // Constant scroll speed regardless of the photo mix: strip width in units of
@@ -71,6 +71,7 @@ export function HeroGalleryFilmstrip({ photos }: { photos: GalleryPhoto[] }) {
               loading={i < 3 ? "eager" : "lazy"}
               placeholder="blur"
               blurDataURL={p.blurDataURL}
+              unoptimized={p.unoptimized}
               className="h-full w-auto flex-shrink-0"
               style={{
                 marginLeft: -FEATHER,

@@ -27,6 +27,8 @@ export type LayoutGridCard = {
   label?: string;
   /** Optional next/image blur placeholder. */
   blurDataURL?: string;
+  /** Bypass the image optimizer — already-sized member uploads do. */
+  unoptimized?: boolean;
 };
 
 export const LayoutGrid = ({ cards }: { cards: LayoutGridCard[] }) => {
@@ -107,6 +109,7 @@ const ImageComponent = ({ card }: { card: LayoutGridCard }) => {
         sizes="(max-width: 768px) 100vw, 66vw"
         placeholder={card.blurDataURL ? "blur" : "empty"}
         blurDataURL={card.blurDataURL}
+        unoptimized={card.unoptimized}
         className="object-cover object-top transition duration-200"
       />
     </motion.div>

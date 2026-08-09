@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutGrid, type LayoutGridCard } from "@/components/ui/layout-grid";
-import type { GalleryPhoto } from "@/lib/gallery";
+import type { GalleryImage } from "@/lib/gallery";
 
 // Demo rhythm: wide card, two singles, wide card — per screen of four.
 const SPAN_PATTERN = ["md:col-span-2", "col-span-1", "col-span-1", "md:col-span-2"];
@@ -13,8 +13,8 @@ const SPAN_PATTERN = ["md:col-span-2", "col-span-1", "col-span-1", "md:col-span-
  * stay gentle. Click a photo to expand it in place; Escape or click away
  * to close.
  */
-export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
-  const sections: GalleryPhoto[][] = [];
+export function GalleryGrid({ photos }: { photos: GalleryImage[] }) {
+  const sections: GalleryImage[][] = [];
   for (let i = 0; i < photos.length; i += 4) {
     sections.push(photos.slice(i, i + 4));
   }
@@ -42,6 +42,7 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
           className: SPAN_PATTERN[i] ?? "col-span-1",
           thumbnail: p.src,
           blurDataURL: p.blurDataURL,
+          unoptimized: p.unoptimized,
         }));
 
         return (

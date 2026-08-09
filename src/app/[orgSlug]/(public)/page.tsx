@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
-import { getGalleryPhotos } from "@/lib/gallery";
+import { composeGallery } from "@/lib/gallery";
 import { listMembers, listMembersWithRender, listRanks } from "@/lib/queries";
 import {
   bySeniority,
@@ -35,7 +35,7 @@ export default async function PublicHomePage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
   const branding = await getBranding(org.id, "public");
-  const photos = await getGalleryPhotos();
+  const photos = await composeGallery(org.id);
   const base = `/${orgSlug}`;
 
   const [line1, line2] = splitName(org.name);

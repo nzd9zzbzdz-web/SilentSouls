@@ -6,6 +6,7 @@ import {
   Activity,
   Award,
   ClipboardCheck,
+  Image as ImageIcon,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -39,8 +40,8 @@ import {
 import type { SystemRole } from "@/lib/types";
 
 // Tabs hidden until their features are rolled out to the club (My Cut, Events,
-// Church, Votes, Timeline, Gallery — routes still exist; restore entries from
-// git history as each one launches).
+// Church, Votes, Timeline — routes still exist; restore entries from git
+// history as each one launches).
 const MAIN_NAV = [
   { href: "", label: "Dashboard", icon: LayoutDashboard },
   { href: "/map", label: "Club Map", icon: MapIcon },
@@ -52,6 +53,7 @@ const MAIN_NAV = [
   { href: "/patch-wall", label: "Patch Wall", icon: Award },
   // Next to the wall on purpose: same emblems, ranked against the club.
   { href: "/standings", label: "Standings", icon: Trophy },
+  { href: "/gallery", label: "Gallery", icon: ImageIcon },
   { href: "/prospects", label: "Prospects", icon: UserPlus },
 ];
 

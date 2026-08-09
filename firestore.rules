@@ -154,6 +154,17 @@ service cloud.firestore {
                   || resource.data.uploadedByMemberId == myMemberId(orgId)));
         allow write: if false;
       }
+      match /galleryArt/{photoId} {
+        // Photo bytes, split off /gallery so a wall can list metadata without
+        // dragging blobs (same split as patches/patchArt).
+        //
+        // Server-only, and stricter than patchArt's `isMember` on purpose: the
+        // sibling doc's read rule turns on this photo's status, which a rule
+        // here could only re-derive with a get(). Nothing client-side reads
+        // these — every surface goes through the gallery route, which runs the
+        // real three-audience check with the Admin SDK.
+        allow read, write: if false;
+      }
       match /timeline/{entryId} {
         allow read: if isMember(orgId);
         allow write: if false;

@@ -1,8 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
+import { listGalleryPhotos } from "@/lib/queries";
+import type { GalleryPhoto } from "@/lib/types";
+import type { Timestamp } from "firebase-admin/firestore";
 
-export type GalleryPhoto = {
+/**
+ * One photo as the public surfaces want it, whichever side it came from —
+ * a file shipped in `public/gallery` or a member upload in Firestore.
+ *
+ * Distinct from `GalleryPhoto` in types.ts, which is the Firestore DOCUMENT.
+ * This is the display shape the filmstrip, the slider and the masonry consume.
+ */
+export type GalleryImage = {
   src: string;
   caption: string;
   /** Intrinsic pixel dimensions — drives the masonry aspect ratio. */
@@ -10,6 +20,13 @@ export type GalleryPhoto = {
   height: number;
   /** Tiny inlined WebP for next/image `placeholder="blur"`. */
   blurDataURL: string;
+  /**
+   * Skip Next's image optimizer. True for uploads: the action already capped
+   * them at 1600px webp and the route serves them `immutable`, so optimizing
+   * again would bill a transformation to re-encode what we sized ourselves.
+   * Shipped disk photos are full-size PNGs and still want the optimizer.
+   */
+  unoptimized?: boolean;
 };
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
@@ -59,7 +76,7 @@ function deriveCaption(file: string): string {
     .trim();
 }
 
-async function loadGalleryPhotos(): Promise<GalleryPhoto[]> {
+async function loadGalleryPhotos(): Promise<GalleryImage[]> {
   const dir = path.join(process.cwd(), "public", "gallery");
   let files: string[];
   try {
@@ -119,10 +136,51 @@ async function loadGalleryPhotos(): Promise<GalleryPhoto[]> {
 // The gallery folder is immutable within a deployment, so in production we
 // compute the manifest (dimensions + blur placeholders) once per server
 // instance. In dev we recompute so newly dropped photos appear on refresh.
-let cached: Promise<GalleryPhoto[]> | null = null;
+let cached: Promise<GalleryImage[]> | null = null;
 
-export function getGalleryPhotos(): Promise<GalleryPhoto[]> {
+/** The photos shipped in `public/gallery`, in curated order. */
+export function getGalleryPhotos(): Promise<GalleryImage[]> {
   if (process.env.NODE_ENV !== "production") return loadGalleryPhotos();
   if (!cached) cached = loadGalleryPhotos();
   return cached;
+}
+
+/**
+ * Where a gallery photo's bytes are served from. The `v` is the photo's
+ * updatedAt, so the URL changes only when the image does and the route can
+ * answer `immutable` — same contract as `patchArtUrl`.
+ */
+export function galleryPhotoUrl(orgId: string, photo: GalleryPhoto): string {
+  const v = (photo.updatedAt as Timestamp)?.toMillis?.() ?? 0;
+  return `/api/orgs/${orgId}/gallery/${photo.id}?v=${v}`;
+}
+
+/**
+ * The public gallery: member uploads the club has published, newest first,
+ * followed by the curated set shipped on disk.
+ *
+ * The two sources are MERGED rather than migrated. `public/gallery` is already
+ * committed, already live, and costs nothing to serve; moving those twenty-odd
+ * files into Firestore would be a destructive one-way step against production
+ * data for no gain. New photos simply lead, which is what a club gallery
+ * wants — the founding shots keep their curated order underneath.
+ */
+export async function composeGallery(orgId: string): Promise<GalleryImage[]> {
+  const [uploads, disk] = await Promise.all([
+    listGalleryPhotos(orgId),
+    getGalleryPhotos(),
+  ]);
+
+  const published: GalleryImage[] = uploads
+    .filter((p) => p.status === "approved" && p.visibility === "public")
+    .map((p) => ({
+      src: galleryPhotoUrl(orgId, p),
+      caption: p.caption ?? "",
+      width: p.width,
+      height: p.height,
+      blurDataURL: p.blurDataURL,
+      unoptimized: true,
+    }));
+
+  return [...published, ...disk];
 }

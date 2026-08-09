@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Image as ImageIcon } from "lucide-react";
 import { getOrgBySlug } from "@/lib/tenant";
-import { getGalleryPhotos } from "@/lib/gallery";
+import { composeGallery } from "@/lib/gallery";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Component as ImageAutoSlider } from "@/components/ui/image-auto-slider";
 import { GalleryGrid } from "@/components/public/GalleryGrid";
@@ -15,7 +15,7 @@ export default async function PublicGalleryPage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
 
-  const photos = await getGalleryPhotos();
+  const photos = await composeGallery(org.id);
 
   return (
     <div className="space-y-8 py-16">

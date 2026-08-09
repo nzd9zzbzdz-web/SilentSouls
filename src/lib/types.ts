@@ -437,16 +437,40 @@ export interface ClubEvent {
   createdAt: Timestamp | Date;
 }
 
+/**
+ * A club photo. METADATA ONLY — the image itself is a webp data URL in the
+ * sibling `galleryArt/{photoId}` collection, same split (and same reason) as
+ * patches/patchArt: a wall of two hundred photos must be listable without
+ * dragging two hundred base64 blobs into one page read.
+ *
+ * `storagePath` is gone with the Storage bucket this project never provisioned.
+ */
 export interface GalleryPhoto {
   id: string;
   uploadedByMemberId: string;
-  storagePath: string;
   caption?: string;
   eventId?: string;
-  status: "pending" | "approved" | "rejected";
+  /** Rejection DELETES the photo (see `reviewGalleryPhoto`), so there is no
+   *  "rejected" state to read back — same call as a rejected character render. */
+  status: "pending" | "approved";
+  /** Approved puts a photo on the CLUB's wall. Public is a second, deliberate
+   *  step: the shopfront is a charity foundation and the portal is an outlaw
+   *  MC, so clearing a shot for the brothers must not clear it for visitors. */
   visibility: "portal" | "public";
+  /** Intrinsic pixels of the STORED image, measured once at upload — the
+   *  masonry gets its aspect ratios without anyone reading the bytes back. */
+  width: number;
+  height: number;
+  /** Tiny inlined WebP for next/image `placeholder="blur"`. */
+  blurDataURL: string;
+  /** Stored webp size — what the 1MB document ceiling is actually spent on. */
+  bytes: number;
   reviewedBy?: string;
   reviewedAt?: Timestamp | Date;
+  /** Bumped whenever the art is written. Lives on the METADATA doc so the
+   *  `?v=` that makes an image URL immutable comes free with the list read —
+   *  patch art needs a second query (`listPatchArtVersions`) for the same. */
+  updatedAt: Timestamp | Date;
   createdAt: Timestamp | Date;
 }
 
