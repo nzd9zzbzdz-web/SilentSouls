@@ -125,6 +125,25 @@ export const CLUB_STORY = [
   "Today, the 0% Ravens of Death MC continue to ride under one banner. They aren't looking for acceptance, approval, or permission.",
 ];
 
+/**
+ * Chapter headings for the story, applied BY INDEX to `CLUB_STORY` (or to a
+ * tenant's `branding.story`). Titles only — the prose stays in one array, so
+ * there is no second copy of the club's history to drift out of sync.
+ *
+ * A paragraph with no title here simply renders without an eyebrow, which is
+ * what happens to any tenant that writes a longer story than this list covers.
+ * `branding.storyTitles` overrides the whole list.
+ */
+export const CLUB_STORY_TITLES = [
+  "The Founding",
+  "The Name",
+  "The Streets",
+  "The Patch",
+  "Outside the Lines",
+  "What Holds",
+  "Today",
+];
+
 /** The three lines the story closes on. */
 export const CLUB_CREED = [
   "They ride because they're brothers.",

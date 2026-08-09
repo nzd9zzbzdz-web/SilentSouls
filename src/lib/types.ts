@@ -104,6 +104,12 @@ export interface Branding {
    * `mission` stays the short line — it also runs on the home page.
    */
   story?: string[];
+  /**
+   * public: chapter headings for `story`, matched BY INDEX. Titles only, so
+   * the prose has exactly one home. Short entries are fine — a paragraph with
+   * no title just renders without an eyebrow. Absent ⇒ CLUB_STORY_TITLES.
+   */
+  storyTitles?: string[];
   /** public: the closing lines under the story, set in the display face. */
   creed?: string[];
 }

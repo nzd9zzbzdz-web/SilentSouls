@@ -16,6 +16,7 @@ import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Button } from "@/components/ui/button";
 import { HeroGalleryFilmstrip } from "@/components/public/HeroGalleryFilmstrip";
 import { BrotherhoodSection } from "@/components/public/BrotherhoodSection";
+import { OrnamentRule } from "@/components/public/OrnamentRule";
 import type { Timestamp } from "firebase-admin/firestore";
 
 const EMBER = "#D9362B";
@@ -260,15 +261,6 @@ export default async function PublicHomePage({
 }
 
 /** Thin gold rule with a centered diamond — brackets the hero creed. */
-function OrnamentRule() {
-  return (
-    <div className="flex items-center gap-3" aria-hidden>
-      <span className="h-px flex-1" style={{ background: "rgba(84,33,63,0.45)" }} />
-      <span className="size-1.5 rotate-45" style={{ background: EMBER }} />
-      <span className="h-px flex-1" style={{ background: "rgba(84,33,63,0.45)" }} />
-    </div>
-  );
-}
 
 /** "Ravens of Death MC" → ["Ravens of Death", "MC"] for a two-line hero. */
 function splitName(name: string): [string, string | null] {
