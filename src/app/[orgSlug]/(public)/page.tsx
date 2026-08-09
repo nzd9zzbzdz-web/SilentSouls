@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, ScrollText } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { getGalleryPhotos } from "@/lib/gallery";
 import { listMembers, listMembersWithRender, listRanks } from "@/lib/queries";
@@ -84,12 +84,6 @@ export default async function PublicHomePage({
     { img: "/brand/emblem-winged.webp", title: "Brotherhood", body: "We ride together, we stand together, we bleed together. Our bond is unbreakable. Our brotherhood is forever.", href: "#brotherhood", cta: "Meet the Club" },
     { img: "/brand/emblem-onepercent.webp", title: "Our Code", body: "We live by a code. It guides our actions and defines who we are. Disrespect the code, and you'll face the consequences.", href: `${base}/about`, cta: "Read More" },
     { img: "/brand/emblem-mc.webp", title: "Join the Club", body: "Think you have what it takes to be one of us? Loyalty is earned, not given. Start your journey here.", href: `${base}/join`, cta: "Apply Now" },
-  ];
-
-  const news = [
-    { tag: "Ride", title: "Sunday Run to Paleto Bay", date: "This weekend" },
-    { tag: "Church", title: "Monthly Church: Mandatory", date: "Next Friday" },
-    { tag: "Community", title: "Summer Food Drive, Legion Square", date: "This month" },
   ];
 
   return (
@@ -234,57 +228,13 @@ export default async function PublicHomePage({
         backdropPath={branding?.rosterBackdropPath ?? DEFAULT_ROSTER_BACKDROP}
       />
 
-      {/* ── Latest ── */}
-      <section aria-labelledby="news-heading" className="bg-[#050407]">
-        <div className="mx-auto max-w-6xl px-4 py-16">
-          <div className="flex items-baseline justify-between">
-            <h2
-              id="news-heading"
-              className="text-sm font-semibold uppercase tracking-[0.24em]"
-              style={{ color: EMBER }}
-            >
-              Latest from the Club
-            </h2>
-            <Link
-              href={`${base}/events`}
-              className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B8A0A5] hover:text-[#EEE7E8]"
-            >
-              View all
-            </Link>
-          </div>
-          <div className="mt-6 grid gap-5 md:grid-cols-3">
-            {news.map((n) => (
-              <Link
-                key={n.title}
-                href={`${base}/events`}
-                className="glass-card glass-hover group overflow-hidden rounded-xl"
-              >
-                <div
-                  className="flex aspect-[16/10] items-center justify-center"
-                  style={{
-                    background:
-                      "radial-gradient(120% 90% at 30% 10%, rgba(84,33,63,0.08), transparent), linear-gradient(160deg,#2D111F,#050407)",
-                  }}
-                >
-                  <ScrollText className="size-10 text-[#D9362B]/25" aria-hidden />
-                </div>
-                <div className="p-5">
-                  <span
-                    className="text-[0.6rem] font-semibold uppercase tracking-[0.16em]"
-                    style={{ color: EMBER }}
-                  >
-                    {n.tag}
-                  </span>
-                  <p className="mt-1 font-semibold text-[#EEE7E8] group-hover:text-white">
-                    {n.title}
-                  </p>
-                  <p className="mt-1 text-xs text-[#B8A0A5]">{n.date}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* "Latest from the Club" used to sit here. It was three hardcoded
+          placeholder items — a run "this weekend", a food drive "this month" —
+          which a visitor reads as the club's actual plans. Pulled rather than
+          left lying: fiction dated to the present tense ages badly on a public
+          site. It comes back when there's a real source behind it (the Events
+          collection, or an admin-authored feed). See git history for the
+          markup, which was fine — only the data was made up. */}
 
       {/* ── Closing ── */}
       <section className="border-t border-[#941B22]/12 bg-[#050407]">
