@@ -106,6 +106,20 @@ function Face({
   );
 }
 
+/**
+ * Ranks the club wears short. Keyed on the name with everything but letters
+ * stripped, so "Sergeant-at-Arms", "Sergeant at Arms" and "Sgt. at Arms" all
+ * land on the same badge — the rank doc is admin-editable and the punctuation
+ * drifts. Anything unlisted is shown as written.
+ */
+const RANK_BADGES: Record<string, string> = {
+  sergeantatarms: "SAA",
+};
+
+function rankBadge(name: string): string {
+  return RANK_BADGES[name.toLowerCase().replace(/[^a-z]/g, "")] ?? name;
+}
+
 const SUMMARY_LABELS = ["Riding", "Officers", "Prospecting"] as const;
 
 function summaryValues(counts: Counts) {
@@ -141,13 +155,9 @@ function PlateSlot({
 
   // Painted plate edges, in art space.
   const name = president ? { top: 256, bottom: 312 } : { top: 514, bottom: 561 };
-  // The officer rank box runs wider than the plate it sits on (141px) but
-  // stays inside the nameplate above (172px): "Sergeant-at-Arms" is the
-  // longest rank the default ladder ships and it has to fit whole. Text is
-  // centred either way, so short ranks still read as sitting on the plate.
   const rank = president
     ? { top: 313, bottom: 343, left: 709, right: 850 }
-    : { top: 562, bottom: 591, left: cx - 82, right: cx + 82 };
+    : { top: 562, bottom: 591, left: cx - 70.5, right: cx + 70.5 };
 
   return (
     <Link
@@ -204,13 +214,14 @@ function PlateSlot({
         }}
       >
         <span
+          title={member.rankName}
           className={cn(
             "max-w-full truncate uppercase leading-none text-muted-foreground",
-            president ? "tracking-[0.16em]" : "tracking-[0.03em]",
+            president ? "tracking-[0.16em]" : "tracking-[0.05em]",
           )}
           style={{ fontSize: cq(president ? TYPE.presidentRank : TYPE.officerRank) }}
         >
-          {member.rankName}
+          {rankBadge(member.rankName)}
         </span>
       </span>
     </Link>
@@ -330,8 +341,11 @@ function StackChip({
       >
         {member.roadName}
       </span>
-      <span className="w-full truncate text-[0.55rem] uppercase tracking-[0.12em] text-muted-foreground">
-        {member.rankName}
+      <span
+        title={member.rankName}
+        className="w-full truncate text-[0.55rem] uppercase tracking-[0.12em] text-muted-foreground"
+      >
+        {rankBadge(member.rankName)}
       </span>
     </Link>
   );
