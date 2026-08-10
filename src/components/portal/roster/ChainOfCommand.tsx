@@ -162,7 +162,8 @@ function PlateSlot({
   president,
 }: {
   orgSlug: string;
-  member: RosterMember;
+  /** Whoever holds this seat, or undefined while the club has not filled it. */
+  member?: RosterMember;
   cx: number;
   president?: boolean;
 }) {
@@ -181,11 +182,39 @@ function PlateSlot({
     ? { top: 313, bottom: 343, left: 709, right: 850 }
     : { top: 562, bottom: 591, left: cx - 70.5, right: cx + 70.5 };
 
+  const slotBox = { left: px(cx - g.halfPlate), top: py(g.top), width: pw(w), height: ph(h) };
+
+  // An empty seat still labels its nameplate. The ring is painted into the
+  // art whether or not anyone stands in it, so a bare one reads as a picture
+  // that failed to load; "Vacant" reads as a chair waiting to be filled, and
+  // tells an admin setting the club up which seats are still open.
+  if (!member) {
+    return (
+      <div className="absolute" style={slotBox} aria-hidden>
+        <span
+          className="absolute flex items-center justify-center overflow-hidden px-[6%]"
+          style={{ left: 0, top: ly(name.top), width: "100%", height: lh(name.bottom - name.top) }}
+        >
+          <span
+            className="max-w-full truncate leading-none text-muted-foreground/45"
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: cq(president ? TYPE.presidentName : TYPE.officerName),
+              textShadow: "0 2px 6px rgba(0,0,0,0.9)",
+            }}
+          >
+            Vacant
+          </span>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <Link
       href={`/${orgSlug}/portal/brotherhood/${member.id}`}
       className="group absolute"
-      style={{ left: px(cx - g.halfPlate), top: py(g.top), width: pw(w), height: ph(h) }}
+      style={slotBox}
     >
       <Face
         member={member}
@@ -263,7 +292,8 @@ function ChainPlate({
   plateArt: string;
   title: string;
   blurb: string;
-  president: RosterMember;
+  /** Undefined between presidents, or before the club has any members. */
+  president?: RosterMember;
   officers: RosterMember[];
   counts: Counts;
 }) {
@@ -302,8 +332,11 @@ function ChainPlate({
       </div>
 
       <PlateSlot orgSlug={orgSlug} member={president} cx={PRESIDENT.cx} president />
-      {officers.map((officer, i) => (
-        <PlateSlot key={officer.id} orgSlug={orgSlug} member={officer} cx={OFFICER_CX[i]} />
+      {/* Over the painted RINGS, not over the officers: the art has five and
+          the club may have fewer, and a ring is a fixed place on the plate
+          whether or not it is occupied. */}
+      {OFFICER_CX.map((cx, i) => (
+        <PlateSlot key={cx} orgSlug={orgSlug} member={officers[i]} cx={cx} />
       ))}
 
       {/* Headcount, seated to the right of the painted icons. */}
@@ -454,12 +487,14 @@ interface Counts {
  * The club's table, drawn: President at the head, the rest of the officers
  * ranked beneath.
  *
- * Two renderings of the same data. The engraved plate is pixel-locked to
- * the painted art, so it only runs when the club's table is exactly what
- * the art depicts — a president plus five officers — and only when there's
- * width enough for the faces to read. Anything else (a club mid-election, a
- * tenant with a different table, a phone) gets the stacked panel, which
- * lays out for any headcount.
+ * Two renderings of the same data. The engraved plate is pixel-locked to the
+ * painted art, so it runs only when the club HAS plate art, when its table is
+ * no bigger than the one the art depicts (a president plus five officers), and
+ * when there's width enough for the faces to read. An under-filled table is
+ * fine and draws the spare rings as open seats. A club with more officers than
+ * rings gets the stacked panel instead, because on the plate the extra officer
+ * would have nowhere to stand and would drop out of the chain of command
+ * silently; so does a phone, and so does a club with no plate at all.
  */
 export function ChainOfCommand({
   orgSlug,
@@ -479,16 +514,19 @@ export function ChainOfCommand({
 }) {
   const president = officers.find((o) => o.isPresident);
   const rest = officers.filter((o) => o !== president);
-  // Three conditions, all necessary. The club must HAVE plate art — a club
-  // with none gets the stacked panel rather than another club's engraving —
-  // the table must be the one the art depicts, and there must be width for
-  // the faces to read.
-  const fitsPlate =
-    Boolean(plateArt) && Boolean(president) && rest.length === OFFICER_CX.length;
+  // The club must HAVE plate art (one with none gets the stacked panel rather
+  // than another club's engraving), and its table must not be BIGGER than the
+  // one the art depicts. Fewer is fine: the spare rings are painted into the
+  // picture regardless and label themselves as open seats, which is what a
+  // club looks like while it is still being set up. More is not, because the
+  // sixth officer would have no ring to stand in and would simply vanish from
+  // the chain of command; that club keeps the stacked panel, which lays out
+  // for any headcount. Width is the last condition: the faces have to read.
+  const fitsPlate = Boolean(plateArt) && rest.length <= OFFICER_CX.length;
 
   return (
     <>
-      {fitsPlate && president && plateArt && (
+      {fitsPlate && plateArt && (
         <div className="hidden lg:block">
           <ChainPlate
             orgSlug={orgSlug}

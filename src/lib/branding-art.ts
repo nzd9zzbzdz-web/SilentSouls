@@ -194,7 +194,7 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     fit: "cover",
     position: "centre",
     ratioHint:
-      "Exactly 1473×695, painted to the plate template: one large ring top centre (president), five rings across the lower half, a nameplate under each, and a stat bar along the bottom. It is only drawn when the club has a president and exactly five other officers; otherwise the page uses its art-free layout.",
+      "Exactly 1473×695, painted to the plate template: one large ring top centre (president), five rings across the lower half, a nameplate under each, and a stat bar along the bottom. Rings with nobody in them yet are labeled as open seats, so the plate is drawn from the day it is uploaded. A club with more than five officers besides the president gets the art-free layout instead, so that nobody drops off the chain of command.",
     revalidates: [{ path: "/[orgSlug]/portal/brotherhood", type: "page" }],
   },
   watermark: {
