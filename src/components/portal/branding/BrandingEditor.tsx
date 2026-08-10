@@ -24,6 +24,7 @@ import {
   BRANDING_ART_KEYS,
 } from "@/lib/branding-art";
 import {
+  SHARED_IDENTITY_KEYS,
   draftToResolved,
   toDraft,
   type BrandingDraft,
@@ -201,14 +202,36 @@ export function BrandingEditor({
     [draft, surface, initial],
   );
 
-  function patch(next: Partial<BrandingDraft>) {
-    setDrafts((prev) => ({ ...prev, [surface]: { ...prev[surface], ...next } }));
+  /**
+   * Edit one surface's draft. Anything in SHARED_IDENTITY_KEYS lands on BOTH
+   * drafts, matching what `saveBranding` writes: the club has one set of
+   * initials and one clubhouse address, and half of those fields are only
+   * drawn on the public site, so a portal-only edit would look like nothing
+   * happened. Keeping the drafts in step here is also what stops the other
+   * tab from reading as "unsaved" the moment this one is saved.
+   */
+  function patchSurface(target: Surface, next: Partial<BrandingDraft>) {
+    const shared = Object.fromEntries(
+      SHARED_IDENTITY_KEYS.filter((k) => k in next).map((k) => [k, next[k]]),
+    ) as Partial<BrandingDraft>;
+    setDrafts((prev) => ({
+      portal: {
+        ...prev.portal,
+        ...(target === "portal" ? next : {}),
+        ...shared,
+      },
+      public: {
+        ...prev.public,
+        ...(target === "public" ? next : {}),
+        ...shared,
+      },
+    }));
   }
 
-  function patchColor(key: ColorKey, value: string) {
+  function patchColor(target: Surface, key: ColorKey, value: string) {
     setDrafts((prev) => ({
       ...prev,
-      [surface]: { ...prev[surface], colors: { ...prev[surface].colors, [key]: value } },
+      [target]: { ...prev[target], colors: { ...prev[target].colors, [key]: value } },
     }));
   }
 
@@ -309,7 +332,15 @@ export function BrandingEditor({
           <TabsTrigger value="public">Public site</TabsTrigger>
         </TabsList>
 
-        {(["portal", "public"] as Surface[]).map((s) => (
+        {(["portal", "public"] as Surface[]).map((s) => {
+          // Bound to THIS panel's surface rather than to the active one. Radix
+          // unmounts the inactive panel so the two are the same today, but a
+          // field wired to `surface` instead of `s` is a trap waiting for the
+          // day that changes.
+          const d = drafts[s];
+          const patch = (next: Partial<BrandingDraft>) => patchSurface(s, next);
+          const shared = `Shared with the ${s === "portal" ? "public site" : "portal"}.`;
+          return (
           <TabsContent key={s} value={s} className="mt-6 space-y-6">
             <p className="text-sm text-muted-foreground">{SURFACE_COPY[s].blurb}</p>
 
@@ -328,25 +359,25 @@ export function BrandingEditor({
                           ? "How the club presents itself publicly."
                           : "What members see inside the portal."
                       }
-                      value={draft.orgDisplayName}
+                      value={d.orgDisplayName}
                       onChange={(v) => patch({ orgDisplayName: v })}
                     />
                     <Field
                       label="Short name"
-                      hint="Initials for tight spots. Blank falls back to the club name's initials."
-                      value={draft.shortName}
+                      hint={`Initials for tight spots. Blank falls back to the club name's initials. ${shared}`}
+                      value={d.shortName}
                       onChange={(v) => patch({ shortName: v })}
                     />
                     <Field
                       label="Chapter / location"
-                      hint="The bottom rocker's territory. Runs in the footer."
-                      value={draft.location}
+                      hint={`The bottom rocker's territory. Runs in the public footer. ${shared}`}
+                      value={d.location}
                       onChange={(v) => patch({ location: v })}
                     />
                     <Field
                       label="Clubhouse address"
-                      hint="The line above the location in the footer. Blank hides it."
-                      value={draft.addressLine}
+                      hint={`The line above the location in the public footer. Blank hides it. ${shared}`}
+                      value={d.addressLine}
                       onChange={(v) => patch({ addressLine: v })}
                     />
                     <Field
@@ -356,13 +387,13 @@ export function BrandingEditor({
                           ? "The creed line under the home page headline."
                           : "Sits under the club name in the nav rail."
                       }
-                      value={draft.tagline}
+                      value={d.tagline}
                       onChange={(v) => patch({ tagline: v })}
                     />
                     <div className="sm:col-span-2">
                       <Label className="text-xs font-medium">Mission</Label>
                       <Textarea
-                        value={draft.mission}
+                        value={d.mission}
                         rows={3}
                         onChange={(e) => patch({ mission: e.target.value })}
                         className="mt-1.5"
@@ -373,8 +404,8 @@ export function BrandingEditor({
                     </div>
                     <Field
                       label="Club anthem"
-                      hint="YouTube video id for the floating player. Blank uses the shipped track."
-                      value={draft.anthemVideoId}
+                      hint={`YouTube video id for the floating player. Blank uses the shipped track. ${shared}`}
+                      value={d.anthemVideoId}
                       onChange={(v) => patch({ anthemVideoId: v })}
                     />
                     <label className="flex items-start gap-2.5 self-end pb-1 text-xs text-muted-foreground">
@@ -408,9 +439,9 @@ export function BrandingEditor({
                             key={field.key}
                             label={field.label}
                             hint={field.hint}
-                            value={draft.colors[field.key]}
-                            over={draft.colors[field.over]}
-                            onChange={(v) => patchColor(field.key, v)}
+                            value={d.colors[field.key]}
+                            over={d.colors[field.over]}
+                            onChange={(v) => patchColor(s, field.key, v)}
                           />
                         ))}
                       </div>
@@ -432,7 +463,8 @@ export function BrandingEditor({
               </div>
             </div>
           </TabsContent>
-        ))}
+          );
+        })}
       </Tabs>
 
       {/* ── Brand assets ──────────────────────────────────────────────

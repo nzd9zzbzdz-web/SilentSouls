@@ -6,6 +6,7 @@ import { FieldValue, adminDb, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
 import { DEFAULT_BRANDING } from "@/lib/branding-defaults";
+import { sharedIdentity } from "@/lib/branding-resolve";
 import { orgSlugTag } from "@/lib/tenant";
 import { saveBrandingSchema, type SaveBrandingInput } from "@/lib/schemas/branding";
 import type { ActionResult } from "./activities";
@@ -58,15 +59,22 @@ export async function saveBranding(raw: SaveBrandingInput): Promise<ActionResult
         {
           colors: draft.colors,
           orgDisplayName: draft.orgDisplayName,
-          shortName: draft.shortName,
-          location: draft.location,
-          addressLine: draft.addressLine,
           tagline: draft.tagline,
           mission: draft.mission,
-          anthemVideoId: draft.anthemVideoId,
+          ...sharedIdentity(draft),
         },
         { merge: true },
       );
+
+    // The club's initials, chapter, address and anthem are the same club on
+    // either face, so they land on BOTH documents. Without this, editing the
+    // clubhouse address on the portal tab (the one the editor opens on) writes
+    // a value only the public footer draws, and nothing appears to happen.
+    const other = surface === "portal" ? "public" : "portal";
+    await orgRef(orgId)
+      .collection("branding")
+      .doc(other)
+      .set(sharedIdentity(draft), { merge: true });
 
     if (renameOrg) {
       // The org document carries the name twice: `name` is what the club calls
@@ -123,6 +131,12 @@ export async function resetBranding(raw: {
     // both are required on the stored shape, and a branding doc missing its
     // colours would be a valid-looking document that fails to type-check on
     // read.
+    const clearShared = {
+      shortName: FieldValue.delete(),
+      location: FieldValue.delete(),
+      addressLine: FieldValue.delete(),
+      anthemVideoId: FieldValue.delete(),
+    };
     await orgRef(raw.orgId)
       .collection("branding")
       .doc(raw.surface)
@@ -130,15 +144,17 @@ export async function resetBranding(raw: {
         {
           colors: fallback.colors,
           orgDisplayName: fallback.orgDisplayName,
-          shortName: FieldValue.delete(),
-          location: FieldValue.delete(),
-          addressLine: FieldValue.delete(),
           tagline: FieldValue.delete(),
           mission: FieldValue.delete(),
-          anthemVideoId: FieldValue.delete(),
+          ...clearShared,
         },
         { merge: true },
       );
+    // The shared identity is one value across both faces, so resetting it on
+    // one surface has to clear it on the other. Leaving half of it behind is
+    // how the two documents start disagreeing about the club's own address.
+    const other = raw.surface === "portal" ? "public" : "portal";
+    await orgRef(raw.orgId).collection("branding").doc(other).set(clearShared, { merge: true });
 
     await writeAuditLog(raw.orgId, {
       actorUid: access.user.uid,

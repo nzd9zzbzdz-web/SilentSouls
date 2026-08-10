@@ -147,6 +147,41 @@ export interface BrandingDraft {
   colors: Required<BrandingColors>;
 }
 
+/**
+ * Identity that is the same club whichever face you are looking at.
+ *
+ * Branding is stored per surface, which is right for the fields that
+ * legitimately differ: the shopfront runs under a different NAME from the
+ * clubhouse ("… Community Foundation" vs "… MC"), its tagline is the creed
+ * while the portal's is the territory, and only the public site has a mission
+ * statement. A club's initials, its chapter, its clubhouse address and its
+ * anthem are not like that — there is one answer, and asking twice invites the
+ * two documents to disagree.
+ *
+ * Worse than untidy: several of these are only DRAWN on the public site, so
+ * editing them on the portal tab (which is the one the editor opens on) wrote
+ * a value nothing would ever render. Both the save action and the editor treat
+ * this list as shared and write it to both documents.
+ */
+export const SHARED_IDENTITY_KEYS = [
+  "shortName",
+  "location",
+  "addressLine",
+  "anthemVideoId",
+] as const satisfies readonly (keyof BrandingDraft)[];
+
+export type SharedIdentityKey = (typeof SHARED_IDENTITY_KEYS)[number];
+
+/** The subset of a draft that both surfaces share. */
+export function sharedIdentity(draft: BrandingDraft): Pick<BrandingDraft, SharedIdentityKey> {
+  return {
+    shortName: draft.shortName,
+    location: draft.location,
+    addressLine: draft.addressLine,
+    anthemVideoId: draft.anthemVideoId,
+  };
+}
+
 /** The draft an editor opens with for a surface. */
 export function toDraft(resolved: ResolvedBranding): BrandingDraft {
   return {

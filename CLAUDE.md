@@ -130,6 +130,14 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
     Uploads land in `organizations/{orgId}/brandingArt/{key}` as webp data URLs
     and the SERVED URL is written to `branding.assets[key]`, so resolving a
     club's whole imagery still costs the one document read layouts already make.
+  - **Identity is per surface EXCEPT `SHARED_IDENTITY_KEYS`.** The two faces
+    legitimately differ in name (". . . Community Foundation" vs ". . . MC"),
+    tagline (creed vs territory) and mission. A club's short name, chapter,
+    clubhouse address and anthem are one value, so `saveBranding` writes them
+    to BOTH documents and the editor mirrors them across both drafts. Adding a
+    field of that kind means adding it to that list: several are only DRAWN on
+    the public site, and the editor opens on the Portal tab, so a per-surface
+    field of this sort silently writes somewhere nothing renders.
   - **Semantic tokens** (`--brand-primary`, `--brand-glow`, `--background-panel`,
     `--border-subtle`, `--text-muted`, …) come out of `src/lib/branding-css.ts`
     alongside the shadcn names. New markup should use them. They are RESTATED
