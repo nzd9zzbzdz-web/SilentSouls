@@ -31,40 +31,32 @@ export type GalleryImage = {
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
 
-// Curated titles + display order. Any file present in public/gallery but NOT
-// listed here still shows up (caption derived from its filename) after the
-// curated set, so dropping in new photos never silently hides them. To rename
-// or reorder a photo, edit this list — nothing else needs to change.
-const CURATION: { file: string; title: string }[] = [
-  { file: "group photo.png", title: "The Crew" },
-  { file: "Group photo 2.png", title: "Group Photo" },
-  { file: "Group Talk.png", title: "Group Talk" },
-  { file: "Bikers at the bar.png", title: "Bikers at the Bar" },
-  { file: "2 riders.png", title: "Two Riders" },
-  { file: "City Skyline.png", title: "City Skyline" },
-  { file: "World Burns.png", title: "Watching the World Burn" },
-  { file: "Prez and Gus.png", title: "Prez & Gus" },
-  { file: "Prez.png", title: "Prez" },
-  { file: "Prez 2.png", title: "Prez" },
-  { file: "Gus Pickens.png", title: "Gus Pickens" },
-  { file: "Gage Creed.png", title: "Gage Creed" },
-  {
-    file: "Gage Creed and his special friend.png",
-    title: "Gage Creed & His Special Friend",
-  },
-  { file: "The Kid.png", title: "The Kid" },
-  { file: "The Kid 2.png", title: "The Kid" },
-  { file: "Winter Vetrov.png", title: "Winter Vetrov" },
-  { file: "Winter and Morrigan.png", title: "Winter & Morrigan" },
-  { file: "Promo 1.png", title: "Club Promo" },
-  { file: "Promo 2.png", title: "Club Promo" },
-  { file: "Club Promo Shat.png", title: "Club Promo" },
-  { file: "Club Promo Shat 2.png", title: "Club Promo" },
-  { file: "Beach Gus.png", title: "Gus at the Beach" },
-  { file: "Beach Gus 2.png", title: "Gus at the Beach" },
-  { file: "Prez Pier.png", title: "Prez on the Pier" },
-  { file: "Xander Paleto.png", title: "Xander in Paleto" },
-];
+/**
+ * Per-club curation, read from `public/gallery/<slug>/_captions.json`.
+ *
+ * A JSON file in the club's own folder rather than a table in this module:
+ * the whole point of per-slug folders is that adding a club touches no code,
+ * and a curated caption list in here would have been one more place a second
+ * club had to be added by hand. Absent or malformed, every photo is captioned
+ * from its filename in alphabetical order, which is what a club that has just
+ * dropped its photos in wants.
+ */
+type Curation = { file: string; title: string }[];
+
+function readCuration(dir: string): Curation {
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(dir, "_captions.json"), "utf8"));
+    const order = raw?.order;
+    if (!Array.isArray(order)) return [];
+    return order.filter(
+      (e: unknown): e is { file: string; title: string } =>
+        typeof (e as { file?: unknown })?.file === "string" &&
+        typeof (e as { title?: unknown })?.title === "string",
+    );
+  } catch {
+    return [];
+  }
+}
 
 // Caption for files not in CURATION: strip an ordering prefix like "01-" and
 // turn separators into spaces.
@@ -76,8 +68,11 @@ function deriveCaption(file: string): string {
     .trim();
 }
 
-async function loadGalleryPhotos(): Promise<GalleryImage[]> {
-  const dir = path.join(process.cwd(), "public", "gallery");
+async function loadGalleryPhotos(slug: string): Promise<GalleryImage[]> {
+  // Per CLUB, not per deployment. A flat public/gallery was read by every org,
+  // so a second club on one deployment showed the first club's photo wall on
+  // its own home page and Media page.
+  const dir = path.join(process.cwd(), "public", "gallery", slug);
   let files: string[];
   try {
     files = fs
@@ -87,8 +82,9 @@ async function loadGalleryPhotos(): Promise<GalleryImage[]> {
     return [];
   }
 
-  const orderOf = new Map(CURATION.map((c, i) => [c.file, i]));
-  const titleOf = new Map(CURATION.map((c) => [c.file, c.title]));
+  const curation = readCuration(dir);
+  const orderOf = new Map(curation.map((c, i) => [c.file, i]));
+  const titleOf = new Map(curation.map((c) => [c.file, c.title]));
 
   files.sort((a, b) => {
     const ia = orderOf.get(a) ?? Number.POSITIVE_INFINITY;
@@ -123,7 +119,7 @@ async function loadGalleryPhotos(): Promise<GalleryImage[]> {
       }
 
       return {
-        src: `/gallery/${file}`,
+        src: `/gallery/${slug}/${encodeURIComponent(file)}`,
         caption: titleOf.get(file) ?? deriveCaption(file),
         width,
         height,
@@ -133,16 +129,22 @@ async function loadGalleryPhotos(): Promise<GalleryImage[]> {
   );
 }
 
-// The gallery folder is immutable within a deployment, so in production we
-// compute the manifest (dimensions + blur placeholders) once per server
-// instance. In dev we recompute so newly dropped photos appear on refresh.
-let cached: Promise<GalleryImage[]> | null = null;
+// A club's gallery folder is immutable within a deployment, so in production
+// each manifest (dimensions + blur placeholders) is computed once per server
+// instance. Keyed BY SLUG, so two clubs on one deployment each get their own
+// rather than sharing whichever was read first. In dev we recompute so newly
+// dropped photos appear on refresh.
+const cached = new Map<string, Promise<GalleryImage[]>>();
 
-/** The photos shipped in `public/gallery`, in curated order. */
-export function getGalleryPhotos(): Promise<GalleryImage[]> {
-  if (process.env.NODE_ENV !== "production") return loadGalleryPhotos();
-  if (!cached) cached = loadGalleryPhotos();
-  return cached;
+/** The photos shipped in `public/gallery/<slug>`, in curated order. */
+export function getGalleryPhotos(slug: string): Promise<GalleryImage[]> {
+  if (process.env.NODE_ENV !== "production") return loadGalleryPhotos(slug);
+  let hit = cached.get(slug);
+  if (!hit) {
+    hit = loadGalleryPhotos(slug);
+    cached.set(slug, hit);
+  }
+  return hit;
 }
 
 /**
@@ -159,16 +161,22 @@ export function galleryPhotoUrl(orgId: string, photo: GalleryPhoto): string {
  * The public gallery: member uploads the club has published, newest first,
  * followed by the curated set shipped on disk.
  *
- * The two sources are MERGED rather than migrated. `public/gallery` is already
- * committed, already live, and costs nothing to serve; moving those twenty-odd
- * files into Firestore would be a destructive one-way step against production
- * data for no gain. New photos simply lead, which is what a club gallery
- * wants — the founding shots keep their curated order underneath.
+ * The two sources are MERGED rather than migrated. `public/gallery/<slug>` is
+ * already committed, already live, and costs nothing to serve; moving those
+ * twenty-odd files into Firestore would be a destructive one-way step against
+ * production data for no gain. New photos simply lead, which is what a club
+ * gallery wants — the founding shots keep their curated order underneath.
+ *
+ * Takes the SLUG as well as the org id because the two sources are scoped
+ * differently: uploads by org id in Firestore, shipped photos by slug on disk.
  */
-export async function composeGallery(orgId: string): Promise<GalleryImage[]> {
+export async function composeGallery(
+  orgId: string,
+  slug: string,
+): Promise<GalleryImage[]> {
   const [uploads, disk] = await Promise.all([
     listGalleryPhotos(orgId),
-    getGalleryPhotos(),
+    getGalleryPhotos(slug),
   ]);
 
   const published: GalleryImage[] = uploads

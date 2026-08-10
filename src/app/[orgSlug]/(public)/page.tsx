@@ -12,7 +12,8 @@ import {
   type PublicRosterMember,
 } from "@/lib/public-roster";
 import { resolveBranding } from "@/lib/branding-resolve";
-import { CHARACTER_SILHOUETTE, HERO_VIDEO } from "@/lib/constants";
+import { CHARACTER_SILHOUETTE } from "@/lib/constants";
+import { clubPreset } from "@/lib/clubs";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Button } from "@/components/ui/button";
 import { HeroGalleryFilmstrip } from "@/components/public/HeroGalleryFilmstrip";
@@ -28,8 +29,9 @@ export default async function PublicHomePage({
   const { orgSlug } = await params;
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
-  const branding = resolveBranding(await getBranding(org.id, "public"), "public");
-  const photos = await composeGallery(org.id);
+  const branding = resolveBranding(await getBranding(org.id, "public"), "public", org.slug);
+  const preset = clubPreset(org.slug);
+  const photos = await composeGallery(org.id, org.slug);
   const base = `/${orgSlug}`;
 
   // The club's own name, not the org record's: renaming from Admin → Branding
@@ -75,17 +77,28 @@ export default async function PublicHomePage({
     })
     .sort(bySeniority);
 
-  // Emblems come from the branding catalog, so a club swaps its four badges
-  // from Admin rather than by replacing files. The slots are listed out of
-  // numeric order on purpose: 1-4 is the order the About page draws them in,
-  // and the pillars have always led with the skull.
-  const { emblemOne, emblemTwo, emblemThree, emblemFour } = branding.assets;
-  const pillars = [
-    { img: emblemTwo, title: "About Us", body: `${branding.name} was founded on the core values of loyalty, trust, and respect. We are brothers, nothing more, nothing less.`, href: `${base}/about`, cta: "Read More" },
-    { img: emblemOne, title: "Brotherhood", body: "We ride together, we stand together, we bleed together. Our bond is unbreakable. Our brotherhood is forever.", href: "#brotherhood", cta: "Meet the Club" },
-    { img: emblemThree, title: "Our Code", body: "We live by a code. It guides our actions and defines who we are. Disrespect the code, and you'll face the consequences.", href: `${base}/about`, cta: "Read More" },
-    { img: emblemFour, title: "Join the Club", body: "Think you have what it takes to be one of us? Loyalty is earned, not given. Start your journey here.", href: `${base}/join`, cta: "Apply Now" },
+  // Emblems and pillar copy both come from THIS club: the images from the
+  // branding catalog (so an admin swaps them without touching code) and the
+  // words from the club preset. The slots are listed out of numeric order on
+  // purpose: 1-4 is the order the About page draws them in, and the pillars
+  // have always led with the second.
+  const emblems = [
+    branding.assets.emblemTwo,
+    branding.assets.emblemOne,
+    branding.assets.emblemThree,
+    branding.assets.emblemFour,
   ];
+  const hrefFor = (h: "about" | "brotherhood" | "join") =>
+    h === "brotherhood" ? "#brotherhood" : `${base}/${h}`;
+  const pillars = preset.copy.pillars.map((p, i) => ({
+    img: emblems[i] ?? emblems[0],
+    title: p.title,
+    // {club} rather than a baked-in name, so renaming from Admin -> Branding
+    // moves the copy with it.
+    body: p.body.replace(/{club}/g, branding.name),
+    href: hrefFor(p.href),
+    cta: p.cta,
+  }));
 
   return (
     <>
@@ -107,7 +120,7 @@ export default async function PublicHomePage({
         >
           {photos.length > 0 ? (
             <HeroGalleryFilmstrip photos={photos} />
-          ) : (
+          ) : preset.heroVideo ? (
             <video
               className="absolute inset-0 h-full w-full object-contain"
               autoPlay
@@ -118,8 +131,18 @@ export default async function PublicHomePage({
               poster={branding.assets.heroImage}
               aria-hidden
             >
-              <source src={HERO_VIDEO} type="video/mp4" />
+              <source src={preset.heroVideo} type="video/mp4" />
             </video>
+          ) : (
+            // No club clip and no photos yet: the poster alone, so the hero is
+            // still a picture rather than an empty band.
+            /* eslint-disable-next-line @next/next/no-img-element -- static or served art */
+            <img
+              src={branding.assets.heroImage}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full object-cover"
+            />
           )}
         </div>
 
@@ -239,13 +262,12 @@ export default async function PublicHomePage({
       <section className="border-t border-destructive/12 bg-background">
         <div className="mx-auto max-w-3xl px-4 py-20 text-center">
           <DisplayHeading as="h2" className="text-3xl text-foreground md:text-4xl">
-            Loyalty is earned, not given.
+            {preset.copy.closingHeading}
           </DisplayHeading>
           {/* "with us" rather than "with the Ravens": the sentence has to
               survive a rebrand, and no club noun fits every club. */}
           <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-            The road is long and it isn&rsquo;t for everyone. If you think you belong
-            with us, come prove it.
+            {preset.copy.closingBody}
           </p>
           {/* The page's one true action — ember tier. */}
           <Button

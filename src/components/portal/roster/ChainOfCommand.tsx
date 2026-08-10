@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { Crown } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
-import { CHAIN_OF_COMMAND_PLATE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { RosterMember } from "./types";
 
 /* ── Plate geometry ───────────────────────────────────────────────────
-   The rings, nameplates, connectors and stat bar are PAINTED INTO
-   `CHAIN_OF_COMMAND_PLATE`; this component only lays live text and faces
-   over them. Every number below is a pixel measured off that art in its
-   own 1556×720 space — positions AND type sizes, so the block scales as
-   one piece with its container and a re-crop is a search-and-replace
-   rather than a redesign.                                             */
+   The rings, nameplates, connectors and stat bar are PAINTED INTO the
+   plate art; this component only lays live text and faces over them.
+   Every number below is a pixel measured off that art in its own
+   1556×720 space — positions AND type sizes, so the block scales as one
+   piece with its container and a re-crop is a search-and-replace rather
+   than a redesign.
+
+   This table describes the plate TEMPLATE, not one club's picture. A club
+   supplying its own plate paints to these positions; a club with no plate
+   art gets the stacked panel instead (see the entry point).            */
 
 /**
  * The window of that 1556×720 render the shipped file actually contains.
@@ -249,6 +252,7 @@ function PlateSlot({
 
 function ChainPlate({
   orgSlug,
+  plateArt,
   title,
   blurb,
   president,
@@ -256,6 +260,7 @@ function ChainPlate({
   counts,
 }: {
   orgSlug: string;
+  plateArt: string;
   title: string;
   blurb: string;
   president: RosterMember;
@@ -266,7 +271,7 @@ function ChainPlate({
     <div className="@container relative">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={CHAIN_OF_COMMAND_PLATE}
+        src={plateArt}
         alt=""
         width={CROP.w}
         height={CROP.h}
@@ -456,12 +461,15 @@ interface Counts {
  */
 export function ChainOfCommand({
   orgSlug,
+  plateArt,
   title,
   blurb,
   officers,
   counts,
 }: {
   orgSlug: string;
+  /** This club's plate art, or null when it has none. */
+  plateArt: string | null;
   title: string;
   blurb: string;
   officers: RosterMember[];
@@ -469,14 +477,20 @@ export function ChainOfCommand({
 }) {
   const president = officers.find((o) => o.isPresident);
   const rest = officers.filter((o) => o !== president);
-  const fitsPlate = Boolean(president) && rest.length === OFFICER_CX.length;
+  // Three conditions, all necessary. The club must HAVE plate art — a club
+  // with none gets the stacked panel rather than another club's engraving —
+  // the table must be the one the art depicts, and there must be width for
+  // the faces to read.
+  const fitsPlate =
+    Boolean(plateArt) && Boolean(president) && rest.length === OFFICER_CX.length;
 
   return (
     <>
-      {fitsPlate && president && (
+      {fitsPlate && president && plateArt && (
         <div className="hidden lg:block">
           <ChainPlate
             orgSlug={orgSlug}
+            plateArt={plateArt}
             title={title}
             blurb={blurb}
             president={president}

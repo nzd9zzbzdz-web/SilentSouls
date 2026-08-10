@@ -34,8 +34,8 @@ export default async function BrandingAdminPage({
   ]);
 
   const resolved = {
-    portal: resolveBranding(portalDoc, "portal"),
-    public: resolveBranding(publicDoc, "public"),
+    portal: resolveBranding(portalDoc, "portal", org.slug),
+    public: resolveBranding(publicDoc, "public", org.slug),
   };
 
   // Each slot is shown once, resolved on the surface that owns it. A "both"
@@ -66,6 +66,7 @@ export default async function BrandingAdminPage({
 
       <BrandingEditor
         orgId={org.id}
+        orgSlug={org.slug}
         initial={resolved}
         assetUrls={assetUrls}
         customAssetKeys={customAssetKeys}

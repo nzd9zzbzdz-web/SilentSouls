@@ -164,11 +164,14 @@ const SURFACE_COPY: Record<Surface, { label: string; blurb: string }> = {
  */
 export function BrandingEditor({
   orgId,
+  orgSlug,
   initial,
   assetUrls,
   customAssetKeys,
 }: {
   orgId: string;
+  /** Selects this club's preset, so the preview and Reset mean THIS club. */
+  orgSlug: string;
   initial: Record<Surface, ResolvedBranding>;
   /** The URL each slot currently resolves to, on the surface that owns it. */
   assetUrls: Record<BrandingAssetKey, string>;
@@ -198,8 +201,8 @@ export function BrandingEditor({
   );
 
   const preview = useMemo(
-    () => draftToResolved(draft, surface, initial[surface].assets),
-    [draft, surface, initial],
+    () => draftToResolved(draft, surface, initial[surface].assets, orgSlug),
+    [draft, surface, initial, orgSlug],
   );
 
   /**

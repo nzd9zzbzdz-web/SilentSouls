@@ -1,4 +1,3 @@
-import { DEFAULT_ASSETS } from "@/lib/branding-defaults";
 import type { Branding, BrandingAssetKey } from "@/lib/types";
 
 /**
@@ -54,8 +53,6 @@ export interface BrandingArtSpec {
   fit: "cover" | "contain";
   /** Which part survives a `cover` crop when the source is a different shape. */
   position: "top" | "centre";
-  /** Shipped art used when nothing has been uploaded. */
-  fallback: string;
   /** Guidance shown on the asset card. */
   ratioHint: string;
 }
@@ -82,7 +79,6 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     height: 1080,
     fit: "contain",
     position: "centre",
-    fallback: DEFAULT_ASSETS.clubPatch,
     ratioHint:
       "Portrait 2:3 with a transparent background (e.g. 1440×2160 PNG). Transparency is preserved.",
     revalidates: EVERYWHERE,
@@ -97,7 +93,6 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     height: 400,
     fit: "contain",
     position: "centre",
-    fallback: DEFAULT_ASSETS.logo,
     ratioHint: "Wide 3:1 with a transparent background (e.g. 1800×600 PNG).",
     revalidates: [{ path: "/[orgSlug]", type: "layout" }],
   },
@@ -111,7 +106,6 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     height: 900,
     fit: "contain",
     position: "centre",
-    fallback: DEFAULT_ASSETS.defaultAvatar,
     ratioHint: "Portrait 2:3, transparent background, figure standing on the bottom edge.",
     revalidates: EVERYWHERE,
   },
@@ -132,7 +126,6 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     // on clubhouse art is the wall patch — exactly the thing that should sit
     // behind the rider rather than beside them. Predictable beats clever here.
     position: "centre",
-    fallback: DEFAULT_ASSETS.rosterBackdrop,
     ratioHint: "Portrait, 3:4 (e.g. 900×1200). Anything else is cropped to fit.",
     revalidates: [{ path: "/[orgSlug]", type: "page" }],
   },
@@ -149,7 +142,6 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     position: "centre",
     // Ships pointing at the same clubhouse art as the public wall, so the
     // portal cards read as a room from day one. Upload here to diverge.
-    fallback: DEFAULT_ASSETS.portalRosterBackdrop,
     ratioHint: "Portrait, 3:4 (e.g. 900×1200). Anything else is cropped to fit.",
     revalidates: [
       { path: "/[orgSlug]/portal", type: "layout" },
@@ -169,7 +161,6 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     // The stage art is composed top-heavy (lamps, wall patch), and the
     // component anchors to the top for the same reason.
     position: "top",
-    fallback: DEFAULT_ASSETS.characterStage,
     ratioHint: "Landscape, 3:2 (e.g. 1800×1200). Anything else is cropped to fit.",
     revalidates: [
       { path: "/[orgSlug]/portal", type: "layout" },
@@ -187,7 +178,6 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     height: 820,
     fit: "cover",
     position: "centre",
-    fallback: DEFAULT_ASSETS.heroImage,
     ratioHint: "Wide landscape, roughly 21:9 (e.g. 2400×1026).",
     revalidates: [{ path: "/[orgSlug]", type: "page" }],
   },
@@ -201,7 +191,6 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     height: 1200,
     fit: "contain",
     position: "centre",
-    fallback: DEFAULT_ASSETS.watermark,
     // The home page composites this with mix-blend-mode:lighten, which needs a
     // near-black canvas to disappear into the section behind it.
     ratioHint:
@@ -213,18 +202,14 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
   // The four badges above the home page pillars, reused as a rule between
   // acts on the About page. Numbered rather than named ("skull", "winged")
   // because the next club's four badges are not this club's four badges.
-  ...emblemRow("emblemOne", "First emblem", DEFAULT_ASSETS.emblemOne),
-  ...emblemRow("emblemTwo", "Second emblem", DEFAULT_ASSETS.emblemTwo),
-  ...emblemRow("emblemThree", "Third emblem", DEFAULT_ASSETS.emblemThree),
-  ...emblemRow("emblemFour", "Fourth emblem", DEFAULT_ASSETS.emblemFour),
+  ...emblemRow("emblemOne", "First emblem"),
+  ...emblemRow("emblemTwo", "Second emblem"),
+  ...emblemRow("emblemThree", "Third emblem"),
+  ...emblemRow("emblemFour", "Fourth emblem"),
 };
 
 /** The four emblem slots are identical but for their label and default. */
-function emblemRow<K extends string>(
-  key: K,
-  label: string,
-  fallback: string,
-): Record<K, BrandingArtSpec> {
+function emblemRow<K extends string>(key: K, label: string): Record<K, BrandingArtSpec> {
   const spec: BrandingArtSpec = {
     label,
     blurb:
@@ -235,7 +220,6 @@ function emblemRow<K extends string>(
     height: 320,
     fit: "contain",
     position: "centre",
-    fallback,
     ratioHint: "Square with a transparent background (e.g. 512×512 PNG).",
     revalidates: [
       { path: "/[orgSlug]", type: "page" },

@@ -45,7 +45,7 @@ export default async function PortalLayout({
   // branding document now renders the shipped defaults instead of 404ing,
   // which matters because that 404 locked admins out of the very page they
   // would use to fix it.
-  const branding = resolveBranding(brandingDoc, "portal");
+  const branding = resolveBranding(brandingDoc, "portal", org.slug);
 
   const rankName = member
     ? ranks.find((r) => r.id === member.rankId)?.name

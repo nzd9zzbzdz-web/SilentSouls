@@ -1,4 +1,4 @@
-import { DEFAULT_ANTHEM_VIDEO_ID, DEFAULT_ASSETS } from "./branding-defaults";
+import { CHARACTER_SILHOUETTE_FILE } from "./branding-defaults";
 import type { CharacterPose, StatKey } from "./types";
 
 // Slugs that can never be org slugs (static route segments win in App Router,
@@ -75,7 +75,7 @@ function trimZero(n: number): string {
  * which does follow the upload. The two coincide until a club uploads its own,
  * and conflating them is why the distinction is spelled out here.
  */
-export const CHARACTER_SILHOUETTE = DEFAULT_ASSETS.defaultAvatar;
+export const CHARACTER_SILHOUETTE = CHARACTER_SILHOUETTE_FILE;
 
 /**
  * Where the figure stands when nobody has adjusted it. Matches the spotlight in
@@ -89,90 +89,6 @@ export const CHARACTER_POSE_LIMITS = {
   y: { min: -25, max: 70 },
   scale: { min: 15, max: 130 },
 } as const;
-
-/** @deprecated Read `branding.assets.characterStage` via `resolveBranding`. */
-export const DEFAULT_CHARACTER_STAGE = DEFAULT_ASSETS.characterStage;
-
-/** @deprecated Read `branding.assets.rosterBackdrop` via `resolveBranding`. */
-export const DEFAULT_ROSTER_BACKDROP = DEFAULT_ASSETS.rosterBackdrop;
-
-/**
- * The engraved plate behind the portal's Chain of Command.
- *
- * NOT an admin-swappable BRANDING_ART row, and deliberately so: the rings,
- * nameplates, connectors and stat bar are painted INTO this image, and
- * <ChainOfCommand> positions live text on top of them from measured
- * coordinates. Swapping the art without re-measuring would slide every name
- * off its plate. New art means a new coordinate table, not just a new file.
- */
-export const CHAIN_OF_COMMAND_PLATE = "/brand/chain-of-command.webp";
-
-/**
- * The home page hero clip (text-free, so the headline overlays on top). Shown
- * only when the gallery is empty; a club with photos never sees it.
- *
- * NOT a BRANDING_ART slot, and unlike everything else under `public/brand` it
- * is not going to become one: the upload pipeline is sharp, which decodes
- * images. Swapping a video needs a different pipeline (a real storage bucket
- * and a transcode), which is the multi-tenant milestone's problem. Until then
- * a new club replaces this file, or simply uploads gallery photos and never
- * shows it. `branding.assets.heroImage` is the poster frame and IS swappable.
- */
-export const HERO_VIDEO = "/brand/ravens-hero.mp4";
-
-/**
- * How the club tells its own story, on the public About page.
- *
- * Shipped constants rather than branding-only, for the same reason as the
- * roster backdrop: the public branding read has no fallback, so a
- * branding-only field would stay blank in production until that doc was
- * separately rewritten. `branding.story` / `branding.creed` still override,
- * and `scripts/lib/branding.ts` seeds both.
- */
-export const CLUB_STORY = [
-  "The 0% Ravens of Death MC were born from men who had grown tired of living by everyone else's rules. The founders came together with one goal: build a brotherhood where loyalty meant everything and nobody could tell them how to live.",
-  "The name Ravens of Death came from the club's belief that every member had already left their old life behind. The raven represented intelligence, freedom, and survival, while “Death” represented the death of the person they used to be. The 0% stood for their refusal to live as a traditional 1% club. They weren't interested in following another club's path. They wanted to create their own.",
-  "The original brothers earned their reputation through the streets, riding together, protecting their territory, and standing shoulder-to-shoulder when trouble came knocking. Their patch quickly became a symbol of loyalty and fearlessness.",
-  "To the Ravens, the patch isn't clothing. It's a promise. Every member is expected to respect the club, protect their brothers, and never betray the people who stood beside them. Anyone can wear a leather vest, but earning the Ravens patch is something entirely different.",
-  "The club has never pretended to be respectable. They live outside the normal boundaries of society and aren't afraid to make enemies. Rival clubs, law enforcement, and anyone who threatens their family can quickly find themselves on the wrong side of the Ravens.",
-  "Despite their reputation, the club's strongest weapon has always been its brotherhood. Money comes and goes, bikes can be replaced, and territory can be lost. Loyalty is permanent.",
-  "Today, the 0% Ravens of Death MC continue to ride under one banner. They aren't looking for acceptance, approval, or permission.",
-];
-
-/**
- * Chapter headings for the story, applied BY INDEX to `CLUB_STORY` (or to a
- * tenant's `branding.story`). Titles only — the prose stays in one array, so
- * there is no second copy of the club's history to drift out of sync.
- *
- * A paragraph with no title here simply renders without an eyebrow, which is
- * what happens to any tenant that writes a longer story than this list covers.
- * `branding.storyTitles` overrides the whole list.
- */
-export const CLUB_STORY_TITLES = [
-  "The Founding",
-  "The Name",
-  "The Streets",
-  "The Patch",
-  "Outside the Lines",
-  "What Holds",
-  "Today",
-];
-
-/** The three lines the story closes on. */
-export const CLUB_CREED = [
-  "They ride because they're brothers.",
-  "They fight because they're family.",
-  "And once you're a Raven, you never ride alone.",
-];
-
-/**
- * The club anthem, streamed from YouTube by <MusicPlayer> on BOTH surfaces —
- * the public site and the portal. One id, one place: the two layouts must
- * never drift onto different tracks. Becomes a branding field the day a
- * second tenant wants its own anthem (same call as MAP_IMAGE_PATH).
- */
-/** @deprecated Read `branding.anthemVideoId` via `resolveBranding`. */
-export const CLUB_ANTHEM_VIDEO_ID = DEFAULT_ANTHEM_VIDEO_ID;
 
 export const STAT_LABELS: Record<StatKey, string> = {
   churchAttendance: "Church Attendance",

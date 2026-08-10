@@ -5,7 +5,7 @@ import { resolveBranding } from "@/lib/branding-resolve";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { OrnamentRule } from "@/components/public/OrnamentRule";
 import { Reveal } from "@/components/motion/Reveal";
-import { CLUB_CREED, CLUB_STORY, CLUB_STORY_TITLES } from "@/lib/constants";
+import { clubPreset } from "@/lib/clubs";
 
 /**
  * What the club says about itself.
@@ -21,12 +21,6 @@ import { CLUB_CREED, CLUB_STORY, CLUB_STORY_TITLES } from "@/lib/constants";
  * closes on its own lines (`creed`). Nothing about the Ravens is written into
  * this component — the only thing hardcoded is the shape.
  */
-const VALUES: [string, string][] = [
-  ["The Patch", "Not clothing. A promise, and it has to be earned."],
-  ["Loyalty", "Money comes and goes. Bikes can be replaced. Loyalty is permanent."],
-  ["Freedom", "Zero percent. We don't ride another club's path."],
-  ["Brotherhood", "No brother of ours ever rides alone."],
-];
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
@@ -39,11 +33,14 @@ export default async function AboutPage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
   const doc = await getBranding(org.id, "public");
-  const branding = resolveBranding(doc, "public");
+  const branding = resolveBranding(doc, "public", org.slug);
 
-  const story = doc?.story?.length ? doc.story : CLUB_STORY;
-  const creed = doc?.creed?.length ? doc.creed : CLUB_CREED;
-  const titles = doc?.storyTitles?.length ? doc.storyTitles : CLUB_STORY_TITLES;
+  // Firestore first, then THIS CLUB's preset. Never a global default: a
+  // shared fallback is how one club ends up telling another club's history.
+  const preset = clubPreset(org.slug);
+  const story = doc?.story?.length ? doc.story : preset.copy.story;
+  const creed = doc?.creed?.length ? doc.creed : preset.copy.creed;
+  const titles = doc?.storyTitles?.length ? doc.storyTitles : preset.copy.storyTitles;
 
   /** The four badges the club wears, used as a rule between acts. */
   const emblems = [
@@ -242,7 +239,7 @@ export default async function AboutPage({
             </p>
           </div>
           <ul className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
-            {VALUES.map(([title, body], i) => (
+            {preset.copy.values.map(([title, body], i) => (
               <Reveal as="li" key={title} delay={i * 0.05} className="bg-background p-7">
                 <DisplayHeading as="h3" className="text-2xl text-foreground">
                   {title}

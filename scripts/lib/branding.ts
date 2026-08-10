@@ -1,58 +1,65 @@
 /**
- * Canonical org identity + branding for the seed/bootstrap scripts.
+ * Org identity + branding for the seed/bootstrap scripts.
  *
- * The VALUES now live in `src/lib/branding-defaults.ts`, because the running
- * site needs them too: `resolveBranding` folds them under whatever Firestore
- * holds, so a club with a half-filled branding document still renders. This
- * file is the scripts' door onto that module and adds only the long-form club
- * copy the seeder writes.
+ * The VALUES live in `src/lib/clubs/<slug>.ts` — one preset per club, selected
+ * by org slug — because the running site needs them too: `resolveBranding`
+ * folds a preset under whatever Firestore holds, so a club with a half-filled
+ * branding document still renders, and a club with NO preset renders the blank
+ * platform one rather than somebody else's.
  *
- * Every script that writes branding (seed, bootstrap, apply-branding,
- * update-public-branding, migrate-cut) imports from here. Do NOT re-declare
- * these values in a script: they drifted before and silently rewrote the old
- * club's name/palette back over a rebrand. That rule now extends one step
- * further — do not re-declare them HERE either. Edit branding-defaults.ts.
+ * This file is the scripts' door onto that registry. Do NOT re-declare these
+ * values in a script: they drifted before and silently rewrote the old club's
+ * name/palette back over a rebrand. Do not re-declare them here either — edit
+ * the preset.
  *
- * Ravens of Death palette:
- *   Void Black #050407 · Raven Charcoal #151017 · Death Plum #2D111F
- *   Raven Purple #54213F · Blood Crimson #941B22 · Ember Red #D9362B
- *   Weathered Bone #B8A0A5 · Ash White #EEE7E8
+ * `ORG_ID` selects which club is being seeded, so `ORG_ID=blue-wolves npx tsx
+ * scripts/bootstrap.ts` bootstraps that club against its own preset.
  */
+import { clubPreset } from "../../src/lib/clubs";
 import type { Branding } from "../../src/lib/types";
-import {
-  DEFAULT_ASSETS,
-  DEFAULT_BRANDING,
-  DEFAULT_ORG_ADDRESS_LINE,
-  DEFAULT_ORG_DISPLAY_NAME,
-  DEFAULT_ORG_LEGAL_NAME,
-  DEFAULT_ORG_LOCATION,
-  DEFAULT_ORG_PUBLIC_NAME,
-  DEFAULT_ORG_SHORT_NAME,
-} from "../../src/lib/branding-defaults";
-import { CLUB_CREED, CLUB_STORY } from "../../src/lib/constants";
 
-export const ORG_DISPLAY_NAME = DEFAULT_ORG_DISPLAY_NAME;
-export const ORG_LEGAL_NAME = DEFAULT_ORG_LEGAL_NAME;
-export const ORG_PUBLIC_NAME = DEFAULT_ORG_PUBLIC_NAME;
-export const ORG_SHORT_NAME = DEFAULT_ORG_SHORT_NAME;
-export const ORG_LOCATION = DEFAULT_ORG_LOCATION;
-export const ORG_ADDRESS_LINE = DEFAULT_ORG_ADDRESS_LINE;
+const SLUG = process.env.ORG_ID ?? "silent-souls";
+const preset = clubPreset(SLUG);
+
+export const ORG_SLUG = SLUG;
+export const ORG_DISPLAY_NAME = preset.identity.displayName;
+export const ORG_LEGAL_NAME = preset.identity.legalName;
+export const ORG_PUBLIC_NAME = preset.identity.publicName;
+export const ORG_SHORT_NAME = preset.identity.shortName;
+export const ORG_LOCATION = preset.identity.location;
+export const ORG_ADDRESS_LINE = preset.identity.addressLine;
+
+const identity = {
+  orgDisplayName: preset.identity.displayName,
+  shortName: preset.identity.shortName,
+  location: preset.identity.location,
+  addressLine: preset.identity.addressLine,
+  anthemVideoId: preset.identity.anthemVideoId,
+};
 
 export const portalBranding: Branding = {
-  ...DEFAULT_BRANDING.portal,
-  // Seeded explicitly so a fresh club's stage is set in the document as well
-  // as in the fallback. Any of the shipped asset paths could be written this
-  // way; this one is, because the character screen predates the catalog.
-  characterStagePath: DEFAULT_ASSETS.characterStage,
+  colors: preset.colors.portal,
+  fonts: preset.fonts,
+  ...identity,
+  tagline: preset.identity.portalTagline,
+  // Seeded explicitly so a fresh club's stage is set in the document as well as
+  // in the preset. Any shipped asset path could be written this way; this one
+  // is, because the character screen predates the asset catalog.
+  characterStagePath: preset.assets.characterStage,
 };
 
 export const publicBranding: Branding = {
-  ...DEFAULT_BRANDING.public,
-  logoPath: DEFAULT_ASSETS.logo,
-  heroImagePath: DEFAULT_ASSETS.heroImage,
-  // The About page's long-form history. Kept here so a seed or an
-  // apply-branding run writes it, but the page also ships CLUB_STORY /
-  // CLUB_CREED as defaults — a live org renders the story with no data change.
-  story: CLUB_STORY,
-  creed: CLUB_CREED,
+  colors: preset.colors.public,
+  fonts: { display: preset.fonts.display, body: preset.fonts.body },
+  ...identity,
+  tagline: preset.identity.publicTagline,
+  mission: preset.identity.mission,
+  logoPath: preset.assets.logo,
+  heroImagePath: preset.assets.heroImage,
+  // The About page's long-form history. Written here so a seed or an
+  // apply-branding run puts it in Firestore, where an admin can edit it; the
+  // page also falls back to the preset, so a club renders its story either way.
+  story: preset.copy.story,
+  storyTitles: preset.copy.storyTitles,
+  creed: preset.copy.creed,
 };

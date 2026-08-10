@@ -17,6 +17,7 @@ import {
 import { patchArtUrl } from "@/lib/patch-ladders";
 import { CHARACTER_SILHOUETTE } from "@/lib/constants";
 import { resolveBranding } from "@/lib/branding-resolve";
+import { clubPreset } from "@/lib/clubs";
 import type { Member, Rank, Rarity } from "@/lib/types";
 
 const RARITY_WEIGHT: Record<Rarity, number> = {
@@ -66,7 +67,7 @@ export default async function BrotherhoodPage({
 
   const rankById = new Map(ranks.map((r) => [r.id, r]));
   const patchById = new Map(patches.map((p) => [p.id, p]));
-  const brand = resolveBranding(branding, "portal");
+  const brand = resolveBranding(branding, "portal", org.slug);
 
   const toRosterMember = (member: Member): RosterMember => {
     const rank = rankById.get(member.rankId);
@@ -154,6 +155,7 @@ export default async function BrotherhoodPage({
       <div className="mx-auto mb-8 w-full max-w-[116rem]">
         <ChainOfCommand
           orgSlug={orgSlug}
+          plateArt={clubPreset(org.slug).plateArt}
           title="Brotherhood"
           blurb="Every rider under the colors: the whole club, in order of the patch."
           officers={officers}

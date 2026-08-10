@@ -23,7 +23,7 @@ export default async function PublicLayout({
   // every image URL is already present, which is what keeps `?? "/brand/..."`
   // out of components. A club with no branding document renders the shipped
   // defaults rather than 404ing, so a fresh tenant is never a broken site.
-  const branding = resolveBranding(await getBranding(org.id, "public"), "public");
+  const branding = resolveBranding(await getBranding(org.id, "public"), "public", org.slug);
 
   return (
     <BrandingProvider branding={branding}>

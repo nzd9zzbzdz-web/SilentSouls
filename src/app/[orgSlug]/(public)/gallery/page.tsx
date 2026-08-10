@@ -15,7 +15,7 @@ export default async function PublicGalleryPage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
 
-  const photos = await composeGallery(org.id);
+  const photos = await composeGallery(org.id, org.slug);
 
   return (
     <div className="space-y-8 py-16">

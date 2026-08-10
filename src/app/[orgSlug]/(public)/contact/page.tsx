@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Clock, Mail, MapPin } from "lucide-react";
 import { getOrgBySlug } from "@/lib/tenant";
+import { clubPreset } from "@/lib/clubs";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +13,9 @@ export default async function ContactPage({
   const { orgSlug } = await params;
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
+  // The cover story's own details, per club. A shared default here would put
+  // one club's community centre on another club's Contact page.
+  const { contact } = clubPreset(org.slug);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
@@ -21,11 +25,14 @@ export default async function ContactPage({
           <div className="flex gap-4">
             <MapPin className="mt-1 size-5 shrink-0 text-primary" aria-hidden />
             <div>
-              <p className="font-semibold text-foreground">Community Center</p>
+              <p className="font-semibold text-foreground">{contact.venue}</p>
               <p className="text-sm text-muted-foreground">
-                Legion Square Community Center
-                <br />
-                Los Santos, San Andreas
+                {contact.addressLines.map((line, i) => (
+                  <span key={line}>
+                    {i > 0 && <br />}
+                    {line}
+                  </span>
+                ))}
               </p>
             </div>
           </div>
@@ -34,9 +41,12 @@ export default async function ContactPage({
             <div>
               <p className="font-semibold text-foreground">Open Hours</p>
               <p className="text-sm text-muted-foreground">
-                Saturdays 9:00 AM to 2:00 PM
-                <br />
-                Donation drop-offs welcome
+                {contact.hours.map((line, i) => (
+                  <span key={line}>
+                    {i > 0 && <br />}
+                    {line}
+                  </span>
+                ))}
               </p>
             </div>
           </div>
@@ -45,7 +55,7 @@ export default async function ContactPage({
             <div>
               <p className="font-semibold text-foreground">Write to Us</p>
               <p className="text-sm text-muted-foreground">
-                outreach@{orgSlug.replace(/-/g, "")}foundation.org
+                {contact.email ?? `outreach@${orgSlug.replace(/-/g, "")}foundation.org`}
               </p>
             </div>
           </div>

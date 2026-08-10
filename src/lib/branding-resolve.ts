@@ -1,9 +1,6 @@
 import { BRANDING_ART } from "@/lib/branding-art";
-import {
-  DEFAULT_ANTHEM_VIDEO_ID,
-  DEFAULT_ASSETS,
-  DEFAULT_BRANDING,
-} from "@/lib/branding-defaults";
+import { defaultAssetsFor, defaultBrandingFor } from "@/lib/branding-defaults";
+import { clubPreset } from "@/lib/clubs";
 import { BRANDING_ASSET_KEYS } from "@/lib/types";
 import type {
   Branding,
@@ -69,7 +66,11 @@ export function initialsOf(name: string): string {
  * the seeder and by uploads made before this catalog existed, and dropping it
  * would blank a stage that is currently on screen.
  */
-function assetUrl(branding: Branding | null, key: BrandingAssetKey): string {
+function assetUrl(
+  branding: Branding | null,
+  key: BrandingAssetKey,
+  shipped: Record<BrandingAssetKey, string>,
+): string {
   const uploaded = branding?.assets?.[key];
   if (uploaded) return uploaded;
   const legacy = BRANDING_ART[key].legacyField;
@@ -77,7 +78,7 @@ function assetUrl(branding: Branding | null, key: BrandingAssetKey): string {
     const value = branding?.[legacy];
     if (typeof value === "string" && value) return value;
   }
-  return DEFAULT_ASSETS[key];
+  return shipped[key];
 }
 
 /**
@@ -89,15 +90,17 @@ function assetUrl(branding: Branding | null, key: BrandingAssetKey): string {
 export function resolveBranding(
   branding: Branding | null | undefined,
   surface: "public" | "portal",
+  slug: string | null | undefined,
 ): ResolvedBranding {
-  const base = DEFAULT_BRANDING[surface];
+  const base = defaultBrandingFor(slug, surface);
+  const shipped = defaultAssetsFor(slug);
   const colors = { ...base.colors, ...branding?.colors };
   const name = branding?.orgDisplayName || base.orgDisplayName;
 
   const assets = {} as Record<BrandingAssetKey, string>;
   const customAssets = new Set<BrandingAssetKey>();
   for (const key of BRANDING_ASSET_KEYS) {
-    assets[key] = assetUrl(branding ?? null, key);
+    assets[key] = assetUrl(branding ?? null, key, shipped);
     if (branding?.assets?.[key]) customAssets.add(key);
   }
 
@@ -124,7 +127,7 @@ export function resolveBranding(
     addressLine: branding?.addressLine ?? base.addressLine ?? "",
     tagline: branding?.tagline ?? base.tagline ?? "",
     mission: branding?.mission ?? base.mission ?? "",
-    anthemVideoId: branding?.anthemVideoId || DEFAULT_ANTHEM_VIDEO_ID,
+    anthemVideoId: branding?.anthemVideoId ?? base.anthemVideoId ?? "",
     assets,
     customAssets,
   };
@@ -201,11 +204,12 @@ export function draftToResolved(
   draft: BrandingDraft,
   surface: "public" | "portal",
   assets: BrandingAssets,
+  slug: string,
 ): ResolvedBranding {
   return resolveBranding(
     {
       colors: draft.colors,
-      fonts: DEFAULT_BRANDING[surface].fonts,
+      fonts: clubPreset(slug).fonts,
       orgDisplayName: draft.orgDisplayName,
       shortName: draft.shortName,
       location: draft.location,
@@ -216,5 +220,6 @@ export function draftToResolved(
       assets,
     },
     surface,
+    slug,
   );
 }

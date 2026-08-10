@@ -1,0 +1,30 @@
+{
+  "_comment": "Curated titles and display order for this club's shipped photos. Files listed here come first, in this order, with these captions. Anything in the folder but not listed still shows, after them, captioned from its filename. Delete this file and every photo is captioned from its filename in alphabetical order.",
+  "order": [
+    { "file": "group photo.png", "title": "The Crew" },
+    { "file": "Group photo 2.png", "title": "Group Photo" },
+    { "file": "Group Talk.png", "title": "Group Talk" },
+    { "file": "Bikers at the bar.png", "title": "Bikers at the Bar" },
+    { "file": "2 riders.png", "title": "Two Riders" },
+    { "file": "City Skyline.png", "title": "City Skyline" },
+    { "file": "World Burns.png", "title": "Watching the World Burn" },
+    { "file": "Prez and Gus.png", "title": "Prez & Gus" },
+    { "file": "Prez.png", "title": "Prez" },
+    { "file": "Prez 2.png", "title": "Prez" },
+    { "file": "Gus Pickens.png", "title": "Gus Pickens" },
+    { "file": "Gage Creed.png", "title": "Gage Creed" },
+    { "file": "Gage Creed and his special friend.png", "title": "Gage Creed & His Special Friend" },
+    { "file": "The Kid.png", "title": "The Kid" },
+    { "file": "The Kid 2.png", "title": "The Kid" },
+    { "file": "Winter Vetrov.png", "title": "Winter Vetrov" },
+    { "file": "Winter and Morrigan.png", "title": "Winter & Morrigan" },
+    { "file": "Promo 1.png", "title": "Club Promo" },
+    { "file": "Promo 2.png", "title": "Club Promo" },
+    { "file": "Club Promo Shat.png", "title": "Club Promo" },
+    { "file": "Club Promo Shat 2.png", "title": "Club Promo" },
+    { "file": "Beach Gus.png", "title": "Gus at the Beach" },
+    { "file": "Beach Gus 2.png", "title": "Gus at the Beach" },
+    { "file": "Prez Pier.png", "title": "Prez on the Pier" },
+    { "file": "Xander Paleto.png", "title": "Xander in Paleto" }
+  ]
+}

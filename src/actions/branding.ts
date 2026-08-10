@@ -5,9 +5,9 @@ import { revalidateOrgTags } from "@/lib/cache";
 import { FieldValue, adminDb, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
-import { DEFAULT_BRANDING } from "@/lib/branding-defaults";
+import { defaultBrandingFor } from "@/lib/branding-defaults";
 import { sharedIdentity } from "@/lib/branding-resolve";
-import { orgSlugTag } from "@/lib/tenant";
+import { getOrgById, orgSlugTag } from "@/lib/tenant";
 import { saveBrandingSchema, type SaveBrandingInput } from "@/lib/schemas/branding";
 import type { ActionResult } from "./activities";
 
@@ -124,7 +124,11 @@ export async function resetBranding(raw: {
 
   try {
     const access = await requireOrgRole(raw.orgId, "admin");
-    const fallback = DEFAULT_BRANDING[raw.surface];
+    // Which club this is decides what "default" MEANS — the Ravens preset for
+    // silent-souls, the blank platform one for anybody else. Resetting to a
+    // global default is what used to hand a new club the Ravens palette.
+    const org = await getOrgById(raw.orgId);
+    const fallback = defaultBrandingFor(org?.slug, raw.surface);
 
     // The identity fields go away entirely so `resolveBranding` supplies them,
     // but `colors` and `orgDisplayName` are WRITTEN back rather than deleted:
