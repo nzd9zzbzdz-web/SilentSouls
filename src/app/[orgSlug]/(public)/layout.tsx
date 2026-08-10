@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
+import { servesOrg } from "@/lib/tenant-lock";
 import { resolveBranding } from "@/lib/branding-resolve";
 import { BrandStyle } from "@/components/theme/BrandStyle";
 import { BrandingProvider } from "@/components/theme/BrandingProvider";
@@ -18,12 +19,15 @@ export default async function PublicLayout({
   const { orgSlug } = await params;
   const org = await getOrgBySlug(orgSlug);
   if (!org || org.status !== "active") notFound();
+  // A deployment pinned to one club (ORG_SLUG) does not serve the others,
+  // even though they share a database. See src/lib/tenant-lock.ts.
+  if (!servesOrg(orgSlug)) notFound();
 
   // Resolved once, here. Everything below reads a value where every colour and
   // every image URL is already present, which is what keeps `?? "/brand/..."`
   // out of components. A club with no branding document renders the shipped
   // defaults rather than 404ing, so a fresh tenant is never a broken site.
-  const branding = resolveBranding(await getBranding(org.id, "public"), "public", org.slug);
+  const branding = resolveBranding(await getBranding(org.id, "public"), "public", org);
 
   return (
     <BrandingProvider branding={branding}>
@@ -45,7 +49,12 @@ export default async function PublicLayout({
           {children}
         </main>
         <CharityFooter orgSlug={orgSlug} branding={branding} />
+        {/* No anthem chosen, no player. Mounting it with an empty id loads the
+          embed anyway and YouTube parks "This video is unavailable" in the
+          corner of an otherwise finished site. */}
+      {branding.anthemVideoId && (
         <MusicPlayer videoId={branding.anthemVideoId} label="Club Anthem" />
+      )}
       </div>
     </BrandingProvider>
   );

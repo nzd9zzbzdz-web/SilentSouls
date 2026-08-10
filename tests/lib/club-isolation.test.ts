@@ -24,7 +24,7 @@ const NEW_CLUB = "blue-wolves";
 function renderedStrings(slug: string): string[] {
   const out: string[] = [];
   for (const surface of ["public", "portal"] as const) {
-    const r = resolveBranding(null, surface, slug);
+    const r = resolveBranding(null, surface, { slug });
     out.push(
       r.name,
       r.shortName,
@@ -145,7 +145,7 @@ describe("a preset-less club inherits nothing from the Ravens", () => {
 describe("the founding club is unchanged by the preset layer", () => {
   it("resolves the exact palette it shipped with", () => {
     for (const surface of ["public", "portal"] as const) {
-      const resolved = resolveBranding(null, surface, "silent-souls");
+      const resolved = resolveBranding(null, surface, { slug: "silent-souls" });
       expect(resolved.colors).toMatchObject(RAVENS.colors[surface]);
       expect(resolved.name).toBe(RAVENS.identity.displayName);
       expect(resolved.assets).toEqual(RAVENS.assets);
@@ -170,7 +170,7 @@ describe("the founding club is unchanged by the preset layer", () => {
         assets: { clubPatch: "/api/orgs/x/branding/clubPatch?v=1" },
       },
       "portal",
-      "silent-souls",
+      { slug: "silent-souls" },
     );
     expect(resolved.colors.primary).toBe("#1E5FD9");
     expect(resolved.name).toBe("Azure Wolves MC");

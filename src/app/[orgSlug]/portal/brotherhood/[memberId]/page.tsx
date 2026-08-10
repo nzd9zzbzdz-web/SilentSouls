@@ -80,7 +80,7 @@ export default async function MemberDetailPage({
     ]);
   const rank = ranks.find((r) => r.id === member.rankId);
   const patchById = new Map(patches.map((p) => [p.id, p]));
-  const brand = resolveBranding(branding, "portal", org.slug);
+  const brand = resolveBranding(branding, "portal", org);
 
   // Top patches for the stage's diamond slots — rarest first, then tier.
   const rarityWeight = { legendary: 4, epic: 3, rare: 2, common: 1 } as const;

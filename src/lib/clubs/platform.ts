@@ -54,7 +54,9 @@ export const PLATFORM_PRESET: ClubPreset = {
     displayName: "New Club",
     publicName: "New Club",
     legalName: "New Club",
-    shortName: "NC",
+    // Empty on purpose: resolveBranding falls through to initialsOf(name), so
+    // an unbranded club shows its OWN initials rather than a placeholder.
+    shortName: "",
     location: "",
     addressLine: "",
     portalTagline: "",

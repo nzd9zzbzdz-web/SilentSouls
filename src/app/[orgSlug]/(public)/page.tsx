@@ -29,7 +29,7 @@ export default async function PublicHomePage({
   const { orgSlug } = await params;
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
-  const branding = resolveBranding(await getBranding(org.id, "public"), "public", org.slug);
+  const branding = resolveBranding(await getBranding(org.id, "public"), "public", org);
   const preset = clubPreset(org.slug);
   const photos = await composeGallery(org.id, org.slug);
   const base = `/${orgSlug}`;
@@ -160,18 +160,25 @@ export default async function PublicHomePage({
               {line2 && <span className="mt-1 block">{line2}</span>}
             </DisplayHeading>
 
-            {/* Creed, sandwiched by ornamental rules */}
-            <div className="mt-8 max-w-xl">
-              <OrnamentRule />
-              <p className="my-3.5 text-center text-base font-semibold uppercase tracking-[0.16em] text-primary md:text-lg">
-                {creed.split(/\s*[·|]\s*/).join(" | ")}
-              </p>
-              <OrnamentRule />
-            </div>
+            {/* Creed, sandwiched by ornamental rules. Both the rules and the
+                mission are conditional: a club that has not written them yet
+                would otherwise get two ornaments framing an empty line, which
+                reads as a broken page rather than an unfinished one. */}
+            {creed && (
+              <div className="mt-8 max-w-xl">
+                <OrnamentRule />
+                <p className="my-3.5 text-center text-base font-semibold uppercase tracking-[0.16em] text-primary md:text-lg">
+                  {creed.split(/\s*[·|]\s*/).join(" | ")}
+                </p>
+                <OrnamentRule />
+              </div>
+            )}
 
-            <p className="mt-7 max-w-lg text-lg leading-relaxed text-foreground">
-              {branding.mission}
-            </p>
+            {branding.mission && (
+              <p className="mt-7 max-w-lg text-lg leading-relaxed text-foreground">
+                {branding.mission}
+              </p>
+            )}
             <div className="mt-10">
               <Button
                 asChild

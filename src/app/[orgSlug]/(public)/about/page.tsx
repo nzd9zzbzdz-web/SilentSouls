@@ -33,7 +33,7 @@ export default async function AboutPage({
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
   const doc = await getBranding(org.id, "public");
-  const branding = resolveBranding(doc, "public", org.slug);
+  const branding = resolveBranding(doc, "public", org);
 
   // Firestore first, then THIS CLUB's preset. Never a global default: a
   // shared fallback is how one club ends up telling another club's history.

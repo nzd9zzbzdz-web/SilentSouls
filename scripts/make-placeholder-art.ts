@@ -33,6 +33,14 @@ type Slot = {
   transparent?: boolean;
   /** Round the frame into a disc, for badge-shaped slots. */
   disc?: boolean;
+  /**
+   * Draw on a NEAR-BLACK ground with barely-there strokes. Only the watermark
+   * needs this: the home page composites it with mix-blend-mode:lighten and
+   * brightness(3.8), which takes the per-pixel max against the section behind
+   * it. A mid-grey placeholder under that filter glows lavender across a
+   * quarter of the page.
+   */
+  blended?: boolean;
 };
 
 const SLOTS: Slot[] = [
@@ -44,22 +52,25 @@ const SLOTS: Slot[] = [
   { name: "emblem", w: 320, h: 320, label: "Emblem", transparent: true, disc: true },
   // The home page composites the watermark with mix-blend-mode:lighten, which
   // needs a near-black ground to disappear into the section behind it.
-  { name: "watermark", w: 1200, h: 1200, label: "Watermark", disc: true },
+  { name: "watermark", w: 1200, h: 1200, label: "Watermark", disc: true, blended: true },
 ];
 
-function svg({ w, h, label, transparent, disc }: Slot): string {
+function svg({ w, h, label, transparent, disc, blended }: Slot): string {
+  const ground = blended ? "#020202" : GROUND;
+  const line = blended ? "rgba(255,255,255,0.035)" : LINE;
+  const text = blended ? "rgba(255,255,255,0.05)" : TEXT;
   const inset = Math.round(Math.min(w, h) * 0.04);
   const fw = w - inset * 2;
   const fh = h - inset * 2;
   const radius = disc ? Math.min(fw, fh) / 2 : Math.round(Math.min(w, h) * 0.03);
   const fontSize = Math.max(12, Math.round(Math.min(w, h) * 0.055));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-  <rect width="${w}" height="${h}" fill="${transparent ? "none" : GROUND}"/>
+  <rect width="${w}" height="${h}" fill="${transparent ? "none" : ground}"/>
   <rect x="${inset}" y="${inset}" width="${fw}" height="${fh}" rx="${radius}"
-        fill="none" stroke="${LINE}" stroke-width="${Math.max(1, Math.round(w / 400))}"/>
+        fill="none" stroke="${line}" stroke-width="${Math.max(1, Math.round(w / 400))}"/>
   <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
         font-family="Inter, Segoe UI, sans-serif" font-size="${fontSize}"
-        letter-spacing="${(fontSize * 0.14).toFixed(1)}" fill="${TEXT}">${label.toUpperCase()}</text>
+        letter-spacing="${(fontSize * 0.14).toFixed(1)}" fill="${text}">${label.toUpperCase()}</text>
 </svg>`;
 }
 

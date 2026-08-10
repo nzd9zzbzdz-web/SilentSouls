@@ -22,6 +22,16 @@ import type {
  * same function to paint its live preview, which is what makes the preview
  * trustworthy rather than an approximation.
  */
+/**
+ * What resolution needs to know about the tenant: which club it is, and what
+ * the organization record calls it. An `Organization` satisfies this, which is
+ * why every call site can pass the one it already loaded.
+ */
+export interface BrandingOrg {
+  slug: string;
+  name?: string;
+}
+
 export interface ResolvedBranding {
   surface: "public" | "portal";
   /** Every token present — no optional colours downstream. */
@@ -90,12 +100,17 @@ function assetUrl(
 export function resolveBranding(
   branding: Branding | null | undefined,
   surface: "public" | "portal",
-  slug: string | null | undefined,
+  org: BrandingOrg,
 ): ResolvedBranding {
+  const { slug } = org;
   const base = defaultBrandingFor(slug, surface);
   const shipped = defaultAssetsFor(slug);
   const colors = { ...base.colors, ...branding?.colors };
-  const name = branding?.orgDisplayName || base.orgDisplayName;
+  // Saved branding, then the ORG RECORD's own name, then the preset. The
+  // middle step matters for a club that has been bootstrapped but not yet
+  // branded: without it the site says "New Club" while the organization
+  // document has said the club's real name all along.
+  const name = branding?.orgDisplayName || org.name || base.orgDisplayName;
 
   const assets = {} as Record<BrandingAssetKey, string>;
   const customAssets = new Set<BrandingAssetKey>();
@@ -204,12 +219,12 @@ export function draftToResolved(
   draft: BrandingDraft,
   surface: "public" | "portal",
   assets: BrandingAssets,
-  slug: string,
+  org: BrandingOrg,
 ): ResolvedBranding {
   return resolveBranding(
     {
       colors: draft.colors,
-      fonts: clubPreset(slug).fonts,
+      fonts: clubPreset(org.slug).fonts,
       orgDisplayName: draft.orgDisplayName,
       shortName: draft.shortName,
       location: draft.location,
@@ -220,6 +235,6 @@ export function draftToResolved(
       assets,
     },
     surface,
-    slug,
+    org,
   );
 }

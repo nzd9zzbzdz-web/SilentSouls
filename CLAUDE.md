@@ -148,6 +148,14 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
     - The gallery is `public/gallery/<slug>/`, with optional `_captions.json`
       for curated order and titles. `composeGallery(orgId, slug)` takes both
       because uploads are scoped by org id and shipped photos by slug.
+- **`ORG_SLUG` pins a deployment to one club** (`src/lib/tenant-lock.ts`).
+  Orgs share one database and routes are `/[orgSlug]/...`, so by default every
+  deployment serves every club in that database. That is right for one shared
+  site and wrong for a site per club: the other club's pages would render on
+  your domain under the wrong branding, and its members could sign in at your
+  address. Set `ORG_SLUG` and every other slug 404s in both layouts; leave it
+  unset to serve them all. It is NOT a security boundary — rules and
+  `requireOrgRole` still are — it decides which club appears on which domain.
   - **Images: add a key to `BRANDING_ASSET_KEYS` + a row to `BRANDING_ART`**
     and the asset card, upload, crop, serve and reset all follow. `fit: "cover"`
     crops backdrops to fill; `fit: "contain"` pads cut-outs (patch, wordmark,

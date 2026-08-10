@@ -201,7 +201,7 @@ export function BrandingEditor({
   );
 
   const preview = useMemo(
-    () => draftToResolved(draft, surface, initial[surface].assets, orgSlug),
+    () => draftToResolved(draft, surface, initial[surface].assets, { slug: orgSlug, name: draft.orgDisplayName }),
     [draft, surface, initial, orgSlug],
   );
 

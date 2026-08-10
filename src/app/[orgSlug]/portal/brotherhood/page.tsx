@@ -67,7 +67,7 @@ export default async function BrotherhoodPage({
 
   const rankById = new Map(ranks.map((r) => [r.id, r]));
   const patchById = new Map(patches.map((p) => [p.id, p]));
-  const brand = resolveBranding(branding, "portal", org.slug);
+  const brand = resolveBranding(branding, "portal", org);
 
   const toRosterMember = (member: Member): RosterMember => {
     const rank = rankById.get(member.rankId);

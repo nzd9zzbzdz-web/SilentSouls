@@ -33,7 +33,7 @@ export default async function ClubMapPage({
     listMembers(org.id),
     getBranding(org.id, "portal"),
   ]);
-  const territoryName = resolveBranding(brandingDoc, "portal", org.slug).location;
+  const territoryName = resolveBranding(brandingDoc, "portal", org).location;
   const roadNameById = new Map(members.map((m) => [m.id, m.roadName]));
 
   const markers: ClubMapMarker[] = rawMarkers.map((m) => ({

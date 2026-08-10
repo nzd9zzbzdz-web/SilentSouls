@@ -13,7 +13,7 @@ export default async function DonatePage({
   const { orgSlug } = await params;
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
-  const branding = resolveBranding(await getBranding(org.id, "public"), "public", org.slug);
+  const branding = resolveBranding(await getBranding(org.id, "public"), "public", org);
 
   const ways = [
     {

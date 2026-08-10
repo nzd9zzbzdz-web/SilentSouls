@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
+import { servesOrg } from "@/lib/tenant-lock";
 import { getMember, listRanks } from "@/lib/queries";
 import { resolveBranding } from "@/lib/branding-resolve";
 import { BrandStyle } from "@/components/theme/BrandStyle";
@@ -22,6 +23,9 @@ export default async function PortalLayout({
   // Neither lookup needs the other, so they run in parallel.
   const [org, user] = await Promise.all([getOrgBySlug(orgSlug), getSessionUser()]);
   if (!org || org.status !== "active") notFound();
+  // A deployment pinned to one club (ORG_SLUG) does not serve the others,
+  // even though they share a database. See src/lib/tenant-lock.ts.
+  if (!servesOrg(orgSlug)) notFound();
   if (!user) redirect(`/${orgSlug}/volunteer-resources?signin=1`);
 
   const entry = user.claims.orgs?.[org.id];
@@ -45,7 +49,7 @@ export default async function PortalLayout({
   // branding document now renders the shipped defaults instead of 404ing,
   // which matters because that 404 locked admins out of the very page they
   // would use to fix it.
-  const branding = resolveBranding(brandingDoc, "portal", org.slug);
+  const branding = resolveBranding(brandingDoc, "portal", org);
 
   const rankName = member
     ? ranks.find((r) => r.id === member.rankId)?.name
@@ -82,7 +86,12 @@ export default async function PortalLayout({
           between portal pages never restarts the track — only a full reload
           does. Same component and corner as the public site; the portal's
           brand vars just repaint it. */}
-      <MusicPlayer videoId={branding.anthemVideoId} label="Club Anthem" />
+      {/* No anthem chosen, no player. Mounting it with an empty id loads the
+          embed anyway and YouTube parks "This video is unavailable" in the
+          corner of an otherwise finished site. */}
+      {branding.anthemVideoId && (
+        <MusicPlayer videoId={branding.anthemVideoId} label="Club Anthem" />
+      )}
       {/* Toasts moved off bottom-right when the player took that corner —
           a 356px toast sat squarely on the play pill. */}
       <Toaster richColors position="top-right" />
