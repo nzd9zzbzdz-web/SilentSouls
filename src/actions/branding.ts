@@ -61,12 +61,19 @@ export async function saveBranding(raw: SaveBrandingInput): Promise<ActionResult
           orgDisplayName: draft.orgDisplayName,
           tagline: draft.tagline,
           mission: draft.mission,
-          // The chain-of-command heading and blurb are only ever drawn from
-          // the portal document, and the editor only shows the fields there;
-          // writing them on a public save would store a stale copy of the
-          // portal draft that nothing renders.
+          // The chain-of-command heading, blurb and plate layout are only ever
+          // drawn from the portal document, and the editor only shows them
+          // there; writing them on a public save would store a stale copy of
+          // the portal draft that nothing renders. A null layout means "the
+          // template", and the field is deleted rather than stored: absent is
+          // what every club had before layouts were editable, so deleting is
+          // what makes Reset actually return to the shipped positions.
           ...(surface === "portal"
-            ? { chainTitle: draft.chainTitle, chainBlurb: draft.chainBlurb }
+            ? {
+                chainTitle: draft.chainTitle,
+                chainBlurb: draft.chainBlurb,
+                plateLayout: draft.plateLayout ?? FieldValue.delete(),
+              }
             : {}),
           ...sharedIdentity(draft),
         },
@@ -158,7 +165,11 @@ export async function resetBranding(raw: {
           tagline: FieldValue.delete(),
           mission: FieldValue.delete(),
           ...(raw.surface === "portal"
-            ? { chainTitle: FieldValue.delete(), chainBlurb: FieldValue.delete() }
+            ? {
+                chainTitle: FieldValue.delete(),
+                chainBlurb: FieldValue.delete(),
+                plateLayout: FieldValue.delete(),
+              }
             : {}),
           ...clearShared,
         },

@@ -1,4 +1,5 @@
 import type { Timestamp } from "firebase/firestore";
+import type { PlateLayout } from "@/lib/plate-layout";
 
 // ── Roles & stats ──────────────────────────────────────────────────────
 
@@ -181,6 +182,12 @@ export interface Branding {
   chainTitle?: string;
   /** portal: the line under that heading. Empty is a choice and renders nothing. */
   chainBlurb?: string;
+  /**
+   * portal: where the boxes sit on the chain-of-command plate, when the club
+   * has dragged them off the template positions to match its own art. Absent
+   * means the template layout, which is what every club had before this field.
+   */
+  plateLayout?: PlateLayout;
   /**
    * YouTube id for the floating club anthem. Absent ⇒ CLUB_ANTHEM_VIDEO_ID.
    * Branding rather than a constant because the anthem is as much a club's

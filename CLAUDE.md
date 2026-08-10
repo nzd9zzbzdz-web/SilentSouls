@@ -144,11 +144,12 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
     - **The hierarchy plate is opt-in per club** (`preset.plateArt`, or an
       admin upload to the `plateArt` asset slot, which wins). No art ⇒
       `<ChainOfCommand>` renders the stacked panel, which needs no art and
-      lays out for any headcount. The coordinate table in that component
+      lays out for any headcount. The template layout in `plate-layout.ts`
       describes the plate TEMPLATE, not one club's picture. `plateArt` is the
       one asset slot whose resolved value may be `""` (meaning "no plate");
-      the plate's heading/blurb are portal branding (`chainTitle`/`chainBlurb`,
-      editable in Admin → Branding, written to the portal doc only).
+      the plate's heading/blurb/box-positions are portal branding
+      (`chainTitle`/`chainBlurb`/`plateLayout`, editable in Admin → Branding,
+      written to the portal doc only).
     - The gallery is `public/gallery/<slug>/`, with optional `_captions.json`
       for curated order and titles. `composeGallery(orgId, slug)` takes both
       because uploads are scoped by org id and shipped photos by slug.
@@ -212,12 +213,20 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   a child cannot exceed a capped parent. It is fixed-aspect painted art laid
   out at `height:auto`, so its height is purely a function of its width; on a
   very wide screen it overhangs the roster wall beneath it on purpose.
-  - `CROP` in `ChainOfCommand` is how the overlay stays registered to the art.
-    Every coordinate in that file is a pixel measured off the ORIGINAL 1556×720
+  - Where everything sits on the plate is a `PlateLayout`
+    (`src/lib/plate-layout.ts`): fractions of the displayed art, so a club's
+    uploaded plate can be any resolution. `DEFAULT_PLATE_LAYOUT` is the
+    measured template; a club whose art is painted differently drags the boxes
+    in Admin → Branding (`PlateLayoutEditor`, drag to move / handle to resize,
+    a face ring drags its whole seat) and the override rides
+    `branding.plateLayout` on the portal doc. Absent ⇒ template, which is what
+    every club had before the field existed.
+  - `PLATE_CROP` in that file is how the template numbers stay registered to
+    the art. Every raw number is a pixel measured off the ORIGINAL 1556×720
     render; the shipped file is that render trimmed to its painted frame, and
-    `CROP` states the difference so the constants stay checkable against what
-    was measured. POSITIONS carry the offset (`px`/`py`), SIZES never do
-    (`pw`/`ph`) — a width is a distance between two art-space points, and
+    `PLATE_CROP` states the difference so the constants stay checkable against
+    what was measured. POSITIONS carry the offset (`X`/`Y`), SIZES never do
+    (`W`/`H`) — a width is a distance between two art-space points, and
     subtracting the offset from one shrinks every box. A re-crop is four
     numbers, not a re-measure.
 - **`scripts/lib/branding.ts` is the scripts' door onto the club presets**

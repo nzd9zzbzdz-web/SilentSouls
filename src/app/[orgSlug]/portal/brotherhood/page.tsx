@@ -156,6 +156,7 @@ export default async function BrotherhoodPage({
           orgSlug={orgSlug}
           // "" is the asset map's spelling of "this club has no plate".
           plateArt={brand.assets.plateArt || null}
+          plateLayout={brand.plateLayout}
           title={brand.chainTitle}
           blurb={brand.chainBlurb}
           officers={officers}

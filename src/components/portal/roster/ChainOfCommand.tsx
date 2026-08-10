@@ -1,84 +1,34 @@
 import Link from "next/link";
 import { Crown } from "lucide-react";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
+import {
+  DEFAULT_PLATE_LAYOUT,
+  PLATE_CROP,
+  seatBounds,
+  type PlateBox,
+  type PlateLayout,
+  type PlateSeat,
+} from "@/lib/plate-layout";
 import { cn } from "@/lib/utils";
 import type { RosterMember } from "./types";
 
 /* ── Plate geometry ───────────────────────────────────────────────────
    The rings, nameplates, connectors and stat bar are PAINTED INTO the
    plate art; this component only lays live text and faces over them.
-   Every number below is a pixel measured off that art in its own
-   1556×720 space — positions AND type sizes, so the block scales as one
-   piece with its container and a re-crop is a search-and-replace rather
-   than a redesign.
+   Where everything sits comes from a PlateLayout (src/lib/plate-layout.ts):
+   the measured template by default, or the club's own dragged positions
+   from Admin -> Branding when its art is painted differently. Everything
+   is a fraction of the displayed art, so the block scales as one piece
+   with its container.                                                  */
 
-   This table describes the plate TEMPLATE, not one club's picture. A club
-   supplying its own plate paints to these positions; a club with no plate
-   art gets the stacked panel instead (see the entry point).            */
+const pc = (f: number) => `${f * 100}%`;
+/** Fraction of plate width → container units, so type scales with the art. */
+const cq = (f: number) => `${f * 100}cqw`;
 
-/**
- * The window of that 1556×720 render the shipped file actually contains.
- *
- * The original carried ~44px of soft red-brown smoke down each side (18 top,
- * 11 bottom) outside the painted frame, which against Void Black read as a
- * dirty rectangle around a crisp plate. The file is now trimmed to the frame
- * itself, with two pixels of margin so the crop cannot slice the outer
- * hairline.
- *
- * Stated as an offset rather than baked into the coordinates so every constant
- * below stays exactly as it was measured off the full render and remains
- * checkable against it. A future re-crop is these four numbers.
- */
-const CROP = { x: 42, y: 16, w: 1473, h: 695 } as const;
-
-// Positions carry the crop offset. Sizes never do — a width is a distance
-// between two art-space points, and subtracting the offset from one would
-// shrink every box by 42px.
-const px = (v: number) => `${((v - CROP.x) / CROP.w) * 100}%`;
-const py = (v: number) => `${((v - CROP.y) / CROP.h) * 100}%`;
-const pw = (v: number) => `${(v / CROP.w) * 100}%`;
-const ph = (v: number) => `${(v / CROP.h) * 100}%`;
-/** Art-space px → container units, so type scales with the plate. */
-const cq = (v: number) => `${(v / CROP.w) * 100}cqw`;
-
-/** Absolute box from art-space edges, as percentages of the plate. */
-function box(x0: number, y0: number, x1: number, y1: number) {
-  return { left: px(x0), top: py(y0), width: pw(x1 - x0), height: ph(y1 - y0) };
+/** A layout box as absolute percentages of the plate. */
+function boxStyle(b: PlateBox) {
+  return { left: pc(b.x), top: pc(b.y), width: pc(b.w), height: pc(b.h) };
 }
-
-/** The five painted officer rings, left to right, by centre x. */
-const OFFICER_CX = [307.5, 543.2, 779, 1014.8, 1250.5] as const;
-
-/**
- * Ring centre, the face that sits inside the painted ring, and the slot's
- * bounding box (ring top → bottom of the rank plate). `face` stops a few px
- * short of the ring's inner edge so a render never laps the bezel.
- */
-const OFFICER = { cy: 458, face: 106, halfPlate: 86, top: 398, bottom: 591 } as const;
-const PRESIDENT = { cx: 779, cy: 171, face: 152, halfPlate: 99, top: 87, bottom: 343 } as const;
-
-/** Where the club headcount sits on the painted stat bar, right of each icon. */
-const STAT_BAR = { top: 613, bottom: 691 } as const;
-const STAT_TEXT_X = [452, 748, 1050] as const;
-const STAT_RIGHT_X = [600, 910, 1283] as const;
-
-/**
- * Clear leather between the top ornament and the rule below it. Stops short
- * of 680 on purpose — that's where the president's slot (a link) begins.
- */
-const HEADING_BOX = box(120, 76, 650, 248);
-
-/** Type sizes, in the same art-space px as everything above. */
-const TYPE = {
-  heading: 88,
-  blurb: 19,
-  presidentName: 43,
-  presidentRank: 15,
-  officerName: 29,
-  officerRank: 13,
-  statValue: 37,
-  statLabel: 17,
-} as const;
 
 /* ── Shared bits ──────────────────────────────────────────────────── */
 
@@ -151,38 +101,35 @@ function summaryValues(counts: Counts) {
 /* ── The engraved plate (lg and up, exactly the painted table) ─────── */
 
 /**
- * One slot: a link whose bounding box spans the painted ring down to the
- * bottom of the rank plate, with the face and both plates placed inside it
- * in the slot's OWN percentage space.
+ * One seat: a link whose bounding box spans the ring, the nameplate and the
+ * rank plate, with all three placed inside it in the box's OWN percentage
+ * space so the whole seat scales as one piece.
  */
 function PlateSlot({
   orgSlug,
   member,
-  cx,
+  seat,
   president,
 }: {
   orgSlug: string;
   /** Whoever holds this seat, or undefined while the club has not filled it. */
   member?: RosterMember;
-  cx: number;
+  seat: PlateSeat;
   president?: boolean;
 }) {
-  const g = president ? PRESIDENT : OFFICER;
-  const h = g.bottom - g.top;
-  const w = g.halfPlate * 2;
-  // Slot-local percentages: an art-space pixel as a fraction of THIS box.
-  const lx = (v: number) => `${((v - (cx - g.halfPlate)) / w) * 100}%`;
-  const ly = (v: number) => `${((v - g.top) / h) * 100}%`;
-  const lw = (v: number) => `${(v / w) * 100}%`;
-  const lh = (v: number) => `${(v / h) * 100}%`;
-
-  // Painted plate edges, in art space.
-  const name = president ? { top: 256, bottom: 312 } : { top: 514, bottom: 561 };
-  const rank = president
-    ? { top: 313, bottom: 343, left: 709, right: 850 }
-    : { top: 562, bottom: 591, left: cx - 70.5, right: cx + 70.5 };
-
-  const slotBox = { left: px(cx - g.halfPlate), top: py(g.top), width: pw(w), height: ph(h) };
+  const { face, name, rank } = seat;
+  const b = seatBounds(seat);
+  // Slot-local percentages: a plate fraction as a fraction of THIS box.
+  const lx = (v: number) => `${((v - b.x) / b.w) * 100}%`;
+  const ly = (v: number) => `${((v - b.y) / b.h) * 100}%`;
+  const lw = (v: number) => `${(v / b.w) * 100}%`;
+  const lh = (v: number) => `${(v / b.h) * 100}%`;
+  const localBox = (v: PlateBox) => ({
+    left: lx(v.x),
+    top: ly(v.y),
+    width: lw(v.w),
+    height: lh(v.h),
+  });
 
   // An empty seat still labels its nameplate. The ring is painted into the
   // art whether or not anyone stands in it, so a bare one reads as a picture
@@ -190,16 +137,16 @@ function PlateSlot({
   // tells an admin setting the club up which seats are still open.
   if (!member) {
     return (
-      <div className="absolute" style={slotBox} aria-hidden>
+      <div className="absolute" style={boxStyle(b)} aria-hidden>
         <span
           className="absolute flex items-center justify-center overflow-hidden px-[6%]"
-          style={{ left: 0, top: ly(name.top), width: "100%", height: lh(name.bottom - name.top) }}
+          style={localBox(name)}
         >
           <span
             className="max-w-full truncate leading-none text-muted-foreground/45"
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: cq(president ? TYPE.presidentName : TYPE.officerName),
+              fontSize: cq(name.size),
               textShadow: "0 2px 6px rgba(0,0,0,0.9)",
             }}
           >
@@ -214,18 +161,18 @@ function PlateSlot({
     <Link
       href={`/${orgSlug}/portal/brotherhood/${member.id}`}
       className="group absolute"
-      style={slotBox}
+      style={boxStyle(b)}
     >
       <Face
         member={member}
-        initialsSize={cq(president ? 38 : 27)}
+        initialsSize={cq(face.d / 4)}
         className="absolute -translate-x-1/2 -translate-y-1/2 transition-[filter] duration-200 group-hover:brightness-110"
         style={{
-          left: lx(cx),
-          top: ly(g.cy),
-          width: lw(g.face),
+          left: lx(face.x),
+          top: ly(face.y),
+          width: lw(face.d),
           aspectRatio: "1",
-          boxShadow: `0 0 ${cq(23)} rgba(0,0,0,0.85)`,
+          boxShadow: `0 0 ${cq(0.0156)} rgba(0,0,0,0.85)`,
           // Renders are lit for the character stage, not for black leather —
           // without a pool behind them a dark figure vanishes into the ring.
           // Neutral (--foreground), so it reads as light rather than a tint.
@@ -237,7 +184,7 @@ function PlateSlot({
       {/* Road name, centred on the painted nameplate. */}
       <span
         className="absolute flex items-center justify-center overflow-hidden px-[6%]"
-        style={{ left: 0, top: ly(name.top), width: "100%", height: lh(name.bottom - name.top) }}
+        style={localBox(name)}
       >
         <span
           className={cn(
@@ -246,7 +193,7 @@ function PlateSlot({
           )}
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: cq(president ? TYPE.presidentName : TYPE.officerName),
+            fontSize: cq(name.size),
             textShadow: "0 2px 6px rgba(0,0,0,0.9)",
           }}
         >
@@ -257,12 +204,7 @@ function PlateSlot({
       {/* Club rank, centred on the narrower plate below it. */}
       <span
         className="absolute flex items-center justify-center overflow-hidden"
-        style={{
-          left: lx(rank.left),
-          top: ly(rank.top),
-          width: lw(rank.right - rank.left),
-          height: lh(rank.bottom - rank.top),
-        }}
+        style={localBox(rank)}
       >
         <span
           title={member.rankName}
@@ -270,7 +212,7 @@ function PlateSlot({
             "max-w-full truncate uppercase leading-none text-muted-foreground",
             president ? "tracking-[0.16em]" : "tracking-[0.05em]",
           )}
-          style={{ fontSize: cq(president ? TYPE.presidentRank : TYPE.officerRank) }}
+          style={{ fontSize: cq(rank.size) }}
         >
           {rankBadge(member.rankName)}
         </span>
@@ -282,6 +224,7 @@ function PlateSlot({
 function ChainPlate({
   orgSlug,
   plateArt,
+  layout,
   title,
   blurb,
   president,
@@ -290,6 +233,7 @@ function ChainPlate({
 }: {
   orgSlug: string;
   plateArt: string;
+  layout: PlateLayout;
   title: string;
   blurb: string;
   /** Undefined between presidents, or before the club has any members. */
@@ -303,18 +247,18 @@ function ChainPlate({
       <img
         src={plateArt}
         alt=""
-        width={CROP.w}
-        height={CROP.h}
+        width={PLATE_CROP.w}
+        height={PLATE_CROP.h}
         className="block w-full"
         style={{ height: "auto" }}
       />
 
       {/* Heading sits in the leather the art left clear for it. */}
-      <div className="absolute flex flex-col justify-start" style={HEADING_BOX}>
+      <div className="absolute flex flex-col justify-start" style={boxStyle(layout.heading)}>
         <DisplayHeading
           className="leading-[0.95] text-primary"
           style={{
-            fontSize: cq(TYPE.heading),
+            fontSize: cq(layout.heading.size),
             textShadow:
               "0 0 0.9em color-mix(in srgb, var(--primary) 40%, transparent), 0 3px 8px rgba(0,0,0,0.95)",
           }}
@@ -324,43 +268,47 @@ function ChainPlate({
         {blurb && (
           <p
             className="mt-[4%] uppercase leading-[1.7] tracking-[0.14em] text-muted-foreground"
-            style={{ fontSize: cq(TYPE.blurb) }}
+            style={{ fontSize: cq(layout.heading.blurbSize) }}
           >
             {blurb}
           </p>
         )}
       </div>
 
-      <PlateSlot orgSlug={orgSlug} member={president} cx={PRESIDENT.cx} president />
+      <PlateSlot orgSlug={orgSlug} member={president} seat={layout.president} president />
       {/* Over the painted RINGS, not over the officers: the art has five and
           the club may have fewer, and a ring is a fixed place on the plate
           whether or not it is occupied. */}
-      {OFFICER_CX.map((cx, i) => (
-        <PlateSlot key={cx} orgSlug={orgSlug} member={officers[i]} cx={cx} />
+      {layout.officers.map((seat, i) => (
+        <PlateSlot key={i} orgSlug={orgSlug} member={officers[i]} seat={seat} />
       ))}
 
       {/* Headcount, seated to the right of the painted icons. */}
       <dl>
-        {summaryValues(counts).map((value, i) => (
-          <div
-            key={SUMMARY_LABELS[i]}
-            className="absolute flex items-center gap-[0.5cqw]"
-            style={box(STAT_TEXT_X[i], STAT_BAR.top, STAT_RIGHT_X[i], STAT_BAR.bottom)}
-          >
-            <dd
-              className="font-stat leading-none text-foreground"
-              style={{ fontSize: cq(TYPE.statValue) }}
+        {summaryValues(counts).map((value, i) => {
+          const stat = layout.stats[i];
+          if (!stat) return null;
+          return (
+            <div
+              key={SUMMARY_LABELS[i]}
+              className="absolute flex items-center gap-[0.5cqw]"
+              style={boxStyle(stat)}
             >
-              {value}
-            </dd>
-            <dt
-              className="uppercase leading-none tracking-[0.14em] text-muted-foreground"
-              style={{ fontSize: cq(TYPE.statLabel) }}
-            >
-              {SUMMARY_LABELS[i]}
-            </dt>
-          </div>
-        ))}
+              <dd
+                className="font-stat leading-none text-foreground"
+                style={{ fontSize: cq(stat.size) }}
+              >
+                {value}
+              </dd>
+              <dt
+                className="uppercase leading-none tracking-[0.14em] text-muted-foreground"
+                style={{ fontSize: cq(stat.labelSize) }}
+              >
+                {SUMMARY_LABELS[i]}
+              </dt>
+            </div>
+          );
+        })}
       </dl>
     </div>
   );
@@ -499,6 +447,7 @@ interface Counts {
 export function ChainOfCommand({
   orgSlug,
   plateArt,
+  plateLayout,
   title,
   blurb,
   officers,
@@ -507,11 +456,14 @@ export function ChainOfCommand({
   orgSlug: string;
   /** This club's plate art, or null when it has none. */
   plateArt: string | null;
+  /** The club's own box positions, or null for the measured template. */
+  plateLayout?: PlateLayout | null;
   title: string;
   blurb: string;
   officers: RosterMember[];
   counts: Counts;
 }) {
+  const layout = plateLayout ?? DEFAULT_PLATE_LAYOUT;
   const president = officers.find((o) => o.isPresident);
   const rest = officers.filter((o) => o !== president);
   // The club must HAVE plate art (one with none gets the stacked panel rather
@@ -522,7 +474,7 @@ export function ChainOfCommand({
   // sixth officer would have no ring to stand in and would simply vanish from
   // the chain of command; that club keeps the stacked panel, which lays out
   // for any headcount. Width is the last condition: the faces have to read.
-  const fitsPlate = Boolean(plateArt) && rest.length <= OFFICER_CX.length;
+  const fitsPlate = Boolean(plateArt) && rest.length <= layout.officers.length;
 
   return (
     <>
@@ -531,6 +483,7 @@ export function ChainOfCommand({
           <ChainPlate
             orgSlug={orgSlug}
             plateArt={plateArt}
+            layout={layout}
             title={title}
             blurb={blurb}
             president={president}

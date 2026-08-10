@@ -59,6 +59,32 @@ const videoId = z
   .max(24)
   .regex(/^[A-Za-z0-9_-]*$/, "That is not a YouTube video id");
 
+/**
+ * The chain-of-command plate layout: fractions of the displayed art (see
+ * `src/lib/plate-layout.ts`). Positions may run a little past the edges — a
+ * box deliberately overhanging the frame is a layout choice, not corruption —
+ * but not so far that a lost box cannot be dragged back. Sizes stay positive
+ * so nothing can be saved at zero and become unclickable in the editor.
+ */
+const plateFrac = z.number().min(-0.5).max(1.5);
+const plateDim = z.number().min(0.002).max(1.5);
+const plateFontSize = z.number().min(0.002).max(0.5);
+const plateBox = z.object({ x: plateFrac, y: plateFrac, w: plateDim, h: plateDim });
+const plateTextBox = plateBox.extend({ size: plateFontSize });
+const plateSeat = z.object({
+  face: z.object({ x: plateFrac, y: plateFrac, d: plateDim }),
+  name: plateTextBox,
+  rank: plateTextBox,
+});
+
+export const plateLayoutSchema = z.object({
+  heading: plateTextBox.extend({ blurbSize: plateFontSize }),
+  president: plateSeat,
+  // The counts match the template art: five officer rings, three stat slots.
+  officers: z.array(plateSeat).length(5),
+  stats: z.array(plateTextBox.extend({ labelSize: plateFontSize })).length(3),
+});
+
 export const brandingDraftSchema = z.object({
   orgDisplayName: z.string().trim().min(1, "The club needs a name").max(80),
   shortName: z.string().trim().max(16, "Keep the short name under 16 characters"),
@@ -69,6 +95,8 @@ export const brandingDraftSchema = z.object({
   // Blank falls back to the club preset on resolve, so no minimum.
   chainTitle: z.string().trim().max(40, "Keep the plate heading under 40 characters"),
   chainBlurb: z.string().trim().max(160),
+  // Null means the template layout; the save action deletes the field.
+  plateLayout: plateLayoutSchema.nullable(),
   anthemVideoId: videoId,
   colors: brandingColorsSchema,
 });

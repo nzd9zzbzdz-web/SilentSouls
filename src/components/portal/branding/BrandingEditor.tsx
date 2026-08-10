@@ -35,6 +35,7 @@ import type { BrandingAssetKey, BrandingColors } from "@/lib/types";
 import { AssetCard } from "./AssetCard";
 import { BrandingPreview } from "./BrandingPreview";
 import { ColorField } from "./ColorField";
+import { PlateLayoutEditor } from "./PlateLayoutEditor";
 
 type Surface = "public" | "portal";
 type ColorKey = keyof Required<BrandingColors>;
@@ -455,6 +456,24 @@ export function BrandingEditor({
                           onChange={(v) => patch({ chainBlurb: v })}
                         />
                       </div>
+                      {/* Only with plate art on the wall: the boxes are placed
+                          ON a picture, and with no picture there is nothing to
+                          register them against (and nothing renders them). */}
+                      {assetUrls.plateArt ? (
+                        <PlateLayoutEditor
+                          art={assetUrls.plateArt}
+                          title={d.chainTitle || "Brotherhood"}
+                          blurb={d.chainBlurb}
+                          value={d.plateLayout}
+                          onChange={(v) => patch({ plateLayout: v })}
+                        />
+                      ) : (
+                        <p className="text-[0.7rem] leading-snug text-muted-foreground">
+                          Upload plate artwork under Brand assets and you can
+                          drag the heading, seats and counts into place on it
+                          here.
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 )}
