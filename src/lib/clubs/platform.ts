@@ -62,7 +62,9 @@ export const PLATFORM_PRESET: ClubPreset = {
     portalTagline: "",
     publicTagline: "",
     mission: "",
-    // No anthem until a club picks one. The player hides itself on an empty id.
+    // No anthem until a club picks one. The layouts skip <MusicPlayer> on an
+    // empty id; the player itself has no such guard, and mounting it with one
+    // loads the embed and parks "This video is unavailable" on the page.
     anthemVideoId: "",
   },
 

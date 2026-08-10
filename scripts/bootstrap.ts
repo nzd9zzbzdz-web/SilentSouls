@@ -7,16 +7,21 @@
  * Safe to re-run: structure is upserted, org counters are left alone if the org
  * already exists, and the admin account is reused if it already exists.
  *
- *   GOOGLE_APPLICATION_CREDENTIALS=<serviceAccount.json> \
+ *   FIREBASE_SERVICE_ACCOUNT_B64=<base64 of serviceAccount.json> \
  *   NEXT_PUBLIC_FIREBASE_PROJECT_ID=silent-souls \
- *   ADMIN_EMAIL=you@example.com \
+ *   ORG_ID=<slug> ADMIN_EMAIL=you@example.com \
  *   npx tsx scripts/bootstrap.ts
+ *
+ * (GOOGLE_APPLICATION_CREDENTIALS=<serviceAccount.json> works too.)
  */
 import { config } from "dotenv";
-config({ path: [".env.local", ".env"] });
+// NOT `.env.local`. In this repo that file is the emulator profile: it sets
+// FIRESTORE_EMULATOR_HOST, which this script refuses to run alongside, so
+// loading it here would make a correctly-configured live run abort.
+config({ path: [".env.bootstrap", ".env"] });
 
 import { randomBytes } from "node:crypto";
-import { getApps, initializeApp } from "firebase-admin/app";
+import { hasLiveCredentials, scriptApp } from "./lib/adminApp";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 import { ACTIVITY_TYPE_SEEDS, DEFAULT_RANKS, rankDocId } from "../src/lib/constants";
@@ -42,15 +47,18 @@ if (!ADMIN_EMAIL) {
   process.exit(1);
 }
 if (process.env.FIRESTORE_EMULATOR_HOST) {
-  console.error("Refusing to bootstrap: FIRESTORE_EMULATOR_HOST is set. This script is for LIVE only.");
+  console.error(
+    `Refusing to bootstrap: FIRESTORE_EMULATOR_HOST is ${process.env.FIRESTORE_EMULATOR_HOST}. This script is for LIVE only.\n` +
+      "If you did not set it in this shell, it came from an env file. Clear it and run again.",
+  );
   process.exit(1);
 }
-if (!process.env.FIREBASE_SERVICE_ACCOUNT_B64 && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+if (!hasLiveCredentials()) {
   console.error("Refusing to bootstrap: no live credentials (FIREBASE_SERVICE_ACCOUNT_B64 or GOOGLE_APPLICATION_CREDENTIALS).");
   process.exit(1);
 }
 
-const app = getApps()[0] ?? initializeApp({ projectId: PROJECT_ID });
+const app = scriptApp(PROJECT_ID);
 const auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 

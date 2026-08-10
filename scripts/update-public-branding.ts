@@ -8,7 +8,7 @@
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
-import { getApps, initializeApp } from "firebase-admin/app";
+import { scriptApp } from "./lib/adminApp";
 import { getFirestore } from "firebase-admin/firestore";
 import { publicBranding } from "./lib/branding";
 
@@ -20,7 +20,7 @@ if (!process.env.FIRESTORE_EMULATOR_HOST && !process.env.GOOGLE_APPLICATION_CRED
   process.exit(1);
 }
 
-const db = getFirestore(getApps()[0] ?? initializeApp({ projectId: PROJECT_ID }));
+const db = getFirestore(scriptApp(PROJECT_ID));
 
 (async () => {
   const target = process.env.FIRESTORE_EMULATOR_HOST ? "EMULATOR" : "LIVE";

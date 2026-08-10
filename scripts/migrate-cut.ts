@@ -15,7 +15,7 @@
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
-import { getApps, initializeApp } from "firebase-admin/app";
+import { scriptApp } from "./lib/adminApp";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { writeCutConfig } from "./lib/writeCutConfig";
 import { ORG_DISPLAY_NAME } from "./lib/branding";
@@ -30,7 +30,7 @@ if (!process.env.FIRESTORE_EMULATOR_HOST && !process.env.FIREBASE_SERVICE_ACCOUN
   process.exit(1);
 }
 
-const app = getApps()[0] ?? initializeApp({ projectId: PROJECT_ID });
+const app = scriptApp(PROJECT_ID);
 const db: Firestore = getFirestore(app);
 
 async function main() {
