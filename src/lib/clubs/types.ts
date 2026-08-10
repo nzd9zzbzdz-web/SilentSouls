@@ -43,6 +43,10 @@ export interface ClubPreset {
     /** Public tagline: usually the creed line under the hero. */
     publicTagline: string;
     mission: string;
+    /** Heading on the Brotherhood page's chain-of-command section. */
+    chainTitle: string;
+    /** The line under it. Empty renders nothing. */
+    chainBlurb: string;
     /** YouTube id for the floating anthem player. */
     anthemVideoId: string;
   };
@@ -54,8 +58,12 @@ export interface ClubPreset {
 
   fonts: Branding["fonts"];
 
-  /** Where each swappable image ships from, before any admin upload. */
-  assets: Record<BrandingAssetKey, string>;
+  /**
+   * Where each swappable image ships from, before any admin upload. `plateArt`
+   * is the one slot NOT listed here: its shipped default is nullable and rides
+   * its own field below; `defaultAssetsFor` folds the two together.
+   */
+  assets: Record<Exclude<BrandingAssetKey, "plateArt">, string>;
 
   /**
    * The engraved Chain of Command plate ART, or null when the club has none.
@@ -65,7 +73,9 @@ export interface ClubPreset {
    * from coordinates measured against that specific image. A club without its
    * own plate gets the stacked panel instead, which lays out for any headcount
    * and needs no art at all. Handing it another club's plate would put this
-   * club's officers under someone else's name.
+   * club's officers under someone else's name. A club can also UPLOAD a plate
+   * painted to the template from Admin -> Branding, which overrides this like
+   * any other asset slot.
    */
   plateArt: string | null;
 

@@ -181,6 +181,22 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
     ratioHint: "Wide landscape, roughly 21:9 (e.g. 2400×1026).",
     revalidates: [{ path: "/[orgSlug]", type: "page" }],
   },
+  plateArt: {
+    label: "Chain of command plate",
+    blurb:
+      "The engraved plate at the head of the portal Brotherhood page. The rings, nameplates and stat bar must be PAINTED INTO the art; the page lays the president, five officers and the headcounts over them at fixed positions.",
+    surface: "portal",
+    group: "Scene art",
+    // The exact window of the plate template the page is measured against
+    // (ChainOfCommand's CROP). Stored 1:1 so painted positions stay registered.
+    width: 1473,
+    height: 695,
+    fit: "cover",
+    position: "centre",
+    ratioHint:
+      "Exactly 1473×695, painted to the plate template: one large ring top centre (president), five rings across the lower half, a nameplate under each, and a stat bar along the bottom. It is only drawn when the club has a president and exactly five other officers; otherwise the page uses its art-free layout.",
+    revalidates: [{ path: "/[orgSlug]/portal/brotherhood", type: "page" }],
+  },
   watermark: {
     label: "Home page watermark",
     blurb:

@@ -79,6 +79,10 @@ export const SILENT_SOULS_PRESET: ClubPreset = {
     publicTagline: "Brotherhood · Loyalty · Respect · Death",
     mission:
       "We are the Ravens. We ride where others fear to, bound by loyalty and blood. Death rides beside us, but so does honor, and no brother of ours ever rides alone.",
+    // The values the Brotherhood page hardcoded before these were branding:
+    // moving them here must be invisible on the live site.
+    chainTitle: "Brotherhood",
+    chainBlurb: "Every rider under the colors: the whole club, in order of the patch.",
     anthemVideoId: "vmqd7N7zOhM",
   },
 

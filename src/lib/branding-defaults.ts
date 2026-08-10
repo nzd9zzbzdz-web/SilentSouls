@@ -26,7 +26,10 @@ export const CHARACTER_SILHOUETTE_FILE = "/brand/members/silhouette.webp";
 
 /** Where each swappable image ships from for this club. */
 export function defaultAssetsFor(slug: string | null | undefined): Record<BrandingAssetKey, string> {
-  return clubPreset(slug).assets;
+  const preset = clubPreset(slug);
+  // The plate rides its own nullable preset field ("no plate" is a real
+  // answer); in the asset map that answer is spelled "".
+  return { ...preset.assets, plateArt: preset.plateArt ?? "" };
 }
 
 /** A complete branding document for one surface of one club. */
@@ -53,6 +56,8 @@ export function defaultBrandingFor(
     addressLine: identity.addressLine,
     tagline: surface === "public" ? identity.publicTagline : identity.portalTagline,
     mission: identity.mission,
+    chainTitle: identity.chainTitle,
+    chainBlurb: identity.chainBlurb,
     anthemVideoId: identity.anthemVideoId,
   };
 }

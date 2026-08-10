@@ -47,8 +47,16 @@ export interface ResolvedBranding {
   addressLine: string;
   tagline: string;
   mission: string;
+  /** Heading on the Brotherhood page's chain-of-command section. Never empty. */
+  chainTitle: string;
+  /** The line under it. May be empty. */
+  chainBlurb: string;
   anthemVideoId: string;
-  /** Every catalog slot resolved to a usable URL. */
+  /**
+   * Every catalog slot resolved to a usable URL. `plateArt` is the one slot
+   * that may resolve to "" — the club has no plate and the page uses its
+   * art-free layout.
+   */
   assets: Record<BrandingAssetKey, string>;
   /** Which slots are running on an upload rather than the shipped default. */
   customAssets: Set<BrandingAssetKey>;
@@ -142,6 +150,11 @@ export function resolveBranding(
     addressLine: branding?.addressLine ?? base.addressLine ?? "",
     tagline: branding?.tagline ?? base.tagline ?? "",
     mission: branding?.mission ?? base.mission ?? "",
+    // `||` like shortName: a blank heading is never what anyone wants on
+    // screen, so blank means "back to the preset". The blurb keeps `??` — an
+    // empty line is a legitimate choice.
+    chainTitle: branding?.chainTitle || base.chainTitle || "Brotherhood",
+    chainBlurb: branding?.chainBlurb ?? base.chainBlurb ?? "",
     anthemVideoId: branding?.anthemVideoId ?? base.anthemVideoId ?? "",
     assets,
     customAssets,
@@ -161,6 +174,11 @@ export interface BrandingDraft {
   addressLine: string;
   tagline: string;
   mission: string;
+  /** Chain-of-command heading and blurb. Only ever DRAWN from the portal doc;
+   *  the editor shows the fields on the portal tab and the save action writes
+   *  them for that surface only. */
+  chainTitle: string;
+  chainBlurb: string;
   anthemVideoId: string;
   colors: Required<BrandingColors>;
 }
@@ -209,6 +227,8 @@ export function toDraft(resolved: ResolvedBranding): BrandingDraft {
     addressLine: resolved.addressLine,
     tagline: resolved.tagline,
     mission: resolved.mission,
+    chainTitle: resolved.chainTitle,
+    chainBlurb: resolved.chainBlurb,
     anthemVideoId: resolved.anthemVideoId,
     colors: resolved.colors,
   };
@@ -231,6 +251,8 @@ export function draftToResolved(
       addressLine: draft.addressLine,
       tagline: draft.tagline,
       mission: draft.mission,
+      chainTitle: draft.chainTitle,
+      chainBlurb: draft.chainBlurb,
       anthemVideoId: draft.anthemVideoId,
       assets,
     },

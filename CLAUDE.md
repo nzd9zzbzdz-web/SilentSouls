@@ -141,10 +141,14 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
     - `tests/lib/club-isolation.test.ts` asserts a preset-less club renders
       none of the Ravens' colours, art, identity or prose. Re-introducing a
       global default fails there rather than on someone's live site.
-    - **The hierarchy plate is opt-in per club** (`preset.plateArt`). Null ⇒
+    - **The hierarchy plate is opt-in per club** (`preset.plateArt`, or an
+      admin upload to the `plateArt` asset slot, which wins). No art ⇒
       `<ChainOfCommand>` renders the stacked panel, which needs no art and
       lays out for any headcount. The coordinate table in that component
-      describes the plate TEMPLATE, not one club's picture.
+      describes the plate TEMPLATE, not one club's picture. `plateArt` is the
+      one asset slot whose resolved value may be `""` (meaning "no plate");
+      the plate's heading/blurb are portal branding (`chainTitle`/`chainBlurb`,
+      editable in Admin → Branding, written to the portal doc only).
     - The gallery is `public/gallery/<slug>/`, with optional `_captions.json`
       for curated order and titles. `composeGallery(orgId, slug)` takes both
       because uploads are scoped by org id and shipped photos by slug.

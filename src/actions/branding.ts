@@ -61,6 +61,13 @@ export async function saveBranding(raw: SaveBrandingInput): Promise<ActionResult
           orgDisplayName: draft.orgDisplayName,
           tagline: draft.tagline,
           mission: draft.mission,
+          // The chain-of-command heading and blurb are only ever drawn from
+          // the portal document, and the editor only shows the fields there;
+          // writing them on a public save would store a stale copy of the
+          // portal draft that nothing renders.
+          ...(surface === "portal"
+            ? { chainTitle: draft.chainTitle, chainBlurb: draft.chainBlurb }
+            : {}),
           ...sharedIdentity(draft),
         },
         { merge: true },
@@ -150,6 +157,9 @@ export async function resetBranding(raw: {
           orgDisplayName: fallback.orgDisplayName,
           tagline: FieldValue.delete(),
           mission: FieldValue.delete(),
+          ...(raw.surface === "portal"
+            ? { chainTitle: FieldValue.delete(), chainBlurb: FieldValue.delete() }
+            : {}),
           ...clearShared,
         },
         { merge: true },

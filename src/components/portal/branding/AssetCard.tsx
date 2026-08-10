@@ -110,13 +110,22 @@ export function AssetCard({
           backgroundPosition: "0 0, 8px 8px",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- served art, static file, or a local object URL */}
-        <img
-          src={previewUrl}
-          alt={`${spec.label} preview`}
-          className="size-full"
-          style={{ objectFit: spec.fit === "cover" ? "cover" : "contain" }}
-        />
+        {previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- served art, static file, or a local object URL
+          <img
+            src={previewUrl}
+            alt={`${spec.label} preview`}
+            className="size-full"
+            style={{ objectFit: spec.fit === "cover" ? "cover" : "contain" }}
+          />
+        ) : (
+          // A slot whose shipped default is "nothing" (the chain-of-command
+          // plate for a club without one). The site draws its art-free
+          // fallback, and this card is where an upload changes that.
+          <div className="grid size-full place-items-center bg-background/60 px-4 text-center text-xs text-muted-foreground">
+            No image. The site uses its art-free layout until one is uploaded.
+          </div>
+        )}
         {staged && (
           <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-primary-foreground">
             Not saved
@@ -134,12 +143,16 @@ export function AssetCard({
         <div className="flex gap-1.5">
           <dt className="shrink-0 font-medium">Source</dt>
           <dd className="min-w-0 break-all font-mono">
-            {staged ? staged.file.name : displayPath(currentUrl)}
+            {staged ? staged.file.name : displayPath(currentUrl) || "none"}
           </dd>
         </div>
         <p className="pt-0.5 leading-snug">{spec.ratioHint}</p>
         <p className={isCustom ? "text-primary" : undefined}>
-          {isCustom ? "Using your upload." : "Using the built-in default."}
+          {isCustom
+            ? "Using your upload."
+            : currentUrl
+              ? "Using the built-in default."
+              : "Nothing set yet."}
         </p>
       </dl>
 

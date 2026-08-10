@@ -17,7 +17,6 @@ import {
 import { patchArtUrl } from "@/lib/patch-ladders";
 import { CHARACTER_SILHOUETTE } from "@/lib/constants";
 import { resolveBranding } from "@/lib/branding-resolve";
-import { clubPreset } from "@/lib/clubs";
 import type { Member, Rank, Rarity } from "@/lib/types";
 
 const RARITY_WEIGHT: Record<Rarity, number> = {
@@ -155,9 +154,10 @@ export default async function BrotherhoodPage({
       <div className="mx-auto mb-8 w-full max-w-[116rem]">
         <ChainOfCommand
           orgSlug={orgSlug}
-          plateArt={clubPreset(org.slug).plateArt}
-          title="Brotherhood"
-          blurb="Every rider under the colors: the whole club, in order of the patch."
+          // "" is the asset map's spelling of "this club has no plate".
+          plateArt={brand.assets.plateArt || null}
+          title={brand.chainTitle}
+          blurb={brand.chainBlurb}
           officers={officers}
           counts={{
             riding: riding.length,

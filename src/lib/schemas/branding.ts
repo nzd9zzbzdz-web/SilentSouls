@@ -66,6 +66,9 @@ export const brandingDraftSchema = z.object({
   addressLine: z.string().trim().max(120),
   tagline: z.string().trim().max(160),
   mission: z.string().trim().max(1200),
+  // Blank falls back to the club preset on resolve, so no minimum.
+  chainTitle: z.string().trim().max(40, "Keep the plate heading under 40 characters"),
+  chainBlurb: z.string().trim().max(160),
   anthemVideoId: videoId,
   colors: brandingColorsSchema,
 });

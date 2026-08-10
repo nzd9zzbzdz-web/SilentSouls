@@ -62,6 +62,10 @@ export const PLATFORM_PRESET: ClubPreset = {
     portalTagline: "",
     publicTagline: "",
     mission: "",
+    // A structural heading, not one club's writing (like "About Us" above);
+    // the blurb is deliberately plainer than any club's own line.
+    chainTitle: "Brotherhood",
+    chainBlurb: "The chain of command, from the president down.",
     // No anthem until a club picks one. The layouts skip <MusicPlayer> on an
     // empty id; the player itself has no such guard, and mounting it with one
     // loads the embed and parks "This video is unavailable" on the page.

@@ -426,6 +426,39 @@ export function BrandingEditor({
                   </CardContent>
                 </Card>
 
+                {/* ── Chain of command ──
+                    Portal only: the plate is drawn on the Brotherhood page
+                    behind the login, and the fields are written to the portal
+                    document alone. The plate ART is an asset card below. */}
+                {s === "portal" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Chain of command</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        The heading and line on the Brotherhood page, whether it
+                        runs as the engraved plate or as the plain panel. The
+                        plate artwork itself is swapped under Brand assets.
+                      </p>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field
+                          label="Heading"
+                          hint="Engraved top left of the plate. Blank goes back to the default."
+                          value={d.chainTitle}
+                          onChange={(v) => patch({ chainTitle: v })}
+                        />
+                        <Field
+                          label="Blurb"
+                          hint="The line under the heading. Blank hides it."
+                          value={d.chainBlurb}
+                          onChange={(v) => patch({ chainBlurb: v })}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* ── Colour theme ── */}
                 {COLOR_SECTIONS.map((section) => (
                   <Card key={section.title}>

@@ -291,12 +291,14 @@ function ChainPlate({
         >
           {title}
         </DisplayHeading>
-        <p
-          className="mt-[4%] uppercase leading-[1.7] tracking-[0.14em] text-muted-foreground"
-          style={{ fontSize: cq(TYPE.blurb) }}
-        >
-          {blurb}
-        </p>
+        {blurb && (
+          <p
+            className="mt-[4%] uppercase leading-[1.7] tracking-[0.14em] text-muted-foreground"
+            style={{ fontSize: cq(TYPE.blurb) }}
+          >
+            {blurb}
+          </p>
+        )}
       </div>
 
       <PlateSlot orgSlug={orgSlug} member={president} cx={PRESIDENT.cx} president />
@@ -397,7 +399,7 @@ function ChainStack({
           heading above, which is the same title in the other rendering; the
           two must not disagree just because a club has five officers or three. */}
       <DisplayHeading className="text-3xl text-primary md:text-4xl">{title}</DisplayHeading>
-      <p className="mt-1 text-sm text-muted-foreground">{blurb}</p>
+      {blurb && <p className="mt-1 text-sm text-muted-foreground">{blurb}</p>}
 
       <div className="mt-8 flex flex-col items-center">
         {president && (

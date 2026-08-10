@@ -32,6 +32,8 @@ function renderedStrings(slug: string): string[] {
       r.addressLine,
       r.tagline,
       r.mission,
+      r.chainTitle,
+      r.chainBlurb,
       r.anthemVideoId,
       ...Object.values(r.colors),
       ...Object.values(r.assets),
@@ -79,6 +81,10 @@ describe("a preset-less club inherits nothing from the Ravens", () => {
       RAVENS.identity.addressLine,
       RAVENS.identity.publicTagline,
       RAVENS.identity.mission,
+      // Not chainTitle: "Brotherhood" is the shape of the page (like the
+      // pillar headings), and the blank preset legitimately reuses it. The
+      // blurb is the Ravens' own line and must not cross.
+      RAVENS.identity.chainBlurb,
       RAVENS.identity.anthemVideoId,
     ]) {
       expect(theirs).not.toContain(value);
@@ -132,11 +138,17 @@ describe("a preset-less club inherits nothing from the Ravens", () => {
 
   it("has no hierarchy plate, so it cannot wear another club's engraving", () => {
     expect(clubPreset(NEW_CLUB).plateArt).toBeNull();
+    // In the asset map that answer is spelled "", and it must survive
+    // resolution: a truthy fallback here would be the Ravens' plate leaking.
+    expect(defaultAssetsFor(NEW_CLUB).plateArt).toBe("");
+    expect(resolveBranding(null, "portal", { slug: NEW_CLUB }).assets.plateArt).toBe("");
   });
 
   it("resolves every asset slot to something renderable", () => {
     const assets = defaultAssetsFor(NEW_CLUB);
     for (const key of BRANDING_ASSET_KEYS) {
+      // The plate is the one slot where "nothing" is the real answer.
+      if (key === "plateArt") continue;
       expect(assets[key], key).toMatch(/^\/[\w\-./]+\.(webp|png|jpg|svg)$/);
     }
   });
@@ -148,7 +160,7 @@ describe("the founding club is unchanged by the preset layer", () => {
       const resolved = resolveBranding(null, surface, { slug: "silent-souls" });
       expect(resolved.colors).toMatchObject(RAVENS.colors[surface]);
       expect(resolved.name).toBe(RAVENS.identity.displayName);
-      expect(resolved.assets).toEqual(RAVENS.assets);
+      expect(resolved.assets).toEqual({ ...RAVENS.assets, plateArt: RAVENS.plateArt });
     }
   });
 
@@ -167,14 +179,23 @@ describe("the founding club is unchanged by the preset layer", () => {
         colors: { ...RAVENS.colors.portal, primary: "#1E5FD9" },
         fonts: RAVENS.fonts,
         orgDisplayName: "Azure Wolves MC",
-        assets: { clubPatch: "/api/orgs/x/branding/clubPatch?v=1" },
+        chainTitle: "The Table",
+        chainBlurb: "",
+        assets: {
+          clubPatch: "/api/orgs/x/branding/clubPatch?v=1",
+          plateArt: "/api/orgs/x/branding/plateArt?v=1",
+        },
       },
       "portal",
       { slug: "silent-souls" },
     );
     expect(resolved.colors.primary).toBe("#1E5FD9");
     expect(resolved.name).toBe("Azure Wolves MC");
+    expect(resolved.chainTitle).toBe("The Table");
+    // An empty blurb is a choice and survives; an empty TITLE would not.
+    expect(resolved.chainBlurb).toBe("");
     expect(resolved.assets.clubPatch).toBe("/api/orgs/x/branding/clubPatch?v=1");
+    expect(resolved.assets.plateArt).toBe("/api/orgs/x/branding/plateArt?v=1");
     expect(resolved.customAssets.has("clubPatch")).toBe(true);
     // Untouched slots still come from the preset.
     expect(resolved.assets.characterStage).toBe(RAVENS.assets.characterStage);

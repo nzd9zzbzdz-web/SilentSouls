@@ -78,6 +78,10 @@ export const BRANDING_ASSET_KEYS = [
   "emblemTwo",
   "emblemThree",
   "emblemFour",
+  // The engraved Chain of Command plate. Unlike every other slot its shipped
+  // default may be EMPTY ("") — a club without a plate gets the stacked panel,
+  // not another club's engraving — so readers treat "" as "no plate".
+  "plateArt",
 ] as const;
 
 export type BrandingAssetKey = (typeof BRANDING_ASSET_KEYS)[number];
@@ -169,6 +173,14 @@ export interface Branding {
   addressLine?: string;
   tagline?: string;
   mission?: string;
+  /**
+   * portal: the heading engraved on the Brotherhood page's chain-of-command
+   * plate (and on the stacked panel when there is no plate art). Blank falls
+   * back to the club preset, so it is never empty on screen.
+   */
+  chainTitle?: string;
+  /** portal: the line under that heading. Empty is a choice and renders nothing. */
+  chainBlurb?: string;
   /**
    * YouTube id for the floating club anthem. Absent ⇒ CLUB_ANTHEM_VIDEO_ID.
    * Branding rather than a constant because the anthem is as much a club's
