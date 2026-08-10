@@ -132,28 +132,26 @@ export default async function BrotherhoodPage({
     .sort((a, b) => a.rankOrder - b.rankOrder || a.memberNumber - b.memberNumber);
 
   return (
-    <div className={`${PAGE_W.gallery} space-y-8`}>
+    <>
       {/* The heading rides inside the engraved plate, so it belongs to the
           component rather than the page — see ChainOfCommand.
 
-          The plate is painted art at a fixed 1556×720, laid out at
-          width:100% / height:auto with every face and nameplate pinned to
-          that art's own pixel grid. Its height is therefore purely a function
-          of its width — so on the wide gallery column it would grow by a
-          third rather than shrink.
+          The plate is painted art laid out at width:100% / height:auto with
+          every face and nameplate pinned to that art's own pixel grid, so its
+          height is purely a function of its width. It sits OUTSIDE the gallery
+          column rather than inside it: at 116rem it is deliberately wider than
+          PAGE_W.gallery (96rem), and a child cannot exceed a capped parent.
 
-          58rem is measured against what the banner used to be, not against
-          the new column: the page was max-w-6xl (72rem), so 58/72 renders the
-          plate about 19% shorter than it stands today — the reduction that was
-          actually asked for. Sizing it as a fraction of the NEW width would
-          have made it taller than before while looking like a cut.
+          Widening it is the whole point rather than an accident of layout —
+          this is the club's front door, and it is the one thing on the page
+          worth the pixels of a big screen. Below ~116rem of room it simply
+          takes what it is given, so narrower screens are unaffected.
 
-          The inset is deliberate and generous rather than slight, so the plate
-          reads as a framed piece over the wall instead of a banner that failed
-          to reach the edges. It stays the club's front door; it stops being
-          the whole page. (If the art is ever re-cropped shorter, drop this
-          wrapper and let it run full width — see PLATE in ChainOfCommand.) */}
-      <div className="mx-auto w-full max-w-[58rem]">
+          It therefore OVERHANGS the roster wall beneath it on a very wide
+          screen, by design: the plate is the banner and the wall is the
+          content under it. On anything up to about 1920 the overhang is a
+          couple of dozen pixels and the two read as flush. */}
+      <div className="mx-auto mb-8 w-full max-w-[116rem]">
         <ChainOfCommand
           orgSlug={orgSlug}
           title="Brotherhood"
@@ -167,13 +165,15 @@ export default async function BrotherhoodPage({
         />
       </div>
 
-      <BrotherhoodRoster
-        orgSlug={orgSlug}
-        members={riding}
-        pastColors={pastColors}
-        viewerCanManageArt={viewerCanManageArt}
-        backdropPath={brand.assets.portalRosterBackdrop}
-      />
-    </div>
+      <div className={`${PAGE_W.gallery} space-y-8`}>
+        <BrotherhoodRoster
+          orgSlug={orgSlug}
+          members={riding}
+          pastColors={pastColors}
+          viewerCanManageArt={viewerCanManageArt}
+          backdropPath={brand.assets.portalRosterBackdrop}
+        />
+      </div>
+    </>
   );
 }

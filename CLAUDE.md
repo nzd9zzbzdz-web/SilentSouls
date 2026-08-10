@@ -162,11 +162,19 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   roster wall, patch wall, full map, character screen). The roster grid stops
   adding columns at `xl` on purpose: the extra width buys BIGGER cards, not
   more of them.
-- The Brotherhood hierarchy plate is capped at `max-w-[58rem]` inside the
-  gallery column. That number is measured against the OLD page width (72rem),
-  not the new one — the plate is fixed-aspect painted art laid out at
-  `height:auto`, so its height is purely a function of its width. Sizing it as
-  a fraction of the wider column would make it taller while looking like a cut.
+- The Brotherhood hierarchy plate runs at `max-w-[116rem]` and sits OUTSIDE
+  the gallery column, because 116rem is wider than `PAGE_W.gallery` (96rem) and
+  a child cannot exceed a capped parent. It is fixed-aspect painted art laid
+  out at `height:auto`, so its height is purely a function of its width; on a
+  very wide screen it overhangs the roster wall beneath it on purpose.
+  - `CROP` in `ChainOfCommand` is how the overlay stays registered to the art.
+    Every coordinate in that file is a pixel measured off the ORIGINAL 1556×720
+    render; the shipped file is that render trimmed to its painted frame, and
+    `CROP` states the difference so the constants stay checkable against what
+    was measured. POSITIONS carry the offset (`px`/`py`), SIZES never do
+    (`pw`/`ph`) — a width is a distance between two art-space points, and
+    subtracting the offset from one shrinks every box. A re-crop is four
+    numbers, not a re-measure.
 - **`scripts/lib/branding.ts` is the scripts' door onto `branding-defaults.ts`**
   for org name + portal/public branding. seed/bootstrap/apply-branding/
   update-public-branding/migrate-cut all import it — never re-declare these

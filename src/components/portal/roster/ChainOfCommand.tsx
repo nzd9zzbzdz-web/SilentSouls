@@ -13,15 +13,34 @@ import type { RosterMember } from "./types";
    one piece with its container and a re-crop is a search-and-replace
    rather than a redesign.                                             */
 
-const PLATE = { w: 1556, h: 720 } as const;
-const px = (v: number) => `${(v / PLATE.w) * 100}%`;
-const py = (v: number) => `${(v / PLATE.h) * 100}%`;
+/**
+ * The window of that 1556×720 render the shipped file actually contains.
+ *
+ * The original carried ~44px of soft red-brown smoke down each side (18 top,
+ * 11 bottom) outside the painted frame, which against Void Black read as a
+ * dirty rectangle around a crisp plate. The file is now trimmed to the frame
+ * itself, with two pixels of margin so the crop cannot slice the outer
+ * hairline.
+ *
+ * Stated as an offset rather than baked into the coordinates so every constant
+ * below stays exactly as it was measured off the full render and remains
+ * checkable against it. A future re-crop is these four numbers.
+ */
+const CROP = { x: 42, y: 16, w: 1473, h: 695 } as const;
+
+// Positions carry the crop offset. Sizes never do — a width is a distance
+// between two art-space points, and subtracting the offset from one would
+// shrink every box by 42px.
+const px = (v: number) => `${((v - CROP.x) / CROP.w) * 100}%`;
+const py = (v: number) => `${((v - CROP.y) / CROP.h) * 100}%`;
+const pw = (v: number) => `${(v / CROP.w) * 100}%`;
+const ph = (v: number) => `${(v / CROP.h) * 100}%`;
 /** Art-space px → container units, so type scales with the plate. */
-const cq = (v: number) => `${(v / PLATE.w) * 100}cqw`;
+const cq = (v: number) => `${(v / CROP.w) * 100}cqw`;
 
 /** Absolute box from art-space edges, as percentages of the plate. */
 function box(x0: number, y0: number, x1: number, y1: number) {
-  return { left: px(x0), top: py(y0), width: px(x1 - x0), height: py(y1 - y0) };
+  return { left: px(x0), top: py(y0), width: pw(x1 - x0), height: ph(y1 - y0) };
 }
 
 /** The five painted officer rings, left to right, by centre x. */
@@ -163,7 +182,7 @@ function PlateSlot({
     <Link
       href={`/${orgSlug}/portal/brotherhood/${member.id}`}
       className="group absolute"
-      style={{ left: px(cx - g.halfPlate), top: py(g.top), width: px(w), height: py(h) }}
+      style={{ left: px(cx - g.halfPlate), top: py(g.top), width: pw(w), height: ph(h) }}
     >
       <Face
         member={member}
@@ -249,8 +268,8 @@ function ChainPlate({
       <img
         src={CHAIN_OF_COMMAND_PLATE}
         alt=""
-        width={PLATE.w}
-        height={PLATE.h}
+        width={CROP.w}
+        height={CROP.h}
         className="block w-full"
         style={{ height: "auto" }}
       />
