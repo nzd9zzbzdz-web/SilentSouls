@@ -51,6 +51,50 @@ export interface Organization {
   createdAt: Timestamp | Date;
 }
 
+/**
+ * Every swappable image on either surface.
+ *
+ * The key list lives here rather than beside the catalog in `branding-art.ts`
+ * so `Branding.assets` can be typed without this module importing the catalog
+ * (which imports Branding right back). The catalog is the rich table — labels,
+ * pixel sizes, fallbacks — and declares itself `satisfies
+ * Record<BrandingAssetKey, BrandingArtSpec>`, so a key added here without a row
+ * there is a build error rather than a silently unswappable image.
+ *
+ * These ids are also the document ids in `organizations/{orgId}/brandingArt`.
+ * The first three predate the catalog: DO NOT rename them, or every club that
+ * has already uploaded a backdrop loses it.
+ */
+export const BRANDING_ASSET_KEYS = [
+  "rosterBackdrop",
+  "portalRosterBackdrop",
+  "characterStage",
+  "clubPatch",
+  "logo",
+  "heroImage",
+  "watermark",
+  "defaultAvatar",
+  "emblemOne",
+  "emblemTwo",
+  "emblemThree",
+  "emblemFour",
+] as const;
+
+export type BrandingAssetKey = (typeof BRANDING_ASSET_KEYS)[number];
+
+/**
+ * Served URLs for the images an admin has uploaded, written onto the branding
+ * doc by `uploadBrandingArt`. A missing key means "still on the shipped
+ * default" — resolution is `assets[key] ?? DEFAULT_ASSETS[key]`, which is why
+ * a reset DELETES the key rather than blanking it.
+ *
+ * The URLs live on the branding doc (not looked up from the sibling
+ * `brandingArt` collection) so resolving a whole club's imagery still costs
+ * the ONE document read every layout already makes. The bytes stay in the
+ * sibling collection; only the pointer rides along.
+ */
+export type BrandingAssets = Partial<Record<BrandingAssetKey, string>>;
+
 export interface BrandingColors {
   // Any valid CSS color string ("#0A0A0B", "rgba(255,255,255,0.08)") —
   // injected as shadcn CSS variable overrides by <BrandStyle>.
@@ -79,6 +123,18 @@ export interface BrandingColors {
   sidebar?: string;
   /** The rail's right edge. Absent ⇒ `border`. */
   sidebarBorder?: string;
+  /**
+   * The bloom under buttons, the halo on a focused input, the ember wash on a
+   * hovered card. Absent ⇒ `primary`, which is what every surface mixed from
+   * before this existed. Split out because a club can reasonably want its
+   * glow warmer or cooler than the colour it paints buttons with.
+   */
+  glow?: string;
+  /**
+   * A surface one step ABOVE `card` — popovers, hovered rows, the raised
+   * panels in the character screen. Absent ⇒ `card`.
+   */
+  elevated?: string;
 }
 
 export interface Branding {
@@ -88,6 +144,13 @@ export interface Branding {
     body: string;
     mono?: string;
   };
+  /**
+   * Uploaded imagery, keyed by catalog slot. This is the field to read from
+   * (via `resolveBranding`); the five `*Path` fields below it are the
+   * pre-catalog spelling, still written on upload so anything not yet moved
+   * over keeps working.
+   */
+  assets?: BrandingAssets;
   logoPath?: string;
   heroImagePath?: string; // full-bleed public hero backdrop
   characterStagePath?: string; // portal: backdrop art for member character screens
@@ -97,8 +160,21 @@ export interface Branding {
    *  field so the club can dress the private wall differently. */
   portalRosterBackdropPath?: string;
   orgDisplayName: string;
+  /** The club's initials, for tight spots: "RODMC". Absent ⇒ derived from the
+   *  display name's initials, so it is never empty on screen. */
+  shortName?: string;
+  /** Chapter or territory: "San Andreas". Runs in the footer and on Contact. */
+  location?: string;
+  /** The line above it: "The Clubhouse, Sandy Shores". Blank hides the line. */
+  addressLine?: string;
   tagline?: string;
   mission?: string;
+  /**
+   * YouTube id for the floating club anthem. Absent ⇒ CLUB_ANTHEM_VIDEO_ID.
+   * Branding rather than a constant because the anthem is as much a club's
+   * signature as its colours, and the next club's is not this club's.
+   */
+  anthemVideoId?: string;
   /**
    * public: the club's story on the About page, one entry per paragraph.
    * `mission` stays the short line — it also runs on the home page.

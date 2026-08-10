@@ -11,18 +11,20 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { CutRenderModel, CutSurface, Rarity, ResolvedPlacement } from "@/lib/types";
 import type { CutSummary } from "@/lib/cut/getCut";
+import { RARITY_COLOR, RARITY_LABEL } from "@/lib/rarity";
+import {
+  PATCH_GROUND,
+  SAA_EDGE,
+  SAA_GROUND,
+  SAA_THREAD,
+  THREAD_BACKING,
+  THREAD_GOLD,
+} from "@/lib/cut/materials";
 import { VestBody } from "./VestBody";
 import { cn } from "@/lib/utils";
 
-const RARITY: Record<Rarity, { color: string; label: string }> = {
-  common: { color: "#A8A29E", label: "Common" },
-  rare: { color: "#5F9BD5", label: "Rare" },
-  epic: { color: "#B084E0", label: "Epic" },
-  legendary: { color: "#E0B84A", label: "Legendary" },
-};
-
 function glow(rarity: Rarity): string {
-  const c = RARITY[rarity].color;
+  const c = RARITY_COLOR[rarity];
   if (rarity === "legendary") return `0 0 18px ${c}77, inset 0 0 6px ${c}44`;
   if (rarity === "epic") return `0 0 14px ${c}66`;
   if (rarity === "rare") return `0 0 10px ${c}44`;
@@ -42,10 +44,12 @@ function GrantEl({ p }: { p: ResolvedPlacement }) {
       <div className={base} style={{ ...style, width: "68%" }}>
         <div
           className="w-full rounded-full border px-3 py-1 uppercase tracking-[0.18em]"
+          // The rocker's edge is the CLUB's colour, stitched onto the jacket's
+          // own leather and thread. That split is the whole rule on this vest.
           style={{
-            borderColor: "#D9362B",
-            color: "#EBCB63",
-            background: "linear-gradient(180deg,#231d12,#171308)",
+            borderColor: "var(--brand-primary)",
+            color: THREAD_GOLD,
+            background: THREAD_BACKING,
             fontSize: "clamp(0.5rem,2.6vw,0.78rem)",
             fontWeight: 700,
           }}
@@ -60,9 +64,13 @@ function GrantEl({ p }: { p: ResolvedPlacement }) {
       <div className={base} style={{ ...style, width: "30%", aspectRatio: "1 / 1.15" }}>
         <div
           className="grid h-full w-full rotate-45 place-items-center rounded-[14%] border-2"
-          style={{ borderColor: "#D9362B", background: "radial-gradient(circle,#2D111F,#151017)" }}
+          style={{
+            borderColor: "var(--brand-primary)",
+            background:
+              "radial-gradient(circle, var(--brand-secondary), var(--background-panel))",
+          }}
         >
-          <Shield className="-rotate-45 size-1/2" style={{ color: "#EBCB63" }} aria-hidden />
+          <Shield className="-rotate-45 size-1/2" style={{ color: THREAD_GOLD }} aria-hidden />
         </div>
       </div>
     );
@@ -73,9 +81,9 @@ function GrantEl({ p }: { p: ResolvedPlacement }) {
         <div
           className="w-full rounded-md border px-2 py-0.5 uppercase tracking-[0.14em]"
           style={{
-            borderColor: "#D9362B",
-            color: "#EBCB63",
-            background: "linear-gradient(180deg,#231d12,#171308)",
+            borderColor: "var(--brand-primary)",
+            color: THREAD_GOLD,
+            background: THREAD_BACKING,
             fontSize: "clamp(0.42rem,2vw,0.62rem)",
             fontWeight: 700,
           }}
@@ -90,11 +98,11 @@ function GrantEl({ p }: { p: ResolvedPlacement }) {
     <div className={base} style={{ ...style, width: "15%", aspectRatio: "1" }}>
       <div
         className="grid h-full w-full rotate-45 place-items-center rounded-[18%] border-2"
-        style={{ borderColor: "#C64A3E", background: "#1a0f0c" }}
+        style={{ borderColor: SAA_EDGE, background: SAA_GROUND }}
       >
         <span
           className="-rotate-45 font-bold"
-          style={{ color: "#E9A99f", fontSize: "clamp(0.4rem,1.8vw,0.56rem)" }}
+          style={{ color: SAA_THREAD, fontSize: "clamp(0.4rem,1.8vw,0.56rem)" }}
         >
           SAA
         </span>
@@ -111,7 +119,7 @@ function PatchToken({
   onSelect: (p: ResolvedPlacement) => void;
 }) {
   const rarity = p.rarity ?? "common";
-  const c = RARITY[rarity].color;
+  const c = RARITY_COLOR[rarity];
   return (
     <button
       type="button"
@@ -124,14 +132,14 @@ function PatchToken({
         transform: "translate(-50%,-50%)",
         zIndex: p.z,
       }}
-      aria-label={`${p.label} · ${RARITY[rarity].label} patch`}
+      aria-label={`${p.label} · ${RARITY_LABEL[rarity]} patch`}
     >
       <span
         className="flex aspect-square w-full items-center justify-center rounded-full border-2 p-1 text-center transition-transform duration-150 group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-amber-300"
         style={{
           borderColor: c,
           boxShadow: glow(rarity),
-          background: "radial-gradient(circle at 50% 30%,#2a2620,#12100c)",
+          background: PATCH_GROUND,
         }}
       >
         <span
@@ -248,10 +256,10 @@ export function CutViewer({
                     <Badge
                       variant="outline"
                       className="gap-1"
-                      style={{ borderColor: RARITY[selected.rarity].color, color: RARITY[selected.rarity].color }}
+                      style={{ borderColor: RARITY_COLOR[selected.rarity], color: RARITY_COLOR[selected.rarity] }}
                     >
                       <Sparkles className="size-3" aria-hidden />
-                      {RARITY[selected.rarity].label}
+                      {RARITY_LABEL[selected.rarity]}
                     </Badge>
                   )}
                   {selected.category && (

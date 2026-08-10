@@ -956,7 +956,10 @@ function TerritoryDialog({
               value={crewName}
               onChange={(e) => setCrewName(e.target.value)}
               maxLength={60}
-              placeholder="e.g. Ravens of Death, Lost MC, Vagos"
+              // Rival crews only, and none of them the club's own: the field
+              // is for whose turf this is, and naming yourself here is never
+              // the answer.
+              placeholder="e.g. Lost MC, Vagos, Ballas"
             />
           </div>
           <div className="space-y-2">

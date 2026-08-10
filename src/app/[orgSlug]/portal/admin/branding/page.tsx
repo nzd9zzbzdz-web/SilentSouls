@@ -1,15 +1,23 @@
 import { notFound } from "next/navigation";
-import { PAGE_W } from "@/lib/page-width";
 import { Palette } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PAGE_W } from "@/lib/page-width";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
-import { StageArtButton } from "@/components/portal/StageArtButton";
-import { BrandingArtUploader } from "@/components/portal/BrandingArtUploader";
+import { BrandingEditor } from "@/components/portal/branding/BrandingEditor";
 import { requireOrgRole } from "@/lib/auth/session";
 import { BRANDING_ART, BRANDING_ART_KEYS } from "@/lib/branding-art";
-import { listBrandingArtKeys } from "@/lib/queries";
+import { resolveBranding } from "@/lib/branding-resolve";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
+import type { BrandingAssetKey } from "@/lib/types";
 
+/**
+ * Admin → Branding: the control panel for the entire site's visual identity.
+ *
+ * Server-side this is only a gate and two reads. `requireOrgRole(…, "admin")`
+ * sits ABOVE the cached loads, never inside them — an authz decision must
+ * never be what gets cached (see src/lib/cache.ts). The two branding documents
+ * are the same ones both layouts already read, so opening this page costs
+ * nothing extra.
+ */
 export default async function BrandingAdminPage({
   params,
 }: {
@@ -20,27 +28,26 @@ export default async function BrandingAdminPage({
   if (!org) notFound();
   await requireOrgRole(org.id, "admin");
 
-  const [portal, publicBranding, uploaded] = await Promise.all([
+  const [portalDoc, publicDoc] = await Promise.all([
     getBranding(org.id, "portal"),
     getBranding(org.id, "public"),
-    listBrandingArtKeys(org.id),
   ]);
 
-  const renderSwatches = (colors: Record<string, string> | undefined) => (
-    <div className="flex flex-wrap gap-2">
-      {colors &&
-        Object.entries(colors).map(([name, value]) => (
-          <div key={name} className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1">
-            <span
-              aria-hidden
-              className="size-4 rounded-full border border-border"
-              style={{ backgroundColor: value }}
-            />
-            <span className="text-xs text-muted-foreground">{name}</span>
-          </div>
-        ))}
-    </div>
-  );
+  const resolved = {
+    portal: resolveBranding(portalDoc, "portal"),
+    public: resolveBranding(publicDoc, "public"),
+  };
+
+  // Each slot is shown once, resolved on the surface that owns it. A "both"
+  // slot is written to the two documents together by the upload action, so
+  // reading either gives the same answer; portal is picked arbitrarily.
+  const assetUrls = {} as Record<BrandingAssetKey, string>;
+  const customAssetKeys: BrandingAssetKey[] = [];
+  for (const key of BRANDING_ART_KEYS) {
+    const owner = BRANDING_ART[key].surface === "public" ? resolved.public : resolved.portal;
+    assetUrls[key] = owner.assets[key];
+    if (owner.customAssets.has(key)) customAssetKeys.push(key);
+  }
 
   return (
     <div className={`${PAGE_W.content} space-y-8`}>
@@ -49,76 +56,20 @@ export default async function BrandingAdminPage({
           <Palette className="size-7" aria-hidden />
           Branding
         </DisplayHeading>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Both faces of the organization: the clubhouse and the cover story. A
-          full branding editor arrives with the multi-tenant milestone; today these
-          are managed in Firestore.
+        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+          Both faces of the organization: the clubhouse and the cover story.
+          Everything the site uses to say whose club it is lives here, and
+          nothing outside this page needs editing to rebrand it. Members, ranks,
+          patches and activity are untouched by anything on this page.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Portal · {portal?.orgDisplayName}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {portal?.tagline && (
-            <p className="text-sm text-muted-foreground">Tagline: {portal.tagline}</p>
-          )}
-          {renderSwatches(portal?.colors as Record<string, string> | undefined)}
-        </CardContent>
-      </Card>
-
-      {/* Scene art. Both slots come from BRANDING_ART, so a new swappable
-          image is a row in that table rather than another card written here. */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Scene Art</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-8">
-          {BRANDING_ART_KEYS.map((key) => {
-            const spec = BRANDING_ART[key];
-            const branding = spec.surface === "portal" ? portal : publicBranding;
-            const current = branding?.[spec.field];
-            return (
-              <BrandingArtUploader
-                key={key}
-                orgId={org.id}
-                artKey={key}
-                label={spec.label}
-                blurb={spec.blurb}
-                ratioHint={spec.ratioHint}
-                currentUrl={current ?? spec.fallback}
-                // An upload, not merely a set path — the seeder writes the
-                // shipped default into characterStagePath.
-                isCustom={uploaded.has(key)}
-                aspect={`${spec.width} / ${spec.height}`}
-              />
-            );
-          })}
-
-          <div className="border-t border-border pt-4">
-            <p className="mb-2 text-xs text-muted-foreground">
-              Or put the character stage back to the artwork that ships with the
-              platform:
-            </p>
-            <StageArtButton orgId={org.id} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Public · {publicBranding?.orgDisplayName}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {publicBranding?.tagline && (
-            <p className="text-sm text-muted-foreground">
-              Tagline: {publicBranding.tagline}
-            </p>
-          )}
-          {renderSwatches(publicBranding?.colors as Record<string, string> | undefined)}
-        </CardContent>
-      </Card>
+      <BrandingEditor
+        orgId={org.id}
+        initial={resolved}
+        assetUrls={assetUrls}
+        customAssetKeys={customAssetKeys}
+      />
     </div>
   );
 }

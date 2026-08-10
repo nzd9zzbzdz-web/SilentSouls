@@ -15,7 +15,8 @@ import {
   listRanks,
 } from "@/lib/queries";
 import { patchArtUrl } from "@/lib/patch-ladders";
-import { CHARACTER_SILHOUETTE, DEFAULT_ROSTER_BACKDROP } from "@/lib/constants";
+import { CHARACTER_SILHOUETTE } from "@/lib/constants";
+import { resolveBranding } from "@/lib/branding-resolve";
 import type { Member, Rank, Rarity } from "@/lib/types";
 
 const RARITY_WEIGHT: Record<Rarity, number> = {
@@ -65,6 +66,7 @@ export default async function BrotherhoodPage({
 
   const rankById = new Map(ranks.map((r) => [r.id, r]));
   const patchById = new Map(patches.map((p) => [p.id, p]));
+  const brand = resolveBranding(branding, "portal");
 
   const toRosterMember = (member: Member): RosterMember => {
     const rank = rankById.get(member.rankId);
@@ -108,7 +110,9 @@ export default async function BrotherhoodPage({
       joinedAtMs: joined?.getTime() ?? 0,
       imageUrl: uploaded
         ? `/api/orgs/${org.id}/members/${member.id}/render`
-        : (ownArt ?? CHARACTER_SILHOUETTE),
+        // The sentinel above answers "does this member have art"; what to draw
+        // when they don't is the club's own default figure.
+        : (ownArt ?? brand.assets.defaultAvatar),
       hasRender: uploaded || Boolean(ownArt),
       topPatches,
       tier: tierOf(member, rank),
@@ -168,7 +172,7 @@ export default async function BrotherhoodPage({
         members={riding}
         pastColors={pastColors}
         viewerCanManageArt={viewerCanManageArt}
-        backdropPath={branding?.portalRosterBackdropPath ?? DEFAULT_ROSTER_BACKDROP}
+        backdropPath={brand.assets.portalRosterBackdrop}
       />
     </div>
   );

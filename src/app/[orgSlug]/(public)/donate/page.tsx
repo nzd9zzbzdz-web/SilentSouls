@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { HandCoins, PackageOpen, Wrench } from "lucide-react";
-import { getOrgBySlug } from "@/lib/tenant";
+import { getBranding, getOrgBySlug } from "@/lib/tenant";
+import { resolveBranding } from "@/lib/branding-resolve";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +13,7 @@ export default async function DonatePage({
   const { orgSlug } = await params;
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
+  const branding = resolveBranding(await getBranding(org.id, "public"), "public");
 
   const ways = [
     {
@@ -67,8 +69,8 @@ export default async function DonatePage({
       </div>
 
       <p className="mt-10 text-center text-sm text-muted-foreground">
-        The {org.publicName} is a registered community organization in the state of
-        San Andreas. Donation processing coming soon. Contact us to give today.
+        The {org.publicName} is a registered community organization in the state of{" "}
+        {branding.location}. Donation processing coming soon. Contact us to give today.
       </p>
     </div>
   );

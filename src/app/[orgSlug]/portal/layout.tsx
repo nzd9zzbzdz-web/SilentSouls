@@ -2,12 +2,13 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { getMember, listRanks } from "@/lib/queries";
+import { resolveBranding } from "@/lib/branding-resolve";
 import { BrandStyle } from "@/components/theme/BrandStyle";
+import { BrandingProvider } from "@/components/theme/BrandingProvider";
 import { BodySurface } from "@/components/theme/BodySurface";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { MusicPlayer } from "@/components/media/MusicPlayer";
 import { Toaster } from "@/components/ui/sonner";
-import { CLUB_ANTHEM_VIDEO_ID } from "@/lib/constants";
 
 export default async function PortalLayout({
   children,
@@ -35,18 +36,23 @@ export default async function PortalLayout({
 
   // Branding, member, and ranks don't depend on each other — fetch together.
   // getMember/listRanks are request-cached, so pages that need them ride free.
-  const [branding, member, ranks] = await Promise.all([
+  const [brandingDoc, member, ranks] = await Promise.all([
     getBranding(org.id, "portal"),
     memberId ? getMember(org.id, memberId) : null,
     memberId ? listRanks(org.id) : [],
   ]);
-  if (!branding) notFound();
+  // Resolved once, here — see the note in the public layout. A portal with no
+  // branding document now renders the shipped defaults instead of 404ing,
+  // which matters because that 404 locked admins out of the very page they
+  // would use to fix it.
+  const branding = resolveBranding(brandingDoc, "portal");
 
   const rankName = member
     ? ranks.find((r) => r.id === member.rankId)?.name
     : undefined;
 
   return (
+    <BrandingProvider branding={branding}>
     <div
       data-surface="portal"
       className="dark bg-background text-foreground"
@@ -56,7 +62,7 @@ export default async function PortalLayout({
       <BodySurface surface="portal" dark />
       <PortalShell
         orgSlug={orgSlug}
-        orgName={branding.orgDisplayName}
+        orgName={branding.name}
         tagline={branding.tagline}
         role={role}
         memberId={memberId}
@@ -76,10 +82,11 @@ export default async function PortalLayout({
           between portal pages never restarts the track — only a full reload
           does. Same component and corner as the public site; the portal's
           brand vars just repaint it. */}
-      <MusicPlayer videoId={CLUB_ANTHEM_VIDEO_ID} label="Club Anthem" />
+      <MusicPlayer videoId={branding.anthemVideoId} label="Club Anthem" />
       {/* Toasts moved off bottom-right when the player took that corner —
           a 356px toast sat squarely on the play pill. */}
       <Toaster richColors position="top-right" />
     </div>
+    </BrandingProvider>
   );
 }

@@ -10,6 +10,7 @@ import {
   keyOutLightBackground,
   needsBackgroundKeying,
 } from "@/lib/character-key";
+import { DEFAULT_ASSETS } from "@/lib/branding-defaults";
 import { clampPose, saveCharacterPoseSchema } from "@/lib/schemas/character";
 import type { ActionResult } from "./activities";
 import type { CharacterPose } from "@/lib/types";
@@ -212,7 +213,7 @@ export async function applyDefaultCharacterStage(raw: {
     await orgRef(raw.orgId)
       .collection("branding")
       .doc("portal")
-      .set({ characterStagePath: "/brand/character-stage.webp" }, { merge: true });
+      .set({ characterStagePath: DEFAULT_ASSETS.characterStage }, { merge: true });
     await writeAuditLog(raw.orgId, {
       actorUid: access.user.uid,
       action: "branding.characterStage",

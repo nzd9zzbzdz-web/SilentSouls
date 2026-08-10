@@ -6,7 +6,7 @@ import sharp from "sharp";
 import { FieldValue, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit";
-import { BRANDING_ART, type BrandingArtKey } from "@/lib/branding-art";
+import { BRANDING_ART, surfacesFor, type BrandingArtKey } from "@/lib/branding-art";
 import type { ActionResult } from "./activities";
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024; // raw upload cap
@@ -48,6 +48,9 @@ function revalidateFor(orgId: string, key: BrandingArtKey) {
   }
 }
 
+/** What the browser file picker offers, and what sharp is asked to decode. */
+const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/avif", "image/gif"];
+
 export async function uploadBrandingArt(formData: FormData): Promise<ActionResult> {
   const orgId = formData.get("orgId");
   const key = formData.get("key");
@@ -58,8 +61,8 @@ export async function uploadBrandingArt(formData: FormData): Promise<ActionResul
   }
   const spec = BRANDING_ART[key as BrandingArtKey];
   if (!spec) return { ok: false, error: "Unknown image" };
-  if (!file.type.startsWith("image/")) {
-    return { ok: false, error: "File must be an image" };
+  if (!ACCEPTED_TYPES.includes(file.type)) {
+    return { ok: false, error: "Use a PNG, JPG, WEBP or AVIF image" };
   }
   if (file.size > MAX_UPLOAD_BYTES) {
     return { ok: false, error: "Image too large (max 12MB)" };
@@ -70,29 +73,42 @@ export async function uploadBrandingArt(formData: FormData): Promise<ActionResul
 
     const input = Buffer.from(await file.arrayBuffer());
 
-    // Refuse anything smaller than the frame instead of upscaling it. The art
-    // is stored at exactly the slot shape (no `withoutEnlargement` — that
-    // silently yields a wrong-aspect file when the source is shorter than the
-    // slot), so a small upload would come back as a blurry stretch across the
-    // club's public page. Better to say so.
+    // Refuse anything too small instead of upscaling it. `cover` art is stored
+    // at exactly the slot shape (no `withoutEnlargement` — that silently
+    // yields a wrong-aspect file when the source is shorter than the slot), so
+    // a small upload would come back as a blurry stretch across the club's
+    // public page. `contain` art is padded rather than stretched, so it only
+    // needs to be big enough to stay sharp: half the frame is the floor.
+    const minScale = spec.fit === "cover" ? 1 : 0.5;
+    const minW = Math.round(spec.width * minScale);
+    const minH = Math.round(spec.height * minScale);
     const meta = await sharp(input).rotate().metadata();
-    if ((meta.width ?? 0) < spec.width || (meta.height ?? 0) < spec.height) {
+    if ((meta.width ?? 0) < minW || (meta.height ?? 0) < minH) {
       return {
         ok: false,
-        error: `Image is too small. It needs to be at least ${spec.width}×${spec.height}px`,
+        error: `Image is too small. It needs to be at least ${minW}×${minH}px`,
       };
     }
 
-    // `cover` at the slot's own aspect: these are backdrops, so filling the
-    // frame beats letterboxing a scene into bars. Whatever the admin uploads
-    // gets cropped to the shape the card actually draws.
-    const base = sharp(input).rotate().resize(spec.width, spec.height, {
-      fit: "cover",
-      position: spec.position,
-    });
+    // `cover` crops to fill: right for backdrops, where letterboxing a scene
+    // into bars looks broken. `contain` fits the whole image inside the frame
+    // on a FULLY TRANSPARENT ground — patches, wordmarks and emblems are
+    // cut-out artwork, and cropping one costs it an edge while flattening one
+    // onto black costs it the cut-out.
+    const base = sharp(input)
+      .rotate()
+      .resize(spec.width, spec.height, {
+        fit: spec.fit,
+        position: spec.position,
+        ...(spec.fit === "contain"
+          ? { background: { r: 0, g: 0, b: 0, alpha: 0 } }
+          : {}),
+      });
 
     let stored: Buffer | null = null;
     for (const quality of [82, 72, 62, 50]) {
+      // `alphaQuality`/lossless are not needed — webp keeps the alpha channel
+      // at any quality, and these are photographs and painted art, not icons.
       const candidate = await base.clone().webp({ quality }).toBuffer();
       if (candidate.length <= MAX_STORED_BYTES) {
         stored = candidate;
@@ -110,15 +126,32 @@ export async function uploadBrandingArt(formData: FormData): Promise<ActionResul
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Point the branding doc at the served URL. Merge-only: this must never
-    // disturb the colors and fonts sitting in the same document.
-    await orgRef(orgId)
-      .collection("branding")
-      .doc(spec.surface)
-      .set(
-        { [spec.field]: `/api/orgs/${orgId}/branding/${key}?v=${updatedAtMs}` },
-        { merge: true },
-      );
+    // Point the branding doc(s) at the served URL, so resolving a club's whole
+    // imagery still costs the ONE document read every layout already makes.
+    // Merge-only: this must never disturb the colors and fonts in the same
+    // document. A "both" slot writes to public AND portal — the club patch
+    // differing across the login would look like two clubs.
+    const url = `/api/orgs/${orgId}/branding/${key}?v=${updatedAtMs}`;
+    await Promise.all(
+      surfacesFor(spec).map((surface) =>
+        orgRef(orgId)
+          .collection("branding")
+          .doc(surface)
+          .set(
+            {
+              // A NESTED map, not a dotted key: `set(..., {merge:true})` reads
+              // dots as literal characters in a field name (only `update()`
+              // treats them as paths), and merge already deep-merges maps, so
+              // this lands on `assets.{key}` without touching its siblings.
+              assets: { [key]: url },
+              // The pre-catalog spelling, still written so any reader not yet
+              // moved onto resolveBranding keeps seeing the upload.
+              ...(spec.legacyField ? { [spec.legacyField]: url } : {}),
+            },
+            { merge: true },
+          ),
+      ),
+    );
 
     await writeAuditLog(orgId, {
       actorUid: access.user.uid,
@@ -145,12 +178,22 @@ export async function resetBrandingArt(raw: {
   try {
     const access = await requireOrgRole(raw.orgId, "admin");
     await artRef(raw.orgId, raw.key).delete();
-    // Clearing the FIELD is what restores the default — every reader does
-    // `branding.x ?? DEFAULT`, so the key has to go away, not go empty.
-    await orgRef(raw.orgId)
-      .collection("branding")
-      .doc(spec.surface)
-      .set({ [spec.field]: FieldValue.delete() }, { merge: true });
+    // Clearing the FIELD is what restores the default — `resolveBranding`
+    // falls back on absence, so the key has to go away, not go empty.
+    await Promise.all(
+      surfacesFor(spec).map((surface) =>
+        orgRef(raw.orgId)
+          .collection("branding")
+          .doc(surface)
+          .set(
+            {
+              assets: { [raw.key]: FieldValue.delete() },
+              ...(spec.legacyField ? { [spec.legacyField]: FieldValue.delete() } : {}),
+            },
+            { merge: true },
+          ),
+      ),
+    );
 
     await writeAuditLog(raw.orgId, {
       actorUid: access.user.uid,

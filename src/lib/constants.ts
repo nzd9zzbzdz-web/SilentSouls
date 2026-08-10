@@ -1,3 +1,4 @@
+import { DEFAULT_ANTHEM_VIDEO_ID, DEFAULT_ASSETS } from "./branding-defaults";
 import type { CharacterPose, StatKey } from "./types";
 
 // Slugs that can never be org slugs (static route segments win in App Router,
@@ -62,8 +63,19 @@ function trimZero(n: number): string {
   return n.toFixed(1).replace(/\.0$/, "");
 }
 
-// Character render fallback — brand-neutral shadow figure shipped in public/.
-export const CHARACTER_SILHOUETTE = "/brand/members/silhouette.webp";
+/**
+ * The SHIPPED silhouette file, used as a SENTINEL rather than as a fallback.
+ *
+ * The seeder writes this exact path into `member.photoPath` for anyone with no
+ * art, so `photoPath !== CHARACTER_SILHOUETTE` is how the roster asks "does
+ * this member actually have a render?". That question is about the shipped
+ * file specifically, so it must NOT follow a club's uploaded default avatar.
+ *
+ * What to DRAW when someone has no render is `branding.assets.defaultAvatar`,
+ * which does follow the upload. The two coincide until a club uploads its own,
+ * and conflating them is why the distinction is spelled out here.
+ */
+export const CHARACTER_SILHOUETTE = DEFAULT_ASSETS.defaultAvatar;
 
 /**
  * Where the figure stands when nobody has adjusted it. Matches the spotlight in
@@ -78,22 +90,11 @@ export const CHARACTER_POSE_LIMITS = {
   scale: { min: 15, max: 130 },
 } as const;
 
-// Stage backdrop used on every character screen unless the org's portal
-// branding sets its own characterStagePath.
-export const DEFAULT_CHARACTER_STAGE = "/brand/character-stage.webp";
+/** @deprecated Read `branding.assets.characterStage` via `resolveBranding`. */
+export const DEFAULT_CHARACTER_STAGE = DEFAULT_ASSETS.characterStage;
 
-/**
- * What stands behind the figures on the public Brotherhood cards — the
- * spotlight column of the same clubhouse the portal character screen uses,
- * cut to portrait so a 3:4 card gets the light pool rather than a random
- * slice of wall.
- *
- * A shipped constant rather than branding-only for the same reason as the
- * hero clip: the public branding read has no fallback, so a branding-only
- * field would stay invisible in production until that doc was separately
- * rewritten. `branding.rosterBackdropPath` still overrides it.
- */
-export const DEFAULT_ROSTER_BACKDROP = "/brand/roster-backdrop.webp";
+/** @deprecated Read `branding.assets.rosterBackdrop` via `resolveBranding`. */
+export const DEFAULT_ROSTER_BACKDROP = DEFAULT_ASSETS.rosterBackdrop;
 
 /**
  * The engraved plate behind the portal's Chain of Command.
@@ -105,6 +106,19 @@ export const DEFAULT_ROSTER_BACKDROP = "/brand/roster-backdrop.webp";
  * off its plate. New art means a new coordinate table, not just a new file.
  */
 export const CHAIN_OF_COMMAND_PLATE = "/brand/chain-of-command.webp";
+
+/**
+ * The home page hero clip (text-free, so the headline overlays on top). Shown
+ * only when the gallery is empty; a club with photos never sees it.
+ *
+ * NOT a BRANDING_ART slot, and unlike everything else under `public/brand` it
+ * is not going to become one: the upload pipeline is sharp, which decodes
+ * images. Swapping a video needs a different pipeline (a real storage bucket
+ * and a transcode), which is the multi-tenant milestone's problem. Until then
+ * a new club replaces this file, or simply uploads gallery photos and never
+ * shows it. `branding.assets.heroImage` is the poster frame and IS swappable.
+ */
+export const HERO_VIDEO = "/brand/ravens-hero.mp4";
 
 /**
  * How the club tells its own story, on the public About page.
@@ -157,7 +171,8 @@ export const CLUB_CREED = [
  * never drift onto different tracks. Becomes a branding field the day a
  * second tenant wants its own anthem (same call as MAP_IMAGE_PATH).
  */
-export const CLUB_ANTHEM_VIDEO_ID = "vmqd7N7zOhM";
+/** @deprecated Read `branding.anthemVideoId` via `resolveBranding`. */
+export const CLUB_ANTHEM_VIDEO_ID = DEFAULT_ANTHEM_VIDEO_ID;
 
 export const STAT_LABELS: Record<StatKey, string> = {
   churchAttendance: "Church Attendance",

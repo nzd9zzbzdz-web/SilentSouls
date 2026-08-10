@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBranding } from "@/components/theme/BrandingProvider";
 
 type NavItem = { label: string; href?: string };
 
@@ -22,13 +23,12 @@ const NAV: NavItem[] = [
   { href: "/contact", label: "Contact" },
 ];
 
-export function CharityHeader({
-  orgSlug,
-  name,
-}: {
-  orgSlug: string;
-  name: string;
-}) {
+export function CharityHeader({ orgSlug }: { orgSlug: string }) {
+  // Name and patch both come from the surface's branding rather than from
+  // props: the footer and the About page draw the same two things, and passing
+  // them down separately is how three copies of "/brand/club-patch.webp" got
+  // written into three files.
+  const { name, assets } = useBranding();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const base = `/${orgSlug}`;
@@ -51,7 +51,7 @@ export function CharityHeader({
         className="absolute left-4 top-2 z-10"
       >
         <Image
-          src="/brand/club-patch.webp"
+          src={assets.clubPatch}
           alt={name}
           width={720}
           height={1080}

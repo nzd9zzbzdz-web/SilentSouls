@@ -1,3 +1,5 @@
+import { LEATHER_BODY } from "@/lib/cut/materials";
+
 // The vest silhouette, drawn in CSS (no artwork required). Shared by the
 // member-facing CutViewer and the admin Vest Designer so they stay identical.
 export const VEST_CLIP =
@@ -8,16 +10,23 @@ export function VestBody() {
     <>
       <div
         className="absolute inset-0"
+        // The leather is the jacket's own (see lib/cut/materials); the two
+        // seam strokes are the club's accent, so a rebrand restitches the
+        // piping without repainting the hide.
         style={{
           clipPath: VEST_CLIP,
-          background: "linear-gradient(160deg,#1c1913 0%,#14110c 45%,#0d0b07 100%)",
+          background: LEATHER_BODY,
           boxShadow:
-            "inset 0 0 0 2px rgba(84,33,63,0.10), inset 0 8px 40px rgba(0,0,0,0.6)",
+            "inset 0 0 0 2px color-mix(in srgb, var(--brand-accent) 10%, transparent), inset 0 8px 40px rgba(0,0,0,0.6)",
         }}
       />
       <div
         className="pointer-events-none absolute inset-[6%]"
-        style={{ clipPath: VEST_CLIP, boxShadow: "inset 0 0 0 1px rgba(84,33,63,0.14)" }}
+        style={{
+          clipPath: VEST_CLIP,
+          boxShadow:
+            "inset 0 0 0 1px color-mix(in srgb, var(--brand-accent) 14%, transparent)",
+        }}
       />
     </>
   );

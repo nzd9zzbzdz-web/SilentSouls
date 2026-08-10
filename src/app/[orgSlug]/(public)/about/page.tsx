@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
+import { resolveBranding } from "@/lib/branding-resolve";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { OrnamentRule } from "@/components/public/OrnamentRule";
 import { Reveal } from "@/components/motion/Reveal";
@@ -27,14 +28,6 @@ const VALUES: [string, string][] = [
   ["Brotherhood", "No brother of ours ever rides alone."],
 ];
 
-/** The four badges the club wears, used as a rule between acts. */
-const EMBLEMS = [
-  { src: "/brand/emblem-winged.webp", alt: "" },
-  { src: "/brand/emblem-skull.webp", alt: "" },
-  { src: "/brand/emblem-onepercent.webp", alt: "" },
-  { src: "/brand/emblem-mc.webp", alt: "" },
-];
-
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
 export default async function AboutPage({
@@ -45,13 +38,20 @@ export default async function AboutPage({
   const { orgSlug } = await params;
   const org = await getOrgBySlug(orgSlug);
   if (!org) notFound();
-  const branding = await getBranding(org.id, "public");
+  const doc = await getBranding(org.id, "public");
+  const branding = resolveBranding(doc, "public");
 
-  const story = branding?.story?.length ? branding.story : CLUB_STORY;
-  const creed = branding?.creed?.length ? branding.creed : CLUB_CREED;
-  const titles = branding?.storyTitles?.length
-    ? branding.storyTitles
-    : CLUB_STORY_TITLES;
+  const story = doc?.story?.length ? doc.story : CLUB_STORY;
+  const creed = doc?.creed?.length ? doc.creed : CLUB_CREED;
+  const titles = doc?.storyTitles?.length ? doc.storyTitles : CLUB_STORY_TITLES;
+
+  /** The four badges the club wears, used as a rule between acts. */
+  const emblems = [
+    branding.assets.emblemOne,
+    branding.assets.emblemTwo,
+    branding.assets.emblemThree,
+    branding.assets.emblemFour,
+  ];
 
   return (
     <div className="bg-background">
@@ -74,9 +74,9 @@ export default async function AboutPage({
               Our story
             </p>
             <DisplayHeading className="mt-4 text-5xl leading-[0.95] text-foreground md:text-6xl lg:text-7xl">
-              About {branding?.orgDisplayName}
+              About {branding.name}
             </DisplayHeading>
-            {branding?.mission && (
+            {branding.mission && (
               <>
                 <OrnamentRule className="mt-8 max-w-md" />
                 {/* The mission is the standfirst, not another paragraph —
@@ -93,7 +93,7 @@ export default async function AboutPage({
 
           <div className="relative mx-auto w-full max-w-sm lg:max-w-none">
             <Image
-              src="/brand/club-patch.webp"
+              src={branding.assets.clubPatch}
               alt=""
               aria-hidden
               width={640}
@@ -184,11 +184,11 @@ export default async function AboutPage({
           story and its closing lines. */}
       <section className="bg-background">
         <div className="mx-auto flex max-w-3xl items-center justify-center gap-6 px-6 py-12 sm:gap-10 md:gap-16">
-          {EMBLEMS.map((e) => (
+          {emblems.map((src) => (
             <Image
-              key={e.src}
-              src={e.src}
-              alt={e.alt}
+              key={src}
+              src={src}
+              alt=""
               aria-hidden
               width={96}
               height={96}

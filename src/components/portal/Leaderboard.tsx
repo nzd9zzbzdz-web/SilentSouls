@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Trophy } from "lucide-react";
+import { MEDAL_COLOR, RARITY_COLOR, rarityColor } from "@/lib/rarity";
 import { Reveal } from "@/components/motion/Reveal";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import {
@@ -24,19 +25,6 @@ import type { LeaderboardCategory, LeaderboardRow } from "@/lib/leaderboard";
  * page answers "where do I stand" at a glance.
  */
 
-const RARITY_COLOR: Record<string, string> = {
-  common: "#A8A29E",
-  rare: "#5F9BD5",
-  epic: "#B084E0",
-  legendary: "#E0B84A",
-};
-
-/** Gold, silver, bronze — same visual language as the rarity tints. */
-const MEDAL_COLOR: Record<number, string> = {
-  1: "#E0B84A",
-  2: "#A8A29E",
-  3: "#C08552",
-};
 
 function Rank({ rank }: { rank: number }) {
   const medal = MEDAL_COLOR[rank];
@@ -73,7 +61,7 @@ function Row({
   isViewer: boolean;
 }) {
   const emblemColor = row.topEmblem
-    ? (RARITY_COLOR[row.topEmblem.rarity ?? "common"] ?? RARITY_COLOR.common)
+    ? (rarityColor(row.topEmblem.rarity) ?? RARITY_COLOR.common)
     : null;
 
   // The podium: first through third wear their medal on the row itself — a

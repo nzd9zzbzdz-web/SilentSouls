@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { RARITY_COLOR, rarityColor } from "@/lib/rarity";
 import {
   Dialog,
   DialogContent,
@@ -21,12 +22,6 @@ import {
  * the composer's `format` closures and Firestore Timestamps stay on the server.
  */
 
-const RARITY_COLOR: Record<string, string> = {
-  common: "#A8A29E",
-  rare: "#5F9BD5",
-  epic: "#B084E0",
-  legendary: "#E0B84A",
-};
 
 const ROMAN = ["I", "II", "III", "IV", "V"];
 
@@ -57,7 +52,7 @@ export interface EmblemLadderView {
 }
 
 function color(rung: EmblemRungView): string {
-  return RARITY_COLOR[rung.rarity ?? "common"] ?? RARITY_COLOR.common;
+  return rarityColor(rung.rarity) ?? RARITY_COLOR.common;
 }
 
 /** Card-sized rung. The button is the whole thing — art and name together. */

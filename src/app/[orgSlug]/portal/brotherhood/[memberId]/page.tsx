@@ -22,11 +22,8 @@ import {
   listRanks,
   listServiceRecord,
 } from "@/lib/queries";
-import {
-  CHARACTER_SILHOUETTE,
-  CRIMINAL_RECORD_ROWS,
-  DEFAULT_CHARACTER_STAGE,
-} from "@/lib/constants";
+import { CRIMINAL_RECORD_ROWS } from "@/lib/constants";
+import { resolveBranding } from "@/lib/branding-resolve";
 import type { Timestamp } from "firebase-admin/firestore";
 
 export default async function MemberDetailPage({
@@ -83,6 +80,7 @@ export default async function MemberDetailPage({
     ]);
   const rank = ranks.find((r) => r.id === member.rankId);
   const patchById = new Map(patches.map((p) => [p.id, p]));
+  const brand = resolveBranding(branding, "portal");
 
   // Top patches for the stage's diamond slots — rarest first, then tier.
   const rarityWeight = { legendary: 4, epic: 3, rare: 2, common: 1 } as const;
@@ -148,8 +146,8 @@ export default async function MemberDetailPage({
           memberId={memberId}
           canEdit={canEditSelf}
           initialPose={member.characterPose}
-          orgName={branding?.orgDisplayName ?? org.name}
-          tagline={branding?.tagline}
+          orgName={brand.name}
+          tagline={brand.tagline}
           roadName={member.roadName}
           displayName={member.displayName}
           memberNumber={member.memberNumber}
@@ -158,8 +156,8 @@ export default async function MemberDetailPage({
           panelTitle="Criminal Record"
           stats={panelStats}
           patches={stagePatches}
-          stagePath={branding?.characterStagePath ?? DEFAULT_CHARACTER_STAGE}
-          characterPath={uploadedArt ?? member.photoPath ?? CHARACTER_SILHOUETTE}
+          stagePath={brand.assets.characterStage}
+          characterPath={uploadedArt ?? member.photoPath ?? brand.assets.defaultAvatar}
         />
         {canEditSelf && (
           <div className="mt-3">

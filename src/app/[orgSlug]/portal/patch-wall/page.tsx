@@ -17,6 +17,7 @@ import {
 } from "@/lib/queries";
 import { composeLadders, patchArtUrl, remainingLabel } from "@/lib/patch-ladders";
 import { CRIMINAL_RECORD_ROWS, STAT_LABELS } from "@/lib/constants";
+import { RARITY_COLOR, rarityColor } from "@/lib/rarity";
 import type { Patch } from "@/lib/types";
 
 /** Stats a member can actually see — the Criminal Record panel on their profile. */
@@ -30,12 +31,6 @@ const CATEGORY_LABELS: Record<Patch["category"], string> = {
   legendary: "Legendary",
 };
 
-const RARITY_COLOR: Record<string, string> = {
-  common: "#A8A29E",
-  rare: "#5F9BD5",
-  epic: "#B084E0",
-  legendary: "#E0B84A",
-};
 
 /**
  * A patch's artwork beside its name. Renders nothing when an admin hasn't
@@ -67,7 +62,7 @@ function PatchArt({
 
 function RarityChip({ rarity }: { rarity?: string }) {
   if (!rarity) return null;
-  const c = RARITY_COLOR[rarity] ?? RARITY_COLOR.common;
+  const c = rarityColor(rarity) ?? RARITY_COLOR.common;
   return (
     <span
       className="inline-flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider"

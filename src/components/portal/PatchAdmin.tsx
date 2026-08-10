@@ -526,7 +526,7 @@ export function PatchAdmin({
                 onChange={(e) => setAwardReason(e.target.value)}
                 rows={2}
                 maxLength={500}
-                placeholder="Held the line at the Sandy Shores defense…"
+                placeholder="Held the line when it counted…"
                 className="mt-1"
               />
               <p className="mt-1 text-xs text-muted-foreground">

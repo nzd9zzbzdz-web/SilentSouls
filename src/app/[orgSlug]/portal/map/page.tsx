@@ -3,7 +3,8 @@ import { PAGE_W } from "@/lib/page-width";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components/portal/map/ClubMap";
 import { requireOrgRole } from "@/lib/auth/session";
-import { getOrgBySlug } from "@/lib/tenant";
+import { getBranding, getOrgBySlug } from "@/lib/tenant";
+import { resolveBranding } from "@/lib/branding-resolve";
 import {
   getMember,
   listMapMarkers,
@@ -26,11 +27,13 @@ export default async function ClubMapPage({
   const canManage = access.isSuper || access.role !== "member";
   const canEditPins = canManage || viewer?.status === "patched";
 
-  const [rawMarkers, rawTerritories, members] = await Promise.all([
+  const [rawMarkers, rawTerritories, members, brandingDoc] = await Promise.all([
     listMapMarkers(org.id),
     listMapTerritories(org.id),
     listMembers(org.id),
+    getBranding(org.id, "portal"),
   ]);
+  const territoryName = resolveBranding(brandingDoc, "portal").location;
   const roadNameById = new Map(members.map((m) => [m.id, m.roadName]));
 
   const markers: ClubMapMarker[] = rawMarkers.map((m) => ({
@@ -59,8 +62,8 @@ export default async function ClubMapPage({
         <DisplayHeading className="text-3xl text-foreground md:text-4xl">Club Map</DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
           {canEditPins
-            ? "Drop intel pins and track turf across San Andreas. The whole club sees this map."
-            : "Club intel across San Andreas. Patched members keep this map current."}
+            ? `Drop intel pins and track turf across ${territoryName}. The whole club sees this map.`
+            : `Club intel across ${territoryName}. Patched members keep this map current.`}
         </p>
       </div>
       <ClubMap

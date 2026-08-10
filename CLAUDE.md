@@ -112,9 +112,35 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
     keeps working as a separate layer after that migration.
 - Officer-only data lives in **subcollections** (`members/*/notes`) — rules can't
   hide fields on a parent doc.
-- **No hardcoded brand colors/names in components.** Branding comes from
-  `organizations/{orgId}/branding/{public|portal}` docs → `<BrandStyle>` injects
-  CSS vars scoped to `[data-surface]`. Brand values are seed data only.
+- **No hardcoded brand colors/names/images in components.** The whole visual
+  identity is editable from Admin → Branding, and the chain has one shape:
+  `organizations/{orgId}/branding/{public|portal}` → `resolveBranding()` →
+  `<BrandStyle>` (CSS vars scoped to `[data-surface]`) + `<BrandingProvider>`
+  (for client components) . Layouts resolve ONCE and pass down; nothing
+  re-reads branding per component.
+  - **`src/lib/branding-defaults.ts` is the shipped fallback** for every colour,
+    name and image. `resolveBranding(doc, surface)` folds a club's document over
+    it and returns a value where every field is present, so components never
+    write `?? "#D9362B"` or `?? "/brand/x.webp"`. A club with an empty branding
+    doc renders the default site rather than a broken one.
+  - **Images: add a key to `BRANDING_ASSET_KEYS` + a row to `BRANDING_ART`**
+    and the asset card, upload, crop, serve and reset all follow. `fit: "cover"`
+    crops backdrops to fill; `fit: "contain"` pads cut-outs (patch, wordmark,
+    emblems) on a transparent ground. `surface: "both"` writes to both docs.
+    Uploads land in `organizations/{orgId}/brandingArt/{key}` as webp data URLs
+    and the SERVED URL is written to `branding.assets[key]`, so resolving a
+    club's whole imagery still costs the one document read layouts already make.
+  - **Semantic tokens** (`--brand-primary`, `--brand-glow`, `--background-panel`,
+    `--border-subtle`, `--text-muted`, …) come out of `src/lib/branding-css.ts`
+    alongside the shadcn names. New markup should use them. They are RESTATED
+    per surface, never aliased as `var(--primary)` in `:root`: custom properties
+    substitute at computed-value time on the element that declares them, so an
+    alias would freeze to the neutral value and ignore the surface override.
+  - Deliberately NOT branding: rarity/medal tints (`src/lib/rarity.ts`, a game
+    convention worth keeping recognizable), vest leather and thread
+    (`src/lib/cut/materials.ts`), map pin categories, `CHAIN_OF_COMMAND_PLATE`
+    (live text is positioned from measured coordinates painted into the art),
+    and `HERO_VIDEO` (sharp decodes images, not video).
 - **Ember is spent on state, not on structure.** Red (`--primary`) is earned by:
   the active nav item, hover/focus, officer + President standing, numbers that
   matter (patch counts, headcounts, progress), and alerts. Everything else —
@@ -141,10 +167,12 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   not the new one — the plate is fixed-aspect painted art laid out at
   `height:auto`, so its height is purely a function of its width. Sizing it as
   a fraction of the wider column would make it taller while looking like a cut.
-- **`scripts/lib/branding.ts` is the single source of truth** for org name +
-  portal/public branding. seed/bootstrap/apply-branding/update-public-branding/
-  migrate-cut all import it — never re-declare these values in a script (they
-  drifted once and silently rewrote the old club name/palette over a rebrand).
+- **`scripts/lib/branding.ts` is the scripts' door onto `branding-defaults.ts`**
+  for org name + portal/public branding. seed/bootstrap/apply-branding/
+  update-public-branding/migrate-cut all import it — never re-declare these
+  values in a script (they drifted once and silently rewrote the old club
+  name/palette over a rebrand). Do not re-declare them in that file either:
+  edit `src/lib/branding-defaults.ts`, which the runtime shares.
 - To rebrand a running instance WITHOUT wiping data (`npm run seed` recursiveDeletes
   first): `npx tsx scripts/apply-branding.ts` — merge-only. Emulator data is
   in-memory, so reapply after every restart.

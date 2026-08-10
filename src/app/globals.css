@@ -45,6 +45,33 @@
   --font-display: var(--font-inter);
   --font-body: var(--font-inter);
   --font-stat: var(--font-jetbrains);
+
+  /* Semantic layer — colors named by ROLE rather than by shadcn slot. New
+     markup should reach for these. <BrandStyle> restates every one of them
+     per surface from the org's branding doc (see src/lib/branding-css.ts);
+     what follows are the unbranded fallbacks for anything rendering outside a
+     [data-surface] subtree.
+
+     They are written out rather than declared as `var(--primary)`: custom
+     properties substitute at computed-value time on the element that DECLARES
+     them, so an alias defined here would freeze to the neutral value and
+     ignore a surface override further down. */
+  --brand-primary: #262626;
+  --brand-secondary: #f5f5f5;
+  --brand-accent: #f5f5f5;
+  --brand-on-primary: #fafafa;
+  --brand-accent-hover: color-mix(in srgb, #262626 82%, #171717);
+  --brand-glow: #262626;
+  --background-main: #ffffff;
+  --background-sidebar: #fafafa;
+  --background-panel: #ffffff;
+  --background-elevated: #ffffff;
+  --border-primary: #e5e5e5;
+  --border-subtle: color-mix(in srgb, #e5e5e5 55%, transparent);
+  --border-strong: #e5e5e5;
+  --text-primary: #171717;
+  --text-secondary: color-mix(in srgb, #171717 78%, transparent);
+  --text-muted: #737373;
 }
 
 /* Dark clubhouse fallbacks — Ravens of Death palette (never pure #000). */
@@ -66,7 +93,7 @@
   --destructive: #941B22;
   --destructive-foreground: #EEE7E8;
   /* Structure is weathered bone, not crimson — ember is reserved for state.
-     See scripts/lib/branding.ts, which is the source of truth these mirror. */
+     See src/lib/branding-defaults.ts, the source of truth these mirror. */
   --border: rgba(184, 160, 165, 0.14);
   --input: rgba(184, 160, 165, 0.24);
   --ring: #D9362B;
@@ -79,6 +106,24 @@
   --sidebar-accent-foreground: #EEE7E8;
   --sidebar-border: rgba(184, 160, 165, 0.16);
   --sidebar-ring: #D9362B;
+
+  /* Semantic layer, dark. Same note as :root — restated, not aliased. */
+  --brand-primary: #D9362B;
+  --brand-secondary: #2D111F;
+  --brand-accent: #54213F;
+  --brand-on-primary: #EEE7E8;
+  --brand-accent-hover: color-mix(in srgb, #D9362B 82%, #EEE7E8);
+  --brand-glow: #D9362B;
+  --background-main: #050407;
+  --background-sidebar: #030206;
+  --background-panel: #151017;
+  --background-elevated: #1D1620;
+  --border-primary: rgba(184, 160, 165, 0.14);
+  --border-subtle: color-mix(in srgb, rgba(184, 160, 165, 0.14) 55%, transparent);
+  --border-strong: rgba(184, 160, 165, 0.24);
+  --text-primary: #EEE7E8;
+  --text-secondary: color-mix(in srgb, #EEE7E8 78%, transparent);
+  --text-muted: #B8A0A5;
 }
 
 @theme inline {
@@ -114,6 +159,14 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* Semantic layer as Tailwind utilities — `bg-elevated`, `border-subtle`,
+     `text-secondary`, `shadow-glow`. Only the roles that have no shadcn
+     equivalent are exposed; for the rest keep using `bg-card`, `text-primary`
+     and friends, which already point at the same branded values. */
+  --color-brand-glow: var(--brand-glow);
+  --color-elevated: var(--background-elevated);
+  --color-subtle: var(--border-subtle);
+  --color-secondary-text: var(--text-secondary);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
