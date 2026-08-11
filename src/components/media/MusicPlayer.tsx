@@ -21,19 +21,25 @@ import { Music2, Minus, Maximize2 } from "lucide-react";
  *    entirely while paused, since nothing is playing to mask. The iframe stays
  *    mounted throughout so playback position survives minimize/pause.
  *
- * Minimized also puts the panel BESIDE the pill instead of above it, which is
- * what makes it usable on the in-game phone browser (a few hundred CSS pixels
- * tall): one row of about 110px rather than a 260px stack. Both states are the
- * same JSX with different classes on purpose. Moving either element to a
- * different place in the tree would make React build a new container div, the
- * live iframe would go with the old one, and the track would restart.
+ * On a phone there is no player AT ALL — see `MusicPlayer` below, which is a
+ * gate around `AnthemPlayer`. Nothing is masked because nothing is playing,
+ * and the in-game browser is spared an embed it can't afford.
+ *
+ * Above that, minimized puts the panel BESIDE the pill instead of above it:
+ * one row of about 110px rather than a 260px stack, for the small laptop and
+ * the split window. Both states are the same JSX with different classes on
+ * purpose. Moving either element to a different place in the tree would make
+ * React build a new container div, the live iframe would go with the old one,
+ * and the track would restart.
  */
 
 const VOLUME = 55;
 const EXPANDED_WIDTH = 320;
 const MINIMIZED_WIDTH = 156;
-/** Below this, the player opens minimized unless the visitor has said otherwise. */
-const COMPACT_BREAKPOINT = 640;
+/** At or below this, there is no player. */
+const SUPPRESS_MAX_WIDTH = 640;
+/** At or below this, the player opens minimized unless the visitor says otherwise. */
+const COMPACT_MAX_WIDTH = 900;
 const STORAGE_KEY = "brotherhood:anthem-minimized";
 
 const PREFERENCE_EVENT = "brotherhood:anthem-minimized-change";
@@ -70,7 +76,8 @@ function writePreference(value: boolean) {
   window.dispatchEvent(new Event(PREFERENCE_EVENT));
 }
 
-const COMPACT_QUERY = `(max-width: ${COMPACT_BREAKPOINT}px)`;
+const COMPACT_QUERY = `(max-width: ${COMPACT_MAX_WIDTH}px)`;
+const SUPPRESS_QUERY = `(max-width: ${SUPPRESS_MAX_WIDTH}px)`;
 
 function subscribeMinimized(onChange: () => void) {
   const mq = window.matchMedia(COMPACT_QUERY);
@@ -85,6 +92,60 @@ function subscribeMinimized(onChange: () => void) {
 /** A primitive, so returning a fresh read each time can't loop React. */
 function minimizedSnapshot() {
   return readPreference() ?? window.matchMedia(COMPACT_QUERY).matches;
+}
+
+/* ── Where the anthem does not go ──────────────────────────────────────
+   Three ways a device says "no player", in order of how sure we are:
+
+   1. `?lite=1` on any URL, remembered afterwards. Whatever link the club
+      pins into the in-game phone app carries it, and it is the one signal
+      that cannot be wrong about where the page is. `?lite=0` undoes it.
+   2. The page is inside a frame it does not own. That is the shape of an
+      in-game phone app: the site rendered into the phone's screen element.
+   3. A viewport of SUPPRESS_MAX_WIDTH or less. Catches real phones, and
+      catches an in-game browser that frames the site at phone size.
+
+   Read as an external store for the same reason the minimize preference
+   is: the server knows none of it. The SERVER snapshot is "suppressed",
+   so nothing is in the HTML and the phone never runs a line of this. The
+   player appears one tick after hydration on a desktop, which costs
+   nothing on a widget that starts muted and waits for a gesture. */
+const LITE_PARAM = "lite";
+const LITE_KEY = "brotherhood:lite";
+
+function liteParam() {
+  return new URLSearchParams(window.location.search).get(LITE_PARAM);
+}
+
+function liteMode() {
+  const param = liteParam();
+  if (param === "1") return true;
+  if (param === "0") return false;
+  try {
+    return window.localStorage.getItem(LITE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function subscribeSuppressed(onChange: () => void) {
+  // Effect phase, so this is the safe place for the write that a snapshot
+  // read must not do: hold the flag past the first client-side navigation,
+  // which drops the query string.
+  try {
+    const param = liteParam();
+    if (param === "1") window.localStorage.setItem(LITE_KEY, "1");
+    else if (param === "0") window.localStorage.removeItem(LITE_KEY);
+  } catch {
+    /* the flag then lasts as long as the query string does */
+  }
+  const mq = window.matchMedia(SUPPRESS_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+function suppressedSnapshot() {
+  return liteMode() || window.self !== window.top || window.matchMedia(SUPPRESS_QUERY).matches;
 }
 
 type YouTubePlayer = {
@@ -122,7 +183,20 @@ function loadYouTubeApi() {
   return apiPromise;
 }
 
-export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: string; label?: string }) {
+type AnthemProps = { videoId: string; label?: string };
+
+/**
+ * The gate. Returning null here means the YouTube script is never fetched,
+ * no iframe is built and no audio element exists, which is the difference
+ * between a hidden player and no player.
+ */
+export function MusicPlayer(props: AnthemProps) {
+  const suppressed = useSyncExternalStore(subscribeSuppressed, suppressedSnapshot, () => true);
+  if (suppressed) return null;
+  return <AnthemPlayer {...props} />;
+}
+
+function AnthemPlayer({ videoId, label = "Club Anthem" }: AnthemProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const [playing, setPlaying] = useState(false);
