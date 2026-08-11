@@ -3,6 +3,7 @@ import { defaultAssetsFor, defaultBrandingFor } from "@/lib/branding-defaults";
 import { clubPreset } from "@/lib/clubs";
 import { BRANDING_ASSET_KEYS } from "@/lib/types";
 import type { PlateLayout } from "@/lib/plate-layout";
+import type { WatermarkStyle } from "@/lib/watermark";
 import type {
   Branding,
   BrandingAssetKey,
@@ -59,6 +60,12 @@ export interface ResolvedBranding {
    * and the cached value stays small.
    */
   plateLayout: PlateLayout | null;
+  /**
+   * How the home page watermark sits and glows, when the club has moved it
+   * off the shipped treatment. Null means `DEFAULT_WATERMARK_STYLE`, kept
+   * null for the same reasons as `plateLayout` above.
+   */
+  watermarkStyle: WatermarkStyle | null;
   anthemVideoId: string;
   /**
    * Every catalog slot resolved to a usable URL. `plateArt` is the one slot
@@ -164,6 +171,7 @@ export function resolveBranding(
     chainTitle: branding?.chainTitle || base.chainTitle || "Brotherhood",
     chainBlurb: branding?.chainBlurb ?? base.chainBlurb ?? "",
     plateLayout: branding?.plateLayout ?? null,
+    watermarkStyle: branding?.watermarkStyle ?? null,
     anthemVideoId: branding?.anthemVideoId ?? base.anthemVideoId ?? "",
     assets,
     customAssets,
@@ -190,6 +198,10 @@ export interface BrandingDraft {
   chainBlurb: string;
   /** Same portal-only rule. Null means the template layout. */
   plateLayout: PlateLayout | null;
+  /** The watermark treatment, drawn only on the PUBLIC home page; the editor
+   *  shows it on the public tab and the save action writes it for that
+   *  surface only. Null means the shipped treatment. */
+  watermarkStyle: WatermarkStyle | null;
   anthemVideoId: string;
   colors: Required<BrandingColors>;
 }
@@ -241,6 +253,7 @@ export function toDraft(resolved: ResolvedBranding): BrandingDraft {
     chainTitle: resolved.chainTitle,
     chainBlurb: resolved.chainBlurb,
     plateLayout: resolved.plateLayout,
+    watermarkStyle: resolved.watermarkStyle,
     anthemVideoId: resolved.anthemVideoId,
     colors: resolved.colors,
   };
@@ -266,6 +279,7 @@ export function draftToResolved(
       chainTitle: draft.chainTitle,
       chainBlurb: draft.chainBlurb,
       plateLayout: draft.plateLayout ?? undefined,
+      watermarkStyle: draft.watermarkStyle ?? undefined,
       anthemVideoId: draft.anthemVideoId,
       assets,
     },

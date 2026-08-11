@@ -12,6 +12,7 @@ import {
   type PublicRosterMember,
 } from "@/lib/public-roster";
 import { resolveBranding } from "@/lib/branding-resolve";
+import { DEFAULT_WATERMARK_STYLE, watermarkCss } from "@/lib/watermark";
 import { CHARACTER_SILHOUETTE } from "@/lib/constants";
 import { clubPreset } from "@/lib/clubs";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
@@ -201,17 +202,16 @@ export default async function PublicHomePage({
             per-pixel max against the section bg: the dark canvas becomes exactly the
             section color (vanishes) while the brighter artwork shows — no seam, any
             width. The asset card says so, because a transparent PNG here would show
-            as a bright rectangle instead. */}
+            as a bright rectangle instead. Blend, filter, placement and scale all
+            come from watermarkCss: the club tunes them in Admin → Branding
+            (public tab), and null means the treatment this page always had. */}
         <Image
           src={branding.assets.watermark}
           alt=""
           fill
           sizes="100vw"
           className="pointer-events-none object-contain object-left"
-          style={{
-            mixBlendMode: "lighten",
-            filter: "brightness(3.8) contrast(1.12) saturate(1.15)",
-          }}
+          style={watermarkCss(branding.watermarkStyle ?? DEFAULT_WATERMARK_STYLE)}
         />
         <div className="relative px-6 py-16 md:py-20 lg:pl-[24%] lg:pr-12">
           <h2 id="creed-heading" className="sr-only">

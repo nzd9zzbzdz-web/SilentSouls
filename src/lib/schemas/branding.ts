@@ -85,6 +85,24 @@ export const plateLayoutSchema = z.object({
   stats: z.array(plateTextBox.extend({ labelSize: plateFontSize })).length(3),
 });
 
+/**
+ * The home page watermark treatment (see `src/lib/watermark.ts`). Bounds sit
+ * a little outside what the editor's sliders offer, plate-layout style, so a
+ * value the tool produced can never be refused by Save. Position may run past
+ * the band — bleeding off an edge is the whole point of the art — but not so
+ * far that a lost watermark cannot be dragged back.
+ */
+const watermarkFrac = z.number().min(-2).max(2);
+export const watermarkStyleSchema = z.object({
+  scale: z.number().min(0.05).max(5),
+  x: watermarkFrac,
+  y: watermarkFrac,
+  hue: z.number().min(-180).max(180),
+  saturate: z.number().min(0).max(5),
+  brightness: z.number().min(0).max(12),
+  opacity: z.number().min(0).max(1),
+});
+
 export const brandingDraftSchema = z.object({
   orgDisplayName: z.string().trim().min(1, "The club needs a name").max(80),
   shortName: z.string().trim().max(16, "Keep the short name under 16 characters"),
@@ -97,6 +115,8 @@ export const brandingDraftSchema = z.object({
   chainBlurb: z.string().trim().max(160),
   // Null means the template layout; the save action deletes the field.
   plateLayout: plateLayoutSchema.nullable(),
+  // Null means the shipped watermark treatment; same delete-on-save rule.
+  watermarkStyle: watermarkStyleSchema.nullable(),
   anthemVideoId: videoId,
   colors: brandingColorsSchema,
 });

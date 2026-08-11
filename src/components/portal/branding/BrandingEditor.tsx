@@ -36,6 +36,7 @@ import { AssetCard } from "./AssetCard";
 import { BrandingPreview } from "./BrandingPreview";
 import { ColorField } from "./ColorField";
 import { PlateLayoutEditor } from "./PlateLayoutEditor";
+import { WatermarkEditor } from "./WatermarkEditor";
 
 type Surface = "public" | "portal";
 type ColorKey = keyof Required<BrandingColors>;
@@ -474,6 +475,32 @@ export function BrandingEditor({
                           here.
                         </p>
                       )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* ── Home page watermark ──
+                    Public only: the treatment is drawn on the home page's
+                    pillars band, and the field is written to the public
+                    document alone. The watermark ART is an asset card below. */}
+                {s === "public" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Home page watermark</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        The oversized illustration behind the four pillars on
+                        the home page. Drag it into place and tune its size,
+                        glow and colour here; the artwork itself is swapped
+                        under Brand assets.
+                      </p>
+                      <WatermarkEditor
+                        art={assetUrls.watermark}
+                        background={d.colors.background}
+                        value={d.watermarkStyle}
+                        onChange={(v) => patch({ watermarkStyle: v })}
+                      />
                     </CardContent>
                   </Card>
                 )}

@@ -1,5 +1,6 @@
 import type { Timestamp } from "firebase/firestore";
 import type { PlateLayout } from "@/lib/plate-layout";
+import type { WatermarkStyle } from "@/lib/watermark";
 
 // ── Roles & stats ──────────────────────────────────────────────────────
 
@@ -188,6 +189,13 @@ export interface Branding {
    * means the template layout, which is what every club had before this field.
    */
   plateLayout?: PlateLayout;
+  /**
+   * public: where the home page watermark sits and how it glows, when the club
+   * has moved it off the shipped treatment. Absent means that treatment
+   * (`DEFAULT_WATERMARK_STYLE`), which is what every club had before this
+   * field existed.
+   */
+  watermarkStyle?: WatermarkStyle;
   /**
    * YouTube id for the floating club anthem. Absent ⇒ CLUB_ANTHEM_VIDEO_ID.
    * Branding rather than a constant because the anthem is as much a club's

@@ -200,7 +200,7 @@ export const BRANDING_ART: Record<BrandingAssetKey, BrandingArtSpec> = {
   watermark: {
     label: "Home page watermark",
     blurb:
-      "The oversized illustration bleeding off the left of the home page's four pillars.",
+      "The oversized illustration bleeding off the left of the home page's four pillars. Its size, position and colour are tuned on the Public site tab above.",
     surface: "public",
     group: "Scene art",
     width: 1200,
