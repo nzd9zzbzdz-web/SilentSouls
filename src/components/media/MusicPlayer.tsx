@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Music2, Minus, Maximize2 } from "lucide-react";
 
 /**
@@ -20,11 +20,72 @@ import { Music2, Minus, Maximize2 } from "lucide-react";
  *    so "minimized" shrinks it rather than removing it. The panel does go away
  *    entirely while paused, since nothing is playing to mask. The iframe stays
  *    mounted throughout so playback position survives minimize/pause.
+ *
+ * Minimized also puts the panel BESIDE the pill instead of above it, which is
+ * what makes it usable on the in-game phone browser (a few hundred CSS pixels
+ * tall): one row of about 110px rather than a 260px stack. Both states are the
+ * same JSX with different classes on purpose. Moving either element to a
+ * different place in the tree would make React build a new container div, the
+ * live iframe would go with the old one, and the track would restart.
  */
 
 const VOLUME = 55;
 const EXPANDED_WIDTH = 320;
-const MINIMIZED_WIDTH = 200;
+const MINIMIZED_WIDTH = 156;
+/** Below this, the player opens minimized unless the visitor has said otherwise. */
+const COMPACT_BREAKPOINT = 640;
+const STORAGE_KEY = "brotherhood:anthem-minimized";
+
+const PREFERENCE_EVENT = "brotherhood:anthem-minimized-change";
+
+/* Whether the player starts minimized is not React state — it is a reading of
+   two things React does not own, the saved preference and the viewport, so it
+   is subscribed to as an external store. That is also what lets it hydrate:
+   the server has neither, renders the expanded default, and the real value
+   lands on the first client snapshot.
+
+   Embedded browsers (the in-game phone among them) can have storage switched
+   off, where touching localStorage THROWS rather than returning null, so the
+   choice is held in memory as well; otherwise the button would be dead
+   exactly where it matters most. */
+let memoryPreference: boolean | null = null;
+
+function readPreference(): boolean | null {
+  if (memoryPreference !== null) return memoryPreference;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw === "1" ? true : raw === "0" ? false : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePreference(value: boolean) {
+  memoryPreference = value;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, value ? "1" : "0");
+  } catch {
+    /* preference just won't survive the reload */
+  }
+  window.dispatchEvent(new Event(PREFERENCE_EVENT));
+}
+
+const COMPACT_QUERY = `(max-width: ${COMPACT_BREAKPOINT}px)`;
+
+function subscribeMinimized(onChange: () => void) {
+  const mq = window.matchMedia(COMPACT_QUERY);
+  mq.addEventListener("change", onChange);
+  window.addEventListener(PREFERENCE_EVENT, onChange);
+  return () => {
+    mq.removeEventListener("change", onChange);
+    window.removeEventListener(PREFERENCE_EVENT, onChange);
+  };
+}
+
+/** A primitive, so returning a fresh read each time can't loop React. */
+function minimizedSnapshot() {
+  return readPreference() ?? window.matchMedia(COMPACT_QUERY).matches;
+}
 
 type YouTubePlayer = {
   playVideo(): void;
@@ -66,7 +127,7 @@ export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: strin
   const playerRef = useRef<YouTubePlayer | null>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
-  const [minimized, setMinimized] = useState(false);
+  const minimized = useSyncExternalStore(subscribeMinimized, minimizedSnapshot, () => false);
   // Explicit pause via the pill, which is the only thing that hides the panel.
   // Deliberately NOT `!playing`: the panel has to be on screen from first paint
   // or the iframe mounts into `display:none` and browsers decline to autoplay.
@@ -173,62 +234,83 @@ export function MusicPlayer({ videoId, label = "Club Anthem" }: { videoId: strin
         }
       `}</style>
 
+      {/* One float, not two: `items-end` keeps the panel and the pill on a
+          shared bottom line when they sit side by side. No `overflow-hidden`
+          here, or it would clip the pill's underglow. */}
       <div
-        role="region"
-        aria-label={label}
-        className={`glass-panel fixed bottom-20 right-5 z-40 overflow-hidden rounded-xl transition-[width] duration-200 ${
-          stopped ? "hidden" : ""
+        className={`fixed bottom-3 right-3 z-40 flex items-end gap-2 sm:bottom-5 sm:right-5 ${
+          minimized ? "flex-row" : "flex-col"
         }`}
-        style={{
-          width: `min(${minimized ? MINIMIZED_WIDTH : EXPANDED_WIDTH}px, calc(100vw - 2.5rem))`,
-        }}
       >
-        <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">
-          <span className="truncate text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-primary">
-            {muted ? "Tap anywhere for sound" : label}
-          </span>
-          <button
-            type="button"
-            onClick={() => setMinimized((v) => !v)}
-            aria-label={minimized ? "Expand player" : "Minimize player"}
-            className="shrink-0 rounded-full p-1 text-muted-foreground outline-none transition-colors hover:bg-accent/40 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        <div
+          role="region"
+          aria-label={label}
+          className={`glass-panel overflow-hidden rounded-xl transition-[width] duration-200 ${
+            stopped ? "hidden" : ""
+          }`}
+          style={{
+            // Minimized leaves room for the pill on the same line; expanded has
+            // the line to itself.
+            width: minimized
+              ? `min(${MINIMIZED_WIDTH}px, calc(100vw - 6.5rem))`
+              : `min(${EXPANDED_WIDTH}px, calc(100vw - 1.5rem))`,
+          }}
+        >
+          <div
+            className={`flex items-center justify-between gap-1 border-b border-border ${
+              minimized ? "px-2 py-1" : "px-3 py-1.5"
+            }`}
           >
-            {minimized ? (
-              <Maximize2 className="size-3.5" aria-hidden />
-            ) : (
-              <Minus className="size-3.5" aria-hidden />
-            )}
-          </button>
+            <span className="truncate text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-primary">
+              {muted ? (minimized ? "Tap for sound" : "Tap anywhere for sound") : label}
+            </span>
+            <button
+              type="button"
+              onClick={() => writePreference(!minimized)}
+              aria-label={minimized ? "Expand player" : "Minimize player"}
+              className="shrink-0 rounded-full p-1 text-muted-foreground outline-none transition-colors hover:bg-accent/40 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              {minimized ? (
+                <Maximize2 className="size-3.5" aria-hidden />
+              ) : (
+                <Minus className="size-3.5" aria-hidden />
+              )}
+            </button>
+          </div>
+          <div ref={containerRef} className="aspect-video w-full [&_iframe]:size-full [&_iframe]:border-0" />
         </div>
-        <div ref={containerRef} className="aspect-video w-full [&_iframe]:size-full [&_iframe]:border-0" />
-      </div>
 
-      {/* Ember glass only while the anthem plays — the pill is frosted at
-          rest and earns the primary tint once it's the live control. It's a
-          fixed float over the page, so the blur in `glass` is within the
-          perf rule, and nothing clips the underglow's below-edge bloom. */}
-      <button
-        type="button"
-        onClick={togglePlayback}
-        aria-label={playing ? `Pause ${label.toLowerCase()}` : `Play ${label.toLowerCase()}`}
-        aria-pressed={playing}
-        className={`glass glass-hover underglow fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full px-4 py-3 text-[0.7rem] font-semibold uppercase tracking-[0.16em] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
-          playing
-            ? "glass-ember text-primary-foreground"
-            : "text-foreground hover:text-primary"
-        }`}
-      >
-        {playing ? (
-          <span className="flex h-4 w-4 items-end justify-center gap-[3px]" aria-hidden>
-            <span className="anthem-bar h-full w-[3px] rounded-sm bg-current" />
-            <span className="anthem-bar h-full w-[3px] rounded-sm bg-current" />
-            <span className="anthem-bar h-full w-[3px] rounded-sm bg-current" />
-          </span>
-        ) : (
-          <Music2 className="size-4" aria-hidden />
-        )}
-        <span>{playing ? (muted ? "Muted" : "Playing") : label}</span>
-      </button>
+        {/* Ember glass only while the anthem plays — the pill is frosted at
+            rest and earns the primary tint once it's the live control. It's a
+            fixed float over the page, so the blur in `glass` is within the
+            perf rule, and nothing clips the underglow's below-edge bloom.
+            Minimized drops the wording and leaves a round icon: the state it
+            was reading out is on the panel beside it. */}
+        <button
+          type="button"
+          onClick={togglePlayback}
+          aria-label={playing ? `Pause ${label.toLowerCase()}` : `Play ${label.toLowerCase()}`}
+          aria-pressed={playing}
+          className={`glass glass-hover underglow flex shrink-0 items-center gap-2.5 rounded-full text-[0.7rem] font-semibold uppercase tracking-[0.16em] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
+            minimized ? "p-3" : "px-4 py-3"
+          } ${
+            playing
+              ? "glass-ember text-primary-foreground"
+              : "text-foreground hover:text-primary"
+          }`}
+        >
+          {playing ? (
+            <span className="flex h-4 w-4 items-end justify-center gap-[3px]" aria-hidden>
+              <span className="anthem-bar h-full w-[3px] rounded-sm bg-current" />
+              <span className="anthem-bar h-full w-[3px] rounded-sm bg-current" />
+              <span className="anthem-bar h-full w-[3px] rounded-sm bg-current" />
+            </span>
+          ) : (
+            <Music2 className="size-4" aria-hidden />
+          )}
+          {!minimized && <span>{playing ? (muted ? "Muted" : "Playing") : label}</span>}
+        </button>
+      </div>
     </>
   );
 }
