@@ -13,7 +13,6 @@ import {
 } from "@/lib/firebase/admin";
 import { requireOrgRole, requireSelfOrRole } from "@/lib/auth/session";
 import { syncUserClaims } from "@/lib/auth/claims";
-import { checkMilestones } from "@/lib/milestones";
 import {
   createMemberSchema,
   deleteMemberSchema,
@@ -81,11 +80,6 @@ export async function createMember(
       return ref.id;
     });
 
-    try {
-      await checkMilestones(input.orgId, "member_added");
-    } catch (err) {
-      console.error("checkMilestones (member_added) failed post-commit:", err);
-    }
     revalidateOrgTags(input.orgId, "members", "org");
     revalidatePath(`/[orgSlug]/portal/brotherhood`, "page");
     revalidatePath(`/[orgSlug]/portal/admin`, "page");

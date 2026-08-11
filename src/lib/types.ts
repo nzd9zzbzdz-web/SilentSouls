@@ -503,7 +503,7 @@ export interface CutRenderModel {
   back: ResolvedPlacement[];
 }
 
-// ── Prospects, votes, events, gallery, timeline ───────────────────────
+// ── Prospects, gallery ────────────────────────────────────────────────
 
 export interface ProspectRequirement {
   key: string;
@@ -519,42 +519,9 @@ export interface ProspectProfile {
   sponsorMemberId?: string;
   targetPatchDate?: Timestamp | Date;
   requirements: ProspectRequirement[];
+  /** `vote_pending` records that the club is deciding, wherever it votes.
+   *  There is no in-portal ballot: it is a status an officer sets by hand. */
   status: "active" | "vote_pending" | "patched" | "dropped";
-  voteId?: string;
-}
-
-export interface Vote {
-  id: string;
-  type: "prospect_patch" | "promotion" | "club_decision";
-  subjectMemberId?: string;
-  question: string;
-  options: string[];
-  eligibility: "officers" | "patched" | "all";
-  anonymous: boolean;
-  status: "open" | "closed";
-  opensAt: Timestamp | Date;
-  closesAt: Timestamp | Date;
-  results?: Record<string, number>;
-  outcome?: string;
-  createdBy: string;
-}
-
-export type EventType = "church" | "ride" | "operation" | "community";
-
-export interface ClubEvent {
-  id: string;
-  title: string;
-  type: EventType;
-  startAt: Timestamp | Date;
-  endAt?: Timestamp | Date;
-  location: string;
-  description: string;
-  visibility: "portal" | "public";
-  publicTitle?: string; // sanitized cover-story copy
-  publicDescription?: string;
-  activityTypeId?: string; // attendance feeds this activity type
-  createdBy: string;
-  createdAt: Timestamp | Date;
 }
 
 /**
@@ -569,7 +536,6 @@ export interface GalleryPhoto {
   id: string;
   uploadedByMemberId: string;
   caption?: string;
-  eventId?: string;
   /** Rejection DELETES the photo (see `reviewGalleryPhoto`), so there is no
    *  "rejected" state to read back — same call as a rejected character render. */
   status: "pending" | "approved";
@@ -592,18 +558,6 @@ export interface GalleryPhoto {
    *  patch art needs a second query (`listPatchArtVersions`) for the same. */
   updatedAt: Timestamp | Date;
   createdAt: Timestamp | Date;
-}
-
-export interface TimelineEntry {
-  id: string;
-  date: Timestamp | Date;
-  title: string;
-  description: string;
-  kind: "manual" | "milestone";
-  milestoneKey?: string; // idempotency key for auto-milestones
-  icon?: string;
-  imagePath?: string;
-  createdBy: string; // uid or 'system'
 }
 
 // ── Club Map (tactical territory map) ─────────────────────────────────

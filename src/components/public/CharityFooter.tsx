@@ -47,7 +47,6 @@ export function CharityFooter({
                 survive a rebrand, and the short name is the club's own word
                 for itself. */}
             <li><Link href={`${base}/about`} className="hover:text-foreground">About {shortName}</Link></li>
-            <li><Link href={`${base}/events`} className="hover:text-foreground">Rides &amp; Events</Link></li>
             <li><Link href={`${base}/join`} className="hover:text-foreground">Prospect With Us</Link></li>
             <li><Link href={`${base}/volunteer-resources`} className="hover:text-foreground">Member Login</Link></li>
           </ul>

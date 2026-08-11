@@ -251,7 +251,7 @@ async function seed() {
     publicName: ORG_PUBLIC_NAME,
     slug: ORG_ID,
     status: "active",
-    features: { gallery: true, votes: true, cut3d: false },
+    features: { gallery: true, cut3d: false },
     memberCount: MEMBERS.length,
     // Monotonic source for new member numbers — seeded to the highest existing
     // number so createMember can never reuse 1..14.
@@ -377,52 +377,6 @@ async function seed() {
     witnesses: ["m-six", "m-thorn"],
     status: "pending",
     createdAt: Timestamp.now(),
-  });
-
-  // Events: one portal church meeting, one public charity event
-  await org.collection("events").doc("e-church-next").set({
-    title: "Church: Mandatory",
-    type: "church",
-    startAt: Timestamp.fromDate(new Date("2026-07-12T20:00:00")),
-    location: "The Clubhouse, Sandy Shores",
-    description: "Monthly mandatory church. Prospects handle setup.",
-    visibility: "portal",
-    activityTypeId: "mandatory-church-attendance",
-    createdBy: "system",
-    createdAt: Timestamp.now(),
-  });
-  await org.collection("events").doc("e-food-drive").set({
-    title: "Charity Event: Food Drive Cover",
-    type: "community",
-    startAt: Timestamp.fromDate(new Date("2026-07-19T11:00:00")),
-    location: "Legion Square, Los Santos",
-    description: "Quarterly food drive. Full colors, best behavior.",
-    visibility: "public",
-    publicTitle: "Summer Community Food Drive",
-    publicDescription:
-      "Join the Ravens of Death Community Foundation at Legion Square for our quarterly food drive. All donations go directly to families in need across Los Santos.",
-    activityTypeId: "charity-event",
-    createdBy: "system",
-    createdAt: Timestamp.now(),
-  });
-
-  // Timeline
-  await org.collection("timeline").doc("founded").set({
-    date: Timestamp.fromDate(new Date("2023-02-11")),
-    title: "Organization Founded",
-    description: "The charter was signed in a Sandy Shores garage. Eight founding members.",
-    kind: "milestone",
-    milestoneKey: "founded",
-    icon: "flag",
-    createdBy: "system",
-  });
-  await org.collection("timeline").doc("t-clubhouse").set({
-    date: Timestamp.fromDate(new Date("2023-08-04")),
-    title: "First Clubhouse Purchased",
-    description: "The Ravens put down roots. The Sandy Shores clubhouse becomes home.",
-    kind: "manual",
-    icon: "home",
-    createdBy: "system",
   });
 
   // Club Map: intel pins + turf zones (normalized u/v against the map image).

@@ -25,7 +25,10 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
 ## Architecture invariants — do not break
 
 - **All mutations via Server Actions** (`src/actions/*`) using firebase-admin.
-  Client SDK is read-only (sole exception: event RSVPs, shape-enforced in rules).
+  Client SDK is read-only, with no exceptions: every `allow write` in
+  `firestore.rules` is `if false`. (Event RSVPs used to be the one shape-enforced
+  client write; they went with the events feature, so the rule is now absolute
+  and a new client write should be treated as a design error, not a precedent.)
 - Every action calls `requireOrgRole(orgId, minRole)` and scopes doc refs as
   `organizations/${orgId}/...` — never trust client-posted ids to cross tenants.
 - **Never `router.refresh()` after a successful Server Action.** Every action
@@ -279,9 +282,19 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
 ## Roadmap state
 
 M1 Foundation ✅ · M2 Members ✅ · M3 Activities ✅ · M4 Patch Engine ✅
-M5 Prospects (write flows/votes) · M6 Events/RSVP/attendance · M7 Gallery/Timeline
-M8 Digital Cut renderer · M9 Multi-tenant expansion (custom domains, org wizard,
-impersonation) — all designed in the original plan; schema already supports them.
+M5 Prospects (read-only board shipped; officer write flows outstanding)
+M7 Gallery ✅ · M8 Digital Cut renderer ✅ (route exists, deliberately not in the
+nav) · M9 Multi-tenant expansion (custom domains, org wizard, impersonation).
+
+**Cut from the product 2026-08-10, do not rebuild without asking:** Events,
+Church, Votes and Timeline. The pages, the `events` / `votes` / `timeline`
+collections, their rules blocks and indexes, `ClubEvent` / `Vote` /
+`TimelineEntry`, and the auto-milestone writer (`src/lib/milestones.ts`, called
+post-commit from the patch engine and `createMember`) were all removed. The
+original plan had them as M5/M6/M7; they are not deferred, they are gone. Git
+history has the implementations if the club ever changes its mind.
+`ProspectProfile.status` keeps `vote_pending` on purpose: the club still votes,
+just not in the portal, so an officer sets that status by hand.
 
 ## Windows dev notes
 

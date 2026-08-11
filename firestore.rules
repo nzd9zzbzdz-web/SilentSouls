@@ -119,34 +119,6 @@ service cloud.firestore {
           allow write: if false;
         }
       }
-      match /votes/{voteId} {
-        allow read: if isMember(orgId);
-        allow write: if false;
-
-        match /ballots/{memberId} {
-          // Anonymous ballots are never client-readable; tallied results live on the vote doc.
-          allow read: if isOrgAdmin(orgId)
-            && get(/databases/$(db)/documents/organizations/$(orgId)/votes/$(voteId)).data.anonymous == false;
-          allow write: if false;
-        }
-      }
-      match /events/{eventId} {
-        allow read: if isMember(orgId);
-        allow write: if false;
-
-        match /rsvps/{memberId} {
-          allow read: if isMember(orgId);
-          // The single client-writable surface: members RSVP for themselves.
-          allow write: if isMember(orgId)
-            && myMemberId(orgId) == memberId
-            && request.resource.data.keys().hasOnly(['status', 'respondedAt'])
-            && request.resource.data.status in ['going', 'maybe', 'no'];
-        }
-        match /attendance/{memberId} {
-          allow read: if isMember(orgId);
-          allow write: if false;
-        }
-      }
       match /gallery/{photoId} {
         allow read: if isOfficer(orgId)
           || (isMember(orgId)
@@ -164,10 +136,6 @@ service cloud.firestore {
         // these — every surface goes through the gallery route, which runs the
         // real three-audience check with the Admin SDK.
         allow read, write: if false;
-      }
-      match /timeline/{entryId} {
-        allow read: if isMember(orgId);
-        allow write: if false;
       }
       match /mapMarkers/{markerId} {
         // Club Map intel pins — club-visible; mutations via server actions only.

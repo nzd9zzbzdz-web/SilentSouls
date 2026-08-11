@@ -104,7 +104,7 @@ async function bootstrap() {
       publicName: ORG_PUBLIC_NAME,
       slug: ORG_ID,
       status: "active",
-      features: { gallery: true, votes: true, cut3d: false },
+      features: { gallery: true, cut3d: false },
       memberCount: 1, // the founding admin
       lastMemberNumber: 1,
       foundedAt: Timestamp.now(),

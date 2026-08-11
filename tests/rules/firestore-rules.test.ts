@@ -57,11 +57,6 @@ beforeAll(async () => {
       memberId: "member-a1",
       status: "pending",
     });
-    await setDoc(doc(db, `organizations/${ORG_A}/votes/v1`), { anonymous: true });
-    await setDoc(doc(db, `organizations/${ORG_A}/votes/v1/ballots/member-a1`), {
-      choice: "Yea",
-    });
-    await setDoc(doc(db, `organizations/${ORG_A}/events/e1`), { title: "Church" });
     await setDoc(doc(db, `organizations/${ORG_A}/invites/i1`), { token: "secret" });
   });
 });
@@ -130,46 +125,9 @@ describe("client writes", () => {
     );
   });
 
-  it("member can RSVP for THEMSELVES with valid shape", async () => {
-    const db = env.authenticatedContext("uid-a1", memberOfA).firestore();
-    await assertSucceeds(
-      setDoc(doc(db, `organizations/${ORG_A}/events/e1/rsvps/member-a1`), {
-        status: "going",
-        respondedAt: new Date(),
-      }),
-    );
-  });
-
-  it("member cannot RSVP for someone else", async () => {
-    const db = env.authenticatedContext("uid-a1", memberOfA).firestore();
-    await assertFails(
-      setDoc(doc(db, `organizations/${ORG_A}/events/e1/rsvps/member-a2`), {
-        status: "going",
-        respondedAt: new Date(),
-      }),
-    );
-  });
-
-  it("RSVP with invalid shape is rejected", async () => {
-    const db = env.authenticatedContext("uid-a1", memberOfA).firestore();
-    await assertFails(
-      setDoc(doc(db, `organizations/${ORG_A}/events/e1/rsvps/member-a1`), {
-        status: "going",
-        respondedAt: new Date(),
-        extraField: "injection",
-      }),
-    );
-  });
 });
 
-describe("ballot secrecy & invites", () => {
-  it("anonymous ballots are unreadable even to officers", async () => {
-    const db = env.authenticatedContext("uid-o1", officerOfA).firestore();
-    await assertFails(
-      getDoc(doc(db, `organizations/${ORG_A}/votes/v1/ballots/member-a1`)),
-    );
-  });
-
+describe("invites", () => {
   it("invites are never client-readable", async () => {
     const db = env.authenticatedContext("uid-a1", memberOfA).firestore();
     await assertFails(getDoc(doc(db, `organizations/${ORG_A}/invites/i1`)));

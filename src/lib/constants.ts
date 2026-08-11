@@ -438,8 +438,5 @@ export const PORTAL_NAV = [
   { href: "/activities", label: "Activities", icon: "activity" },
   { href: "/patch-wall", label: "Patch Wall", icon: "award" },
   { href: "/my-cut", label: "My Cut", icon: "shirt" },
-  { href: "/events", label: "Events", icon: "calendar" },
-  { href: "/church", label: "Church", icon: "landmark" },
-  { href: "/timeline", label: "Timeline", icon: "history" },
   { href: "/gallery", label: "Gallery", icon: "image" },
 ] as const;

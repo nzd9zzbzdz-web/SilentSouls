@@ -8,7 +8,6 @@ import type {
   Patch,
   StatKey,
 } from "@/lib/types";
-import { checkMilestones } from "@/lib/milestones";
 import { activityEntries } from "@/lib/activity-entries";
 
 export interface EngineResult {
@@ -167,18 +166,6 @@ export async function approveActivityTx(
     } satisfies EngineResult;
   });
 
-  if (result.awardedPatchIds.length) {
-    // Post-commit and best-effort: the approval is already durable, so a
-    // milestone hiccup must never surface as a failed approval.
-    try {
-      await checkMilestones(orgId, "patch_awarded", {
-        memberId: result.memberId,
-        patchIds: result.awardedPatchIds,
-      });
-    } catch (err) {
-      console.error("checkMilestones (approve) failed post-commit:", err);
-    }
-  }
   return result;
 }
 
@@ -244,13 +231,6 @@ export async function manualAwardTx(
     return true;
   });
 
-  if (awarded) {
-    try {
-      await checkMilestones(orgId, "patch_awarded", { memberId, patchIds: [patchId] });
-    } catch (err) {
-      console.error("checkMilestones (manual award) failed post-commit:", err);
-    }
-  }
   return awarded;
 }
 
