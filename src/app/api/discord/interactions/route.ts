@@ -3,7 +3,9 @@ import { verifyDiscordSignature } from "@/lib/discord/verify";
 import {
   InteractionType,
   ResponseType,
+  handleAutocomplete,
   handleDiscordCommand,
+  handleModalSubmit,
   type DiscordInteraction,
 } from "@/lib/discord/interactions";
 
@@ -50,6 +52,14 @@ export async function POST(req: NextRequest) {
 
   if (interaction.type === InteractionType.ApplicationCommand) {
     return NextResponse.json(await handleDiscordCommand(interaction));
+  }
+
+  if (interaction.type === InteractionType.Autocomplete) {
+    return NextResponse.json(await handleAutocomplete(interaction));
+  }
+
+  if (interaction.type === InteractionType.ModalSubmit) {
+    return NextResponse.json(await handleModalSubmit(interaction));
   }
 
   return NextResponse.json({

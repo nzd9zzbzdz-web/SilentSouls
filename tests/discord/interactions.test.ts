@@ -184,4 +184,26 @@ describe("interactions route", () => {
     expect(json.type).toBe(4);
     expect(json.data.content).toContain("Pong");
   });
+
+  it("routes a signed autocomplete request", async () => {
+    process.env.DISCORD_PUBLIC_KEY = publicHex;
+    const res = await POST(
+      signedRequest(
+        '{"type":4,"data":{"name":"ticket","options":[{"name":"type","type":3,"value":"","focused":true}]}}',
+      ),
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).type).toBe(8);
+  });
+
+  it("routes a signed modal submit", async () => {
+    process.env.DISCORD_PUBLIC_KEY = publicHex;
+    const res = await POST(
+      signedRequest('{"type":5,"data":{"custom_id":"not-ours","components":[]}}'),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.type).toBe(4);
+    expect(json.data.content).toBe("Unsupported form.");
+  });
 });

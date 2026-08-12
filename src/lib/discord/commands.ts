@@ -44,4 +44,18 @@ export const DISCORD_COMMANDS = [
     name: "unlink",
     description: "Unlink this Discord account from the portal",
   },
+  {
+    type: 1,
+    name: "ticket",
+    description: "File an activity ticket for officer review",
+    options: [
+      {
+        type: 3,
+        name: "type",
+        description: "Activity type",
+        required: true,
+        autocomplete: true,
+      },
+    ],
+  },
 ];
