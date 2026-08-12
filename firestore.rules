@@ -45,6 +45,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /discordLinkCodes/{code} {
+      // Discord link handshake: minted by a server action, redeemed by the
+      // bot. Server-only both ways, same as invites.
+      allow read, write: if false;
+    }
+
     match /organizations/{orgId} {
       allow read: if isMember(orgId);
       allow write: if false;

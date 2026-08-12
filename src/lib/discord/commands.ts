@@ -16,14 +16,32 @@ export const DISCORD_COMMANDS = [
   {
     type: 1,
     name: "mystats",
-    description: "Look up a member's club record",
+    description: "Your club record (or look up a member by road name)",
     options: [
       {
         type: 3,
         name: "member",
-        description: "Road name to look up (until Discord accounts are linked)",
+        description: "Road name to look up; leave empty for your own record",
         required: false,
       },
     ],
+  },
+  {
+    type: 1,
+    name: "link",
+    description: "Link this Discord account to your portal account",
+    options: [
+      {
+        type: 3,
+        name: "code",
+        description: "Link code from the portal dashboard",
+        required: true,
+      },
+    ],
+  },
+  {
+    type: 1,
+    name: "unlink",
+    description: "Unlink this Discord account from the portal",
   },
 ];

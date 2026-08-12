@@ -15,7 +15,9 @@ import { CountUp } from "@/components/motion/CountUp";
 import { Reveal } from "@/components/motion/Reveal";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { ClubMap, type ClubMapMarker, type ClubMapTerritory } from "@/components/portal/map/ClubMap";
+import { DiscordLinkCard } from "@/components/portal/DiscordLinkCard";
 import { requireOrgRole } from "@/lib/auth/session";
+import { getDiscordLink } from "@/lib/discord/link";
 import { getOrgBySlug } from "@/lib/tenant";
 import { describeActivity } from "@/lib/activity-entries";
 import {
@@ -74,6 +76,7 @@ export default async function DashboardPage({
   const awards = access.memberId
     ? await listMemberAwards(org.id, access.memberId)
     : [];
+  const discordLink = access.memberId ? await getDiscordLink(access.user.uid) : null;
   const members = await listMembers(org.id);
   const memberById = new Map(members.map((m) => [m.id, m]));
   const typeById = new Map(types.map((t) => [t.id, t]));
@@ -237,7 +240,8 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        {/* Next patch progress */}
+        {/* Next patch progress, with the Discord link beneath it */}
+        <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -286,6 +290,15 @@ export default async function DashboardPage({
             )}
           </CardContent>
         </Card>
+
+        {member && (
+          <DiscordLinkCard
+            orgId={org.id}
+            linked={Boolean(discordLink)}
+            username={discordLink?.username ?? null}
+          />
+        )}
+        </div>
       </div>
     </div>
   );

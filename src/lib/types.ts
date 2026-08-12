@@ -676,6 +676,28 @@ export interface UserDoc {
   photoURL?: string;
   superAdmin?: boolean; // mirror; custom claims are authoritative
   memberships: Record<string, UserMembership>; // keyed by orgId
+  /**
+   * Discord account linked to this portal account, written only by the bot's
+   * /link code redemption (src/lib/discord/link.ts). Account-level like
+   * memberships, so one link serves every org the account belongs to. The id
+   * is Discord's permanent snowflake; the username is a display copy taken at
+   * link time and may go stale.
+   */
+  discordId?: string;
+  discordUsername?: string;
+  createdAt: Timestamp | Date;
+}
+
+/**
+ * A pending Discord link handshake: minted by createDiscordLinkCode (the
+ * signed-in website side), redeemed by /link in Discord (the signed
+ * interaction side). Doc id IS the code. Root collection `discordLinkCodes`,
+ * server-only in rules like invites.
+ */
+export interface DiscordLinkCode {
+  uid: string;
+  orgId: string; // where the code was minted; used for the audit log entry
+  expiresAt: Timestamp | Date;
   createdAt: Timestamp | Date;
 }
 
