@@ -11,6 +11,9 @@ import {
   EngineError,
   type EngineResult,
 } from "@/lib/activities-core";
+import { describeActivity } from "@/lib/activity-entries";
+import { notifyTicketSubmitted } from "@/lib/discord/notify";
+import { getMember, listActivityTypes } from "@/lib/queries";
 import {
   reviewActivitySchema,
   submitActivitySchema,
@@ -43,10 +46,26 @@ export async function submitActivity(
     if (!access.memberId) return { ok: false, error: "No member record" };
 
     // The actor comes from the caller's OWN claims, never the payload.
-    const { activityId } = await submitActivityCore(
+    const { activityId, entries } = await submitActivityCore(
       { uid: access.user.uid, memberId: access.memberId },
       input,
     );
+
+    // Officer-channel heads-up (no-op unless the Discord bot is configured);
+    // notify never throws, so it cannot fail the submission it rides behind.
+    const [member, types] = await Promise.all([
+      getMember(input.orgId, access.memberId),
+      listActivityTypes(input.orgId),
+    ]);
+    const typeById = new Map(types.map((t) => [t.id, t.name]));
+    await notifyTicketSubmitted(input.orgId, {
+      activityId,
+      memberLabel: member
+        ? `"${member.roadName}" ${member.displayName}`
+        : "A member",
+      summary: describeActivity({ entries }, (id) => typeById.get(id)),
+      description: input.description,
+    });
 
     revalidatePath(`/[orgSlug]/portal/activities`, "page");
     return { ok: true, data: { activityId } };

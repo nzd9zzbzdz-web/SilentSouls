@@ -461,6 +461,17 @@ export async function listActivities(
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Activity, "id">) }));
 }
 
+/** One ticket, fresh: review surfaces must see the current status. */
+export async function getActivity(
+  orgId: string,
+  activityId: string,
+): Promise<Activity | null> {
+  const snap = await orgRef(orgId).collection("activities").doc(activityId).get();
+  return snap.exists
+    ? { id: snap.id, ...(snap.data() as Omit<Activity, "id">) }
+    : null;
+}
+
 export async function countPending(orgId: string): Promise<number> {
   const snap = await orgRef(orgId)
     .collection("activities")

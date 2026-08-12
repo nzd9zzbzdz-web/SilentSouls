@@ -4,6 +4,7 @@ import {
   InteractionType,
   ResponseType,
   handleAutocomplete,
+  handleComponent,
   handleDiscordCommand,
   handleModalSubmit,
   type DiscordInteraction,
@@ -52,6 +53,10 @@ export async function POST(req: NextRequest) {
 
   if (interaction.type === InteractionType.ApplicationCommand) {
     return NextResponse.json(await handleDiscordCommand(interaction));
+  }
+
+  if (interaction.type === InteractionType.MessageComponent) {
+    return NextResponse.json(await handleComponent(interaction));
   }
 
   if (interaction.type === InteractionType.Autocomplete) {

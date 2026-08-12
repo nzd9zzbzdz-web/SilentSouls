@@ -3,16 +3,24 @@ import {
   SubmissionError,
   submitActivityCore,
 } from "@/lib/activities-core";
+import { describeActivity } from "@/lib/activity-entries";
 import { CRIMINAL_RECORD_ROWS } from "@/lib/constants";
 import {
   consumeLinkCode,
   findUserByDiscordId,
   unlinkDiscordId,
 } from "@/lib/discord/link";
-import { getMember, listActivityTypes, listMembers, listRanks } from "@/lib/queries";
+import { notifyTicketSubmitted } from "@/lib/discord/notify";
+import {
+  getActivity,
+  getMember,
+  listActivityTypes,
+  listMembers,
+  listRanks,
+} from "@/lib/queries";
 import { getOrgById } from "@/lib/tenant";
 import { submitActivitySchema } from "@/lib/schemas/activity";
-import type { Member, Organization } from "@/lib/types";
+import type { Member, Organization, SystemRole } from "@/lib/types";
 
 /**
  * The Discord transport's command dispatch, kept apart from the HTTP route so
@@ -30,6 +38,7 @@ import type { Member, Organization } from "@/lib/types";
 export const InteractionType = {
   Ping: 1,
   ApplicationCommand: 2,
+  MessageComponent: 3,
   Autocomplete: 4,
   ModalSubmit: 5,
 } as const;
@@ -110,7 +119,7 @@ async function botOrg(): Promise<Organization | null> {
  * (syncUserClaims), so trusting it here matches the website's authority.
  */
 type LinkedMember =
-  | { kind: "ok"; uid: string; member: Member }
+  | { kind: "ok"; uid: string; member: Member; role: SystemRole }
   | { kind: "unlinked" }
   | { kind: "no_member" };
 
@@ -123,8 +132,8 @@ async function resolveLinkedMember(
   if (!linked) return { kind: "unlinked" };
   const membership = linked.memberships?.[org.id];
   const member = membership ? await getMember(org.id, membership.memberId) : null;
-  if (!member) return { kind: "no_member" };
-  return { kind: "ok", uid: linked.uid, member };
+  if (!membership || !member) return { kind: "no_member" };
+  return { kind: "ok", uid: linked.uid, member, role: membership.role };
 }
 
 // ── Slash commands ─────────────────────────────────────────────────────
@@ -359,8 +368,9 @@ export async function handleModalSubmit(
     return reply(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
+  let filed: Awaited<ReturnType<typeof submitActivityCore>>;
   try {
-    await submitActivityCore(
+    filed = await submitActivityCore(
       { uid: resolved.uid, memberId: resolved.member.id },
       parsed.data,
     );
@@ -378,11 +388,71 @@ export async function handleModalSubmit(
   }
 
   const types = await listActivityTypes(org.id);
-  const typeName = types.find((t) => t.id === typeId)?.name ?? "Activity";
-  const amount =
-    quantity > 1 ? ` ×${quantity.toLocaleString("en-US")}` : "";
+  const typeById = new Map(types.map((t) => [t.id, t.name]));
+  const summary = describeActivity({ entries: filed.entries }, (id) =>
+    typeById.get(id),
+  );
+
+  // Officer-channel heads-up; never blocks or fails the filing.
+  await notifyTicketSubmitted(org.id, {
+    activityId: filed.activityId,
+    memberLabel: `"${resolved.member.roadName}" ${resolved.member.displayName}`,
+    summary,
+    description: parsed.data.description,
+  });
+
   return reply(
-    `Ticket filed: ${typeName}${amount}. An officer will review it; approvals land on your record automatically.`,
+    `Ticket filed: ${summary}. An officer will review it; approvals land on your record automatically.`,
+  );
+}
+
+// ── Officer review buttons (verification only in this phase) ───────────
+
+const REVIEW_PREFIX = "review:";
+
+/**
+ * A click on the officer-channel Approve/Deny buttons. This phase PROVES the
+ * permission chain (signed click → account link → membership role, the same
+ * mirror custom claims are built from) and reads the ticket's live status;
+ * it deliberately writes nothing. The live decision arrives next phase.
+ */
+export async function handleComponent(
+  interaction: DiscordInteraction,
+): Promise<InteractionResponse> {
+  const customId = interaction.data?.custom_id ?? "";
+  if (!customId.startsWith(REVIEW_PREFIX)) return reply("Unsupported button.");
+  const [, decision, activityId] = customId.split(":");
+  if ((decision !== "approve" && decision !== "deny") || !activityId) {
+    return reply("Unsupported button.");
+  }
+
+  const org = await botOrg();
+  if (!org) return reply("This bot is not connected to a club yet.");
+
+  const resolved = await resolveLinkedMember(org, interaction);
+  if (resolved.kind === "unlinked") {
+    return reply(
+      "Link your Discord account first: generate a code on the portal " +
+        "dashboard, then run /link code:<your code>.",
+    );
+  }
+  if (resolved.kind === "no_member") {
+    return reply(`Your portal account has no member record with ${org.name}.`);
+  }
+  if (resolved.role !== "officer" && resolved.role !== "admin") {
+    return reply("Officers only. Your account holds the member role.");
+  }
+
+  const activity = await getActivity(org.id, activityId);
+  if (!activity) return reply("That ticket no longer exists.");
+  if (activity.status !== "pending") {
+    return reply(`This ticket was already ${activity.status}.`);
+  }
+
+  const verb = decision === "approve" ? "Approving" : "Denying";
+  return reply(
+    `Officer verified. ${verb} from Discord goes live in the next update; ` +
+      "until then, review this ticket on the website.",
   );
 }
 

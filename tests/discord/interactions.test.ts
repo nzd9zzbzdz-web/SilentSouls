@@ -196,6 +196,17 @@ describe("interactions route", () => {
     expect((await res.json()).type).toBe(8);
   });
 
+  it("routes a signed component click", async () => {
+    process.env.DISCORD_PUBLIC_KEY = publicHex;
+    const res = await POST(
+      signedRequest('{"type":3,"data":{"custom_id":"not-review"}}'),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.type).toBe(4);
+    expect(json.data.content).toBe("Unsupported button.");
+  });
+
   it("routes a signed modal submit", async () => {
     process.env.DISCORD_PUBLIC_KEY = publicHex;
     const res = await POST(

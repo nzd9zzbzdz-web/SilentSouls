@@ -48,7 +48,7 @@ export class SubmissionError extends Error {
 export async function submitActivityCore(
   actor: SubmissionActor,
   input: SubmitActivityInput,
-): Promise<{ activityId: string }> {
+): Promise<{ activityId: string; entries: ActivityEntry[] }> {
   const { orgId } = input;
 
   // Proof is never required — requiresProof is only a "recommended" hint.
@@ -93,7 +93,9 @@ export async function submitActivityCore(
     });
   });
 
-  return { activityId: activityRef.id };
+  // The denormalized entries ride back so transports can describe the ticket
+  // (officer-channel notifications) without re-reading what they just wrote.
+  return { activityId: activityRef.id, entries };
 }
 
 /**
