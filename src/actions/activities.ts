@@ -2,18 +2,25 @@
 
 import { revalidatePath } from "next/cache";
 import { revalidateOrgTags } from "@/lib/cache";
-import { FieldValue, adminDb, orgRef } from "@/lib/firebase/admin";
 import { requireOrgRole } from "@/lib/auth/session";
-import { approveActivityTx, EngineError, type EngineResult } from "@/lib/patch-engine";
+import {
+  SubmissionError,
+  approveActivityTx,
+  denyActivityCore,
+  submitActivityCore,
+  EngineError,
+  type EngineResult,
+} from "@/lib/activities-core";
 import {
   reviewActivitySchema,
   submitActivitySchema,
   type ReviewActivityInput,
   type SubmitActivityInput,
 } from "@/lib/schemas/activity";
-import type { ActivityEntry, ActivityType } from "@/lib/types";
 
-const DAILY_SUBMISSION_CAP = 20;
+// The web transport for tickets: zod parse → requireOrgRole → core → cache
+// revalidation. All Firestore work lives in src/lib/activities-core.ts so a
+// future non-web caller reuses it without a session cookie.
 
 export interface ActionResult<T = undefined> {
   ok: boolean;
@@ -35,55 +42,14 @@ export async function submitActivity(
     const access = await requireOrgRole(input.orgId, "member");
     if (!access.memberId) return { ok: false, error: "No member record" };
 
-    // Validate every activity type BEFORE touching the rate-limit counter, so
-    // an invalid submission never burns a daily slot. Proof is never required —
-    // requiresProof is only a "recommended" hint in the form.
-    const typeSnaps = await adminDb.getAll(
-      ...input.entries.map((e) =>
-        orgRef(input.orgId).collection("activityTypes").doc(e.typeId),
-      ),
+    // The actor comes from the caller's OWN claims, never the payload.
+    const { activityId } = await submitActivityCore(
+      { uid: access.user.uid, memberId: access.memberId },
+      input,
     );
-    const entries: ActivityEntry[] = [];
-    for (const [i, snap] of typeSnaps.entries()) {
-      if (!snap.exists) return { ok: false, error: "Unknown activity type" };
-      const type = snap.data() as ActivityType;
-      if (!type.active) return { ok: false, error: `${type.name} is disabled` };
-      entries.push({
-        typeId: input.entries[i].typeId,
-        statKey: type.statKey, // denormalized at submit time
-        quantity: type.allowQuantity ? input.entries[i].quantity : 1,
-      });
-    }
-
-    // Rate cap (≤20/day/uid) and the activity write happen in ONE transaction:
-    // the slot is consumed only if the activity is actually created.
-    const day = new Date().toISOString().slice(0, 10);
-    const capRef = adminDb.doc(
-      `organizations/${input.orgId}/rateLimits/${access.user.uid}_submit_${day}`,
-    );
-    const activityRef = orgRef(input.orgId).collection("activities").doc();
-
-    const created = await adminDb.runTransaction(async (tx) => {
-      const snap = await tx.get(capRef);
-      const count = (snap.data()?.count ?? 0) as number;
-      if (count >= DAILY_SUBMISSION_CAP) return false;
-      tx.set(capRef, { count: count + 1 }, { merge: true });
-      tx.set(activityRef, {
-        memberId: access.memberId,
-        entries,
-        date: input.date,
-        description: input.description,
-        witnesses: input.witnesses,
-        ...(input.proofPath ? { proofPath: input.proofPath } : {}),
-        status: "pending",
-        createdAt: FieldValue.serverTimestamp(),
-      });
-      return true;
-    });
-    if (!created) return { ok: false, error: "Daily submission limit reached" };
 
     revalidatePath(`/[orgSlug]/portal/activities`, "page");
-    return { ok: true, data: { activityId: activityRef.id } };
+    return { ok: true, data: { activityId } };
   } catch (e) {
     return failure(e);
   }
@@ -111,26 +77,7 @@ export async function reviewActivity(
       return { ok: true, data: result };
     }
 
-    // Denial: single status flip + audit.
-    const ref = orgRef(orgId).collection("activities").doc(activityId);
-    await adminDb.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      if (!snap.exists) throw new EngineError("activity_not_found");
-      if (snap.data()?.status !== "pending") throw new EngineError("not_pending");
-      tx.update(ref, {
-        status: "denied",
-        reviewedBy: access.user.uid,
-        reviewedAt: FieldValue.serverTimestamp(),
-        ...(reviewNote ? { reviewNote } : {}),
-      });
-      tx.set(orgRef(orgId).collection("auditLogs").doc(), {
-        actorUid: access.user.uid,
-        action: "activity.deny",
-        targetPath: ref.path,
-        ...(reviewNote ? { detail: reviewNote } : {}),
-        at: FieldValue.serverTimestamp(),
-      });
-    });
+    await denyActivityCore(orgId, activityId, access.user.uid, reviewNote);
 
     revalidatePath(`/[orgSlug]/portal/activities/review`, "page");
     return { ok: true, data: undefined };
@@ -140,6 +87,16 @@ export async function reviewActivity(
 }
 
 function failure(e: unknown): { ok: false; error: string } {
+  if (e instanceof SubmissionError) {
+    switch (e.code) {
+      case "unknown_type":
+        return { ok: false, error: "Unknown activity type" };
+      case "type_disabled":
+        return { ok: false, error: `${e.detail ?? "This activity type"} is disabled` };
+      case "daily_limit":
+        return { ok: false, error: "Daily submission limit reached" };
+    }
+  }
   if (e instanceof EngineError) {
     const messages: Record<string, string> = {
       activity_not_found: "Activity not found",
