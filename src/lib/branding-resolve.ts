@@ -4,6 +4,7 @@ import { clubPreset } from "@/lib/clubs";
 import { BRANDING_ASSET_KEYS } from "@/lib/types";
 import type { PlateLayout } from "@/lib/plate-layout";
 import type { WatermarkStyle } from "@/lib/watermark";
+import type { EmblemStyle } from "@/lib/emblem-style";
 import type {
   Branding,
   BrandingAssetKey,
@@ -66,6 +67,11 @@ export interface ResolvedBranding {
    * null for the same reasons as `plateLayout` above.
    */
   watermarkStyle: WatermarkStyle | null;
+  /**
+   * How the four public emblems read, when the club has tuned them. Null
+   * means `DEFAULT_EMBLEM_STYLE`, kept null for the same reasons.
+   */
+  emblemStyle: EmblemStyle | null;
   anthemVideoId: string;
   /**
    * Every catalog slot resolved to a usable URL. `plateArt` is the one slot
@@ -172,6 +178,7 @@ export function resolveBranding(
     chainBlurb: branding?.chainBlurb ?? base.chainBlurb ?? "",
     plateLayout: branding?.plateLayout ?? null,
     watermarkStyle: branding?.watermarkStyle ?? null,
+    emblemStyle: branding?.emblemStyle ?? null,
     anthemVideoId: branding?.anthemVideoId ?? base.anthemVideoId ?? "",
     assets,
     customAssets,
@@ -202,6 +209,8 @@ export interface BrandingDraft {
    *  shows it on the public tab and the save action writes it for that
    *  surface only. Null means the shipped treatment. */
   watermarkStyle: WatermarkStyle | null;
+  /** Same public-only rule. Null means the shipped emblem treatment. */
+  emblemStyle: EmblemStyle | null;
   anthemVideoId: string;
   colors: Required<BrandingColors>;
 }
@@ -254,6 +263,7 @@ export function toDraft(resolved: ResolvedBranding): BrandingDraft {
     chainBlurb: resolved.chainBlurb,
     plateLayout: resolved.plateLayout,
     watermarkStyle: resolved.watermarkStyle,
+    emblemStyle: resolved.emblemStyle,
     anthemVideoId: resolved.anthemVideoId,
     colors: resolved.colors,
   };
@@ -280,6 +290,7 @@ export function draftToResolved(
       chainBlurb: draft.chainBlurb,
       plateLayout: draft.plateLayout ?? undefined,
       watermarkStyle: draft.watermarkStyle ?? undefined,
+      emblemStyle: draft.emblemStyle ?? undefined,
       anthemVideoId: draft.anthemVideoId,
       assets,
     },

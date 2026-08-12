@@ -13,6 +13,7 @@ import {
 } from "@/lib/public-roster";
 import { resolveBranding } from "@/lib/branding-resolve";
 import { DEFAULT_WATERMARK_STYLE, watermarkCss } from "@/lib/watermark";
+import { DEFAULT_EMBLEM_STYLE, emblemCss } from "@/lib/emblem-style";
 import { CHARACTER_SILHOUETTE } from "@/lib/constants";
 import { clubPreset } from "@/lib/clubs";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
@@ -227,13 +228,17 @@ export default async function PublicHomePage({
                 href={p.href}
                 className="group flex flex-col items-center rounded-lg px-6 py-2 text-center transition-colors duration-200 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
               >
+                {/* Height and shadow come from emblemCss (the club's saved
+                    treatment over this page's shipped size); the classes only
+                    set the responsive base the scale multiplies. */}
                 <Image
                   src={p.img}
                   alt=""
                   width={160}
                   height={160}
                   unoptimized
-                  className="h-16 w-auto object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)] transition-transform duration-300 group-hover:scale-105 md:h-[4.75rem]"
+                  className="w-auto object-contain transition-transform duration-300 group-hover:scale-105 [--emblem-h:4rem] md:[--emblem-h:4.75rem]"
+                  style={emblemCss(branding.emblemStyle ?? DEFAULT_EMBLEM_STYLE)}
                 />
                 <h3 className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-foreground">
                   {p.title}

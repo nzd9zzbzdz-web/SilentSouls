@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import { resolveBranding } from "@/lib/branding-resolve";
+import { DEFAULT_EMBLEM_STYLE, emblemCss } from "@/lib/emblem-style";
 import { DisplayHeading } from "@/components/theme/DisplayHeading";
 import { OrnamentRule } from "@/components/public/OrnamentRule";
 import { Reveal } from "@/components/motion/Reveal";
@@ -181,15 +182,20 @@ export default async function AboutPage({
           story and its closing lines. */}
       <section className="bg-background">
         <div className="mx-auto flex max-w-3xl items-center justify-center gap-6 px-6 py-12 sm:gap-10 md:gap-16">
-          {emblems.map((src) => (
+          {/* Height, shadow and strength come from emblemCss: the club's
+              treatment over this rule's shipped size and its always-there
+              0.7 base opacity. Keyed by slot, not URL — two slots may share
+              art (the placeholder set does). */}
+          {emblems.map((src, i) => (
             <Image
-              key={src}
+              key={i}
               src={src}
               alt=""
               aria-hidden
               width={96}
               height={96}
-              className="h-12 w-auto object-contain opacity-70 drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)] md:h-14"
+              className="w-auto object-contain [--emblem-h:3rem] md:[--emblem-h:3.5rem]"
+              style={emblemCss(branding.emblemStyle ?? DEFAULT_EMBLEM_STYLE, 0.7)}
             />
           ))}
         </div>

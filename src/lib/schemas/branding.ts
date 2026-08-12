@@ -103,6 +103,19 @@ export const watermarkStyleSchema = z.object({
   opacity: z.number().min(0).max(1),
 });
 
+/**
+ * The public emblem treatment (see `src/lib/emblem-style.ts`). Same
+ * wider-than-the-sliders rule as the watermark: nothing the tool produces can
+ * be refused by Save.
+ */
+export const emblemStyleSchema = z.object({
+  scale: z.number().min(0.05).max(5),
+  hue: z.number().min(-180).max(180),
+  saturate: z.number().min(0).max(5),
+  brightness: z.number().min(0).max(8),
+  opacity: z.number().min(0).max(1),
+});
+
 export const brandingDraftSchema = z.object({
   orgDisplayName: z.string().trim().min(1, "The club needs a name").max(80),
   shortName: z.string().trim().max(16, "Keep the short name under 16 characters"),
@@ -117,6 +130,8 @@ export const brandingDraftSchema = z.object({
   plateLayout: plateLayoutSchema.nullable(),
   // Null means the shipped watermark treatment; same delete-on-save rule.
   watermarkStyle: watermarkStyleSchema.nullable(),
+  // Null means the shipped emblem treatment; same delete-on-save rule.
+  emblemStyle: emblemStyleSchema.nullable(),
   anthemVideoId: videoId,
   colors: brandingColorsSchema,
 });

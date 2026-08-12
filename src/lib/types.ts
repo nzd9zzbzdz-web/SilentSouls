@@ -1,6 +1,7 @@
 import type { Timestamp } from "firebase/firestore";
 import type { PlateLayout } from "@/lib/plate-layout";
 import type { WatermarkStyle } from "@/lib/watermark";
+import type { EmblemStyle } from "@/lib/emblem-style";
 
 // ── Roles & stats ──────────────────────────────────────────────────────
 
@@ -196,6 +197,13 @@ export interface Branding {
    * field existed.
    */
   watermarkStyle?: WatermarkStyle;
+  /**
+   * public: how the four emblems read on the home page pillars and the About
+   * page rule, when the club has tuned them. Absent means the shipped
+   * treatment (`DEFAULT_EMBLEM_STYLE`), which is what every club had before
+   * this field existed.
+   */
+  emblemStyle?: EmblemStyle;
   /**
    * YouTube id for the floating club anthem. Absent ⇒ CLUB_ANTHEM_VIDEO_ID.
    * Branding rather than a constant because the anthem is as much a club's

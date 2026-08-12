@@ -75,11 +75,13 @@ export async function saveBranding(raw: SaveBrandingInput): Promise<ActionResult
                 plateLayout: draft.plateLayout ?? FieldValue.delete(),
               }
             : {
-                // The watermark treatment is the public mirror of the plate
-                // fields: only the public home page draws it, so only a
-                // public save writes it, and null (the shipped treatment)
-                // deletes rather than stores for the same Reset reason.
+                // The watermark and emblem treatments are the public mirror
+                // of the plate fields: only the public pages draw them, so
+                // only a public save writes them, and null (the shipped
+                // treatment) deletes rather than stores for the same Reset
+                // reason.
                 watermarkStyle: draft.watermarkStyle ?? FieldValue.delete(),
+                emblemStyle: draft.emblemStyle ?? FieldValue.delete(),
               }),
           ...sharedIdentity(draft),
         },
@@ -176,7 +178,10 @@ export async function resetBranding(raw: {
                 chainBlurb: FieldValue.delete(),
                 plateLayout: FieldValue.delete(),
               }
-            : { watermarkStyle: FieldValue.delete() }),
+            : {
+                watermarkStyle: FieldValue.delete(),
+                emblemStyle: FieldValue.delete(),
+              }),
           ...clearShared,
         },
         { merge: true },

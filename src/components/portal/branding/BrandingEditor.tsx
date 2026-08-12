@@ -37,6 +37,7 @@ import { BrandingPreview } from "./BrandingPreview";
 import { ColorField } from "./ColorField";
 import { PlateLayoutEditor } from "./PlateLayoutEditor";
 import { WatermarkEditor } from "./WatermarkEditor";
+import { EmblemStyleEditor } from "./EmblemStyleEditor";
 
 type Surface = "public" | "portal";
 type ColorKey = keyof Required<BrandingColors>;
@@ -500,6 +501,38 @@ export function BrandingEditor({
                         background={d.colors.background}
                         value={d.watermarkStyle}
                         onChange={(v) => patch({ watermarkStyle: v })}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* ── Emblem treatment ──
+                    Public only, same contract as the watermark: drawn on the
+                    home page pillars and the About page rule, written to the
+                    public document alone. The emblem ART is four asset cards
+                    below. */}
+                {s === "public" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Emblem treatment</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        The four badges above the home page pillars and between
+                        the About page acts. Tune their size, colour and
+                        strength as a set here; each badge&apos;s artwork is
+                        swapped under Brand assets.
+                      </p>
+                      <EmblemStyleEditor
+                        arts={[
+                          assetUrls.emblemOne,
+                          assetUrls.emblemTwo,
+                          assetUrls.emblemThree,
+                          assetUrls.emblemFour,
+                        ]}
+                        background={d.colors.background}
+                        value={d.emblemStyle}
+                        onChange={(v) => patch({ emblemStyle: v })}
                       />
                     </CardContent>
                   </Card>
