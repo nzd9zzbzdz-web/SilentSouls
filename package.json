@@ -16,6 +16,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "add-character": "tsx scripts/add-character.ts",
+    "register-discord": "tsx scripts/register-discord-commands.ts",
     "update-portal-branding": "tsx scripts/update-portal-branding.ts"
   },
   "dependencies": {
