@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import { PAGE_W } from "@/lib/page-width";
 import { CharacterArtUploader } from "@/components/portal/CharacterArtUploader";
 import { type StagePatch } from "@/components/portal/CharacterStage";
-import { CharacterPoseEditor } from "@/components/portal/CharacterPoseEditor";
+import {
+  CharacterStageEditor,
+  type EmblemChoice,
+} from "@/components/portal/CharacterStageEditor";
 import { EmblemLadders } from "@/components/portal/EmblemLadders";
 import { Leaderboard } from "@/components/portal/Leaderboard";
 import { MemberBio } from "@/components/portal/MemberBio";
@@ -97,6 +100,7 @@ export default async function MemberDetailPage({
     .map(({ award, patch }) => {
       const awardedAt = (award.awardedAt as Timestamp)?.toDate?.();
       return {
+        patchId: patch.id,
         name: patch.name,
         description: patch.description,
         category: patch.category,
@@ -136,16 +140,62 @@ export default async function MemberDetailPage({
   // Emblems never reach the cut — this tab is the only place they live.
   const ladders = composeLadders({ patches, awards, stats: member.stats });
 
+  // Everything this member may pin on their stage: every earned emblem rung,
+  // plus the patches they actually wear. The action re-checks earned-ness on
+  // save; this list only decides what the picker offers.
+  const fmtEarned = (d: Date | null | undefined) =>
+    d
+      ? `Earned ${d.toLocaleDateString("en-US", { month: "short", year: "numeric" })}`
+      : "Earned";
+  const emblemChoices: EmblemChoice[] = [
+    ...ladders.flatMap((l) =>
+      l.tiers
+        .filter((t) => t.earned)
+        .map((t) => ({
+          kind: "emblem" as const,
+          patchId: t.patch.id,
+          name: t.patch.name,
+          description: t.patch.description,
+          category: t.patch.category,
+          awardedLabel: fmtEarned(t.awardedAt),
+          artUrl: patchArtUrl(org.id, t.patch.id, patchArt),
+        })),
+    ),
+    ...awards
+      .map((award) => ({ award, patch: patchById.get(award.patchId) }))
+      .filter(
+        (x): x is { award: (typeof awards)[number]; patch: NonNullable<ReturnType<typeof patchById.get>> } =>
+          Boolean(x.patch) && x.patch?.emblem !== true,
+      )
+      .sort(
+        (a, b) =>
+          rarityWeight[b.patch.rarity ?? "common"] -
+            rarityWeight[a.patch.rarity ?? "common"] ||
+          b.patch.tier - a.patch.tier,
+      )
+      .map(({ award, patch }) => ({
+        kind: "patch" as const,
+        patchId: patch.id,
+        name: patch.name,
+        description: patch.description,
+        category: patch.category,
+        awardedLabel: fmtEarned((award.awardedAt as Timestamp)?.toDate?.()),
+        artUrl: patchArtUrl(org.id, patch.id, patchArt),
+      })),
+  ];
+
   return (
     <div className={`${PAGE_W.gallery} space-y-8`}>
       {/* Stage + its uploader are one block — the uploader is an adjunct
           control that stays tight under the stage, outside the page rhythm. */}
       <div>
-        <CharacterPoseEditor
+        <CharacterStageEditor
           orgId={org.id}
           memberId={memberId}
           canEdit={canEditSelf}
           initialPose={member.characterPose}
+          initialEmblems={member.characterEmblems ?? null}
+          emblemChoices={emblemChoices}
           orgName={brand.name}
           tagline={brand.tagline}
           roadName={member.roadName}

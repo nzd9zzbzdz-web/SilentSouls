@@ -90,6 +90,22 @@ export const CHARACTER_POSE_LIMITS = {
   scale: { min: 15, max: 130 },
 } as const;
 
+/**
+ * Bounds for member-arranged stage emblems. x/y are the tile CENTER, so 0..100
+ * keeps at least half of every tile on the stage; size tops out well short of
+ * the artwork's focal areas so an emblem can't become a second backdrop. The
+ * count cap keeps a save to one small doc write plus one award check per tile.
+ */
+export const CHARACTER_EMBLEM_LIMITS = {
+  x: { min: 0, max: 100 },
+  y: { min: 0, max: 100 },
+  size: { min: 2, max: 25 },
+  count: 12,
+} as const;
+
+/** Starting tile width for a newly placed emblem, % of stage width. */
+export const DEFAULT_CHARACTER_EMBLEM_SIZE = 6;
+
 export const STAT_LABELS: Record<StatKey, string> = {
   churchAttendance: "Church Attendance",
   clubRuns: "Club Runs",

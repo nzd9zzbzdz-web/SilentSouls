@@ -10,9 +10,14 @@ import {
   keyOutLightBackground,
   needsBackgroundKeying,
 } from "@/lib/character-key";
-import { clampPose, saveCharacterPoseSchema } from "@/lib/schemas/character";
+import {
+  clampEmblemPlacements,
+  clampPose,
+  saveCharacterEmblemsSchema,
+  saveCharacterPoseSchema,
+} from "@/lib/schemas/character";
 import type { ActionResult } from "./activities";
-import type { CharacterPose } from "@/lib/types";
+import type { CharacterPose, StageEmblemPlacement } from "@/lib/types";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // raw upload cap
 const MAX_STORED_BYTES = 700 * 1024; // keep the Firestore doc well under 1MB
@@ -245,6 +250,77 @@ export async function saveCharacterPose(raw: {
             detail: `x=${pose.x.toFixed(1)} y=${pose.y.toFixed(1)} h=${pose.scale.toFixed(1)}`,
           }
         : {}),
+    });
+
+    revalidateOrgTags(orgId, "members");
+    revalidatePath(`/[orgSlug]/portal/brotherhood/[memberId]`, "page");
+    return { ok: true };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+/**
+ * Save which awards a member shows on their character stage and where — the
+ * member themselves, or an admin for anyone. Like the pose, this is
+ * self-service: it's their screen, and an arrangement is trivially reversible.
+ *
+ * Pass `placements: null` to clear the arrangement and fall back to the
+ * automatic rarest-four slots; an empty array means "show nothing". Coordinates
+ * are clamped rather than rejected, but the patch ids are NOT taken on faith:
+ * every placed id must have an award doc for this member, or the save is
+ * refused. Without that check any member could pin patches they never earned.
+ */
+export async function saveCharacterEmblems(raw: {
+  orgId: string;
+  memberId: string;
+  placements: StageEmblemPlacement[] | null;
+}): Promise<ActionResult> {
+  const parsed = saveCharacterEmblemsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const { orgId, memberId, placements } = parsed.data;
+
+  try {
+    const { access, isSelf } = await requireSelfOrRole(orgId, memberId, "admin");
+    const memberRef = orgRef(orgId).collection("members").doc(memberId);
+    if (!(await memberRef.get()).exists) {
+      return { ok: false, error: "Member not found" };
+    }
+
+    const cleaned = placements ? clampEmblemPlacements(placements) : null;
+    if (cleaned && cleaned.length > 0) {
+      // Award docs use the composite id `${memberId}_${patchId}`, so earned-ness
+      // is a direct doc lookup per tile, no query needed.
+      const awardSnaps = await Promise.all(
+        cleaned.map((p) =>
+          orgRef(orgId)
+            .collection("awardedPatches")
+            .doc(`${memberId}_${p.patchId}`)
+            .get(),
+        ),
+      );
+      if (awardSnaps.some((s) => !s.exists)) {
+        return {
+          ok: false,
+          error: "Only awards this member has earned can go on the stage",
+        };
+      }
+    }
+
+    await memberRef.update({
+      characterEmblems: cleaned ?? FieldValue.delete(),
+    });
+    await writeAuditLog(orgId, {
+      actorUid: access.user.uid,
+      action: cleaned
+        ? `member.stageEmblems${isSelf ? ".self" : ""}`
+        : `member.stageEmblems.reset${isSelf ? ".self" : ""}`,
+      targetPath: memberRef.path,
+      // Omit the key entirely on reset — Firestore rejects an explicit
+      // `undefined`, which would fail the write after the layout already changed.
+      ...(cleaned ? { detail: `${cleaned.length} emblems placed` } : {}),
     });
 
     revalidateOrgTags(orgId, "members");

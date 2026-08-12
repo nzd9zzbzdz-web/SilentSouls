@@ -288,6 +288,19 @@ export interface CharacterPose {
   scale: number; // figure height, % of stage height
 }
 
+/**
+ * One award pinned to the character stage by its owner. When a member has any
+ * of these, the stage shows their arrangement instead of the automatic
+ * rarest-four diamond slots. Same unit convention as {@link CharacterPose}:
+ * percentages of the stage box, so a layout holds at any viewport size.
+ */
+export interface StageEmblemPlacement {
+  patchId: string;
+  x: number; // tile center, % of stage width
+  y: number; // tile center, % of stage height
+  size: number; // tile width, % of stage width
+}
+
 export interface Member {
   id: string;
   uid: string | null;
@@ -296,6 +309,13 @@ export interface Member {
   photoPath?: string;
   /** Character-stage placement; falls back to DEFAULT_CHARACTER_POSE. */
   characterPose?: CharacterPose;
+  /**
+   * Member-arranged emblems on the character stage. Absent ⇒ the automatic
+   * rarest-four slots; present (even empty) ⇒ exactly these, where the member
+   * put them. Only awards the member has actually earned can be placed —
+   * saveCharacterEmblems checks each one against awardedPatches.
+   */
+  characterEmblems?: StageEmblemPlacement[];
   /** @deprecated Legacy hand-authored rap sheet — see {@link RapSheetEntry}. */
   rapSheet?: RapSheetEntry[];
   /** Character-screen status line, e.g. "At Large", "Incarcerated". */

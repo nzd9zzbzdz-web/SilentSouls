@@ -23,12 +23,20 @@ import type { CharacterPose, PatchCategory } from "@/lib/types";
  */
 
 export interface StagePatch {
+  patchId: string;
   name: string;
   description: string;
   category: PatchCategory;
   awardedLabel: string; // e.g. "Earned Mar 2024" or "Manually awarded"
   /** Uploaded artwork, if the club has any — otherwise the category icon. */
   artUrl?: string | null;
+}
+
+/** A member-placed emblem tile: a StagePatch plus where its owner pinned it. */
+export interface StageEmblem extends StagePatch {
+  x: number; // tile center, % of stage width
+  y: number; // tile center, % of stage height
+  size: number; // tile width, % of stage width
 }
 
 export interface CharacterStageProps {
@@ -42,13 +50,18 @@ export interface CharacterStageProps {
   panelTitle?: string; // defaults to "Service Record"
   stats: { label: string; value: number | string; danger?: boolean }[];
   patches: StagePatch[]; // up to 4 — the diamond slots
+  /**
+   * Member-arranged emblem tiles. Absent ⇒ the automatic diamond slots render
+   * from `patches`; present (even empty) ⇒ only this arrangement renders.
+   */
+  emblems?: StageEmblem[];
   stagePath?: string; // org stage art (branding.characterStagePath)
   characterPath?: string; // member full-body render (member.photoPath)
   /** Saved placement for the render; omit for the CSS defaults. */
   pose?: CharacterPose;
 }
 
-const CATEGORY_ICON: Record<PatchCategory, typeof Award> = {
+export const CATEGORY_ICON: Record<PatchCategory, typeof Award> = {
   activity: Bike,
   service: HeartHandshake,
   leadership: Crown,
@@ -56,8 +69,14 @@ const CATEGORY_ICON: Record<PatchCategory, typeof Award> = {
   legendary: Skull,
 };
 
-// Diamond slot centers, % of stage (matches the painted frames in the art).
-const SLOT_POS = [22.5, 33.7, 44.9, 56.2];
+// Diamond slot tops, % of stage (matches the painted frames in the art).
+// Exported so the stage editor can seed an arrangement from the same spots.
+export const SLOT_POS = [22.5, 33.7, 44.9, 56.2];
+/** Where slot i's tile sits, in the emblem-placement convention (centers). */
+export function slotCenter(i: number): { x: number; y: number; size: number } {
+  // left 2.45% + half the 4.6% width; top is drawn at SLOT_POS[i] - 4.5.
+  return { x: 4.75, y: SLOT_POS[i] - 2.2, size: 4.6 };
+}
 
 function CountUp({ value }: { value: number }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -91,6 +110,7 @@ export function CharacterStage({
   panelTitle = "Service Record",
   stats,
   patches,
+  emblems,
   stagePath,
   characterPath,
   pose,
@@ -190,8 +210,41 @@ export function CharacterStage({
         <div className="charstage-rule" />
       </div>
 
+      {/* Member-arranged emblem tiles replace the automatic rail entirely:
+          choosing an arrangement IS choosing what shows. The painted diamond
+          frames stay visible in the art, and tiles can be dragged onto them. */}
+      {emblems != null &&
+        emblems.map((e) => {
+          const Icon = CATEGORY_ICON[e.category];
+          return (
+            <div
+              key={e.patchId}
+              className="charstage-emblem"
+              data-flip={e.x > 55 ? "true" : "false"}
+              style={{
+                left: `${e.x}%`,
+                top: `${e.y}%`,
+                width: `${e.size}%`,
+              }}
+            >
+              {e.artUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- streamed by the art route, already sized
+                <img className="charstage-slot-art" src={e.artUrl} alt="" aria-hidden />
+              ) : (
+                <Icon className="charstage-slot-icon" aria-hidden />
+              )}
+              <div className="charstage-tip" role="tooltip">
+                <p className="charstage-tip-name">{e.name}</p>
+                <p className="charstage-tip-desc">{e.description}</p>
+                <p className="charstage-tip-meta">{e.awardedLabel}</p>
+              </div>
+            </div>
+          );
+        })}
+
       {/* Patch diamonds over the painted frames */}
-      {slots.map(({ top, patch }, i) => {
+      {emblems == null &&
+        slots.map(({ top, patch }, i) => {
         const Icon = patch ? CATEGORY_ICON[patch.category] : Award;
         return (
           <div
@@ -406,6 +459,30 @@ const CSS_TEXT = `
   transition: transform 0.25s;
 }
 .charstage-slot:hover .charstage-slot-art { transform: scale(1.15); }
+/* Member-arranged tiles: positioned by their center so a size change grows in
+   place, faded with the rail as the camera pushes in. Art and icon reuse the
+   slot treatment so an emblem looks the same free-placed or framed. */
+.charstage-emblem {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  opacity: calc(1 - var(--focus, 0) * 1.4);
+  will-change: opacity;
+}
+.charstage-emblem .charstage-slot-icon {
+  color: var(--primary);
+  opacity: 1;
+  filter: drop-shadow(0 0 0.6cqw color-mix(in srgb, var(--primary) 70%, transparent));
+}
+.charstage-emblem:hover .charstage-slot-icon,
+.charstage-emblem:hover .charstage-slot-art { transform: scale(1.12); }
+.charstage-emblem:hover .charstage-tip { opacity: 1; visibility: visible; }
+/* Tiles on the right half open their tooltip to the left so it stays on stage. */
+.charstage-emblem[data-flip="true"] .charstage-tip { left: auto; right: 118%; }
 .charstage-slot-label {
   position: absolute;
   left: 112%; bottom: 52%;
