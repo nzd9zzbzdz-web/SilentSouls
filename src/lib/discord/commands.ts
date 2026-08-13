@@ -61,7 +61,7 @@ export const DISCORD_COMMANDS = [
   {
     type: 1,
     name: "leaderboard",
-    description: "Club standings for a stat category",
+    description: "Standings for a stat category",
     options: [
       {
         type: 3,
@@ -69,6 +69,35 @@ export const DISCORD_COMMANDS = [
         description: "Which board (defaults to the first)",
         required: false,
         autocomplete: true,
+      },
+      {
+        type: 3,
+        name: "scope",
+        description: "Your club's boards, or every club in the network",
+        required: false,
+        choices: [
+          { name: "club", value: "club" },
+          { name: "global", value: "global" },
+        ],
+      },
+    ],
+  },
+  {
+    type: 1,
+    name: "connect",
+    description: "Bind this server to your club (club admins only)",
+    options: [
+      {
+        type: 7, // channel
+        name: "channel",
+        description: "Officer channel where new tickets land for review",
+        required: false,
+      },
+      {
+        type: 3,
+        name: "club",
+        description: "Club slug, if you administer more than one",
+        required: false,
       },
     ],
   },

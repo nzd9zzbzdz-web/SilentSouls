@@ -1,9 +1,18 @@
 /**
  * The officer-channel notification: payload shape (pure) and the send gating
- * (fetch stubbed; nothing leaves the process). No emulator needed.
+ * (fetch stubbed; nothing leaves the process). The channel now resolves
+ * through guild bindings, so this file needs the emulator like its siblings.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildTicketMessage, notifyTicketSubmitted } from "@/lib/discord/notify";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
+process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = "discord-notify-test-isolated";
+
+// Import AFTER env vars so the Admin SDK connects to the emulator.
+const { adminDb } = await import("@/lib/firebase/admin");
+const { buildTicketMessage, notifyTicketSubmitted } = await import(
+  "@/lib/discord/notify"
+);
 
 const NOTICE = {
   activityId: "a1",
@@ -11,6 +20,11 @@ const NOTICE = {
   summary: "Drug Sale ×20",
   description: "moved product across the docks",
 };
+
+async function wipeGuilds() {
+  const snap = await adminDb.collection("discordGuilds").get();
+  await Promise.all(snap.docs.map((d) => d.ref.delete()));
+}
 
 describe("buildTicketMessage", () => {
   it("carries the summary and both review buttons", () => {
@@ -44,12 +58,13 @@ describe("notifyTicketSubmitted", () => {
   const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
   const savedEnv = { ...process.env };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fetchMock.mockClear();
     vi.stubGlobal("fetch", fetchMock);
     process.env.DISCORD_BOT_TOKEN = "token";
     process.env.DISCORD_OFFICER_CHANNEL_ID = "chan-1";
     process.env.DISCORD_ORG_ID = "org-1";
+    await wipeGuilds();
   });
 
   afterEach(() => {
@@ -59,7 +74,9 @@ describe("notifyTicketSubmitted", () => {
     process.env.DISCORD_ORG_ID = savedEnv.DISCORD_ORG_ID;
   });
 
-  it("posts to the configured channel with bot auth", async () => {
+  afterAll(wipeGuilds);
+
+  it("posts to the env fallback channel for the pinned club", async () => {
     await notifyTicketSubmitted("org-1", NOTICE);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
@@ -68,13 +85,24 @@ describe("notifyTicketSubmitted", () => {
     expect(JSON.parse(init.body as string).content).toContain("Drug Sale ×20");
   });
 
-  it("skips a club this bot does not serve", async () => {
+  it("prefers the club's own bound officer channel", async () => {
+    await adminDb.collection("discordGuilds").doc("G-2").set({
+      orgId: "org-2",
+      officerChannelId: "chan-9",
+    });
+    await notifyTicketSubmitted("org-2", NOTICE);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url] = fetchMock.mock.calls[0] as unknown as [string];
+    expect(url).toBe("https://discord.com/api/v10/channels/chan-9/messages");
+  });
+
+  it("skips a club with no channel anywhere", async () => {
     await notifyTicketSubmitted("some-other-org", NOTICE);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("skips silently when unconfigured", async () => {
-    delete process.env.DISCORD_OFFICER_CHANNEL_ID;
+  it("skips silently without a bot token, before any lookup", async () => {
+    delete process.env.DISCORD_BOT_TOKEN;
     await notifyTicketSubmitted("org-1", NOTICE);
     expect(fetchMock).not.toHaveBeenCalled();
   });

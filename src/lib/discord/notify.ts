@@ -1,4 +1,5 @@
 import "server-only";
+import { officerChannelFor } from "@/lib/discord/guilds";
 
 /**
  * Outbound Discord messages: the officer channel's heads-up when a ticket is
@@ -6,6 +7,8 @@ import "server-only";
  * Discord (the interactions route only answers), so it needs the bot token;
  * with no token or channel configured the whole feature is quietly off, and a
  * delivery failure is logged but NEVER fails the submission it rides behind.
+ * The channel is the club's own: its guild binding first, the single-club
+ * env fallback second (see officerChannelFor).
  */
 
 export interface TicketNotice {
@@ -51,15 +54,18 @@ export function buildTicketMessage(input: TicketNotice): Record<string, unknown>
   };
 }
 
-/** Post the ticket to the officer channel. Skips silently when the feature is
- *  unconfigured or the ticket belongs to a club this bot does not serve. */
+/** Post the ticket to the club's officer channel. Skips silently when the
+ *  feature is unconfigured or this club has no channel to receive it. */
 export async function notifyTicketSubmitted(
   orgId: string,
   input: TicketNotice,
 ): Promise<void> {
+  // Token first: without one there is nothing to send with, and the channel
+  // lookup below is a Firestore read the submission should not pay for.
   const token = process.env.DISCORD_BOT_TOKEN;
-  const channel = process.env.DISCORD_OFFICER_CHANNEL_ID;
-  if (!token || !channel || orgId !== process.env.DISCORD_ORG_ID) return;
+  if (!token) return;
+  const channel = await officerChannelFor(orgId);
+  if (!channel) return;
 
   try {
     const res = await fetch(

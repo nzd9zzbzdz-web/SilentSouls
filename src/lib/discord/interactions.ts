@@ -8,7 +8,8 @@ import {
 } from "@/lib/activities-core";
 import { describeActivity } from "@/lib/activity-entries";
 import { expireOrgTags } from "@/lib/cache";
-import { CRIMINAL_RECORD_ROWS } from "@/lib/constants";
+import { CRIMINAL_RECORD_ROWS, PATCH_LADDERS, STAT_LABELS } from "@/lib/constants";
+import { getGuildBinding, setGuildBinding } from "@/lib/discord/guilds";
 import {
   consumeLinkCode,
   findUserByDiscordId,
@@ -25,9 +26,9 @@ import {
   listPatches,
   listRanks,
 } from "@/lib/queries";
-import { getOrgById } from "@/lib/tenant";
+import { getOrgById, getOrgBySlug, listActiveOrgs } from "@/lib/tenant";
 import { submitActivitySchema } from "@/lib/schemas/activity";
-import type { Member, Organization, SystemRole } from "@/lib/types";
+import type { Member, Organization, StatKey, SystemRole } from "@/lib/types";
 
 /**
  * The Discord transport's command dispatch, kept apart from the HTTP route so
@@ -88,6 +89,9 @@ export interface DiscordInteraction {
   user?: DiscordUser;
   /** Component clicks: the message the button lives on. */
   message?: { content?: string };
+  /** The server the interaction came from; absent in DMs. Signed, so it is
+   *  Discord's word on WHERE, the way `member.user` is its word on WHO. */
+  guild_id?: string;
 }
 
 export interface InteractionResponse {
@@ -113,12 +117,19 @@ function stringOption(
 }
 
 /**
- * The club this bot serves; null when unset, pointing at nothing, or
+ * The club this interaction speaks to: the guild's binding when one exists
+ * (multi-group; written by /connect), else the DISCORD_ORG_ID pin (the
+ * one-club deployment, and DMs). Null when neither resolves or the club is
  * suspended (a suspended club's portal is frozen for everyone, and the bot
  * follows requireOrgRole's lead, reading as disconnected).
  */
-async function botOrg(): Promise<Organization | null> {
-  const orgId = process.env.DISCORD_ORG_ID;
+async function orgForInteraction(
+  interaction: DiscordInteraction,
+): Promise<Organization | null> {
+  const binding = interaction.guild_id
+    ? await getGuildBinding(interaction.guild_id)
+    : null;
+  const orgId = binding?.orgId ?? process.env.DISCORD_ORG_ID;
   const org = orgId ? await getOrgById(orgId) : null;
   return org?.status === "suspended" ? null : org;
 }
@@ -166,12 +177,75 @@ export async function handleDiscordCommand(
   if (command === "unlink") return unlink(interaction);
   if (command === "ticket") return ticket(interaction);
   if (command === "leaderboard") return leaderboard(interaction);
+  if (command === "connect") return connect(interaction);
 
   return reply("Unknown command.");
 }
 
+// ── /connect: bind this guild to a club (multi-group) ──────────────────
+
+/**
+ * Run inside a server by a linked club ADMIN, this writes the guild → club
+ * binding that every later interaction resolves through. The admin role is
+ * proven the same way officer clicks are: signed invoker → account link →
+ * membership role. An admin of several clubs names one with club:<slug>.
+ */
+async function connect(interaction: DiscordInteraction): Promise<InteractionResponse> {
+  const guildId = interaction.guild_id;
+  if (!guildId) {
+    return reply("Run /connect inside the server you want to bind to your club.");
+  }
+
+  const user = invoker(interaction);
+  const linked = user?.id ? await findUserByDiscordId(user.id) : null;
+  if (!linked) {
+    return reply(
+      "Link your Discord account first: generate a code on the portal " +
+        "dashboard, then run /link code:<your code>.",
+    );
+  }
+
+  const adminOrgIds = Object.entries(linked.memberships ?? {})
+    .filter(([, m]) => m.role === "admin")
+    .map(([orgId]) => orgId);
+  if (adminOrgIds.length === 0) {
+    return reply("Only a club admin can connect a server.");
+  }
+
+  const slug = stringOption(interaction, "club");
+  let orgId: string;
+  if (slug) {
+    const named = await getOrgBySlug(slug);
+    if (!named || !adminOrgIds.includes(named.id)) {
+      return reply(`You are not an admin of a club with the slug "${slug}".`);
+    }
+    orgId = named.id;
+  } else if (adminOrgIds.length === 1) {
+    orgId = adminOrgIds[0];
+  } else {
+    return reply(
+      "You are an admin of several clubs. Name one: /connect club:<slug>",
+    );
+  }
+
+  const channelId = stringOption(interaction, "channel");
+  await setGuildBinding(guildId, {
+    orgId,
+    ...(channelId ? { officerChannelId: channelId } : {}),
+    connectedBy: linked.uid,
+  });
+
+  const org = await getOrgById(orgId);
+  return reply(
+    `Connected. This server now speaks for ${org?.name ?? orgId}.` +
+      (channelId
+        ? ` New tickets land in <#${channelId}> for review.`
+        : " Set an officer channel with /connect channel:<channel> to receive tickets."),
+  );
+}
+
 async function myStats(interaction: DiscordInteraction): Promise<InteractionResponse> {
-  const org = await botOrg();
+  const org = await orgForInteraction(interaction);
   if (!org) return reply("This bot is not connected to a club yet.");
 
   const query = stringOption(interaction, "member");
@@ -259,7 +333,7 @@ const TICKET_PREFIX = "ticket:";
 
 /** /ticket type:<id> answers with a modal asking for the details. */
 async function ticket(interaction: DiscordInteraction): Promise<InteractionResponse> {
-  const org = await botOrg();
+  const org = await orgForInteraction(interaction);
   if (!org) return reply("This bot is not connected to a club yet.");
 
   const resolved = await resolveLinkedMember(org, interaction);
@@ -349,7 +423,7 @@ export async function handleModalSubmit(
   if (!customId.startsWith(TICKET_PREFIX)) return reply("Unsupported form.");
   const typeId = customId.slice(TICKET_PREFIX.length);
 
-  const org = await botOrg();
+  const org = await orgForInteraction(interaction);
   if (!org) return reply("This bot is not connected to a club yet.");
 
   const resolved = await resolveLinkedMember(org, interaction);
@@ -443,7 +517,7 @@ export async function handleComponent(
     return reply("Unsupported button.");
   }
 
-  const org = await botOrg();
+  const org = await orgForInteraction(interaction);
   if (!org) return reply("This bot is not connected to a club yet.");
 
   const resolved = await resolveLinkedMember(org, interaction);
@@ -516,7 +590,7 @@ export async function handleAutocomplete(
   const empty = { type: ResponseType.Autocomplete, data: { choices: [] } };
   const command = interaction.data?.name;
   if (command !== "ticket" && command !== "leaderboard") return empty;
-  const org = await botOrg();
+  const org = await orgForInteraction(interaction);
   if (!org) return empty;
 
   const focused = interaction.data?.options?.find((o) => o.focused);
@@ -529,6 +603,17 @@ export async function handleAutocomplete(
       .filter((t) => t.active && t.name.toLowerCase().includes(partial))
       .slice(0, 25) // Discord's ceiling
       .map((t) => ({ name: t.name, value: t.id }));
+    return { type: ResponseType.Autocomplete, data: { choices } };
+  }
+
+  // Global boards run on the standard criminal-record stats (per-club emblem
+  // ladders differ); club boards suggest the club's own live ladders.
+  if (stringOption(interaction, "scope") === "global") {
+    const choices = GLOBAL_STATS.filter((k) =>
+      (STAT_LABELS[k] ?? k).toLowerCase().includes(partial),
+    )
+      .slice(0, 25)
+      .map((k) => ({ name: STAT_LABELS[k] ?? k, value: k }));
     return { type: ResponseType.Autocomplete, data: { choices } };
   }
 
@@ -566,8 +651,12 @@ async function loadBoards(orgId: string): Promise<LeaderboardCategory[]> {
 async function leaderboard(
   interaction: DiscordInteraction,
 ): Promise<InteractionResponse> {
-  const org = await botOrg();
+  const org = await orgForInteraction(interaction);
   if (!org) return reply("This bot is not connected to a club yet.");
+
+  if (stringOption(interaction, "scope") === "global") {
+    return globalBoard(stringOption(interaction, "category"));
+  }
 
   const boards = await loadBoards(org.id);
   if (!boards.length) {
@@ -615,6 +704,78 @@ export function formatLeaderboard(
     ...lines,
     ...(overflow > 0 ? [`... and ${overflow} more on the website`] : []),
   ].join("\n");
+}
+
+// ── Global standings: every club in the database, one board ────────────
+
+/** Global boards run on the standard criminal-record stats, in record order.
+ *  Per-club emblem ladders differ by design, so levels stay club-side. */
+const GLOBAL_STATS: StatKey[] = PATCH_LADDERS.map((l) => l.statKey);
+
+function resolveGlobalStat(query: string | null): StatKey | null {
+  if (!query) return GLOBAL_STATS[0] ?? null;
+  return (
+    GLOBAL_STATS.find((k) => k === query) ??
+    GLOBAL_STATS.find(
+      (k) => (STAT_LABELS[k] ?? k).toLowerCase() === query.toLowerCase(),
+    ) ??
+    null
+  );
+}
+
+/**
+ * All clubs, one ranking: every riding member of every active org in this
+ * database, ranked on one stat with their club's name on the line. Reads are
+ * the per-org cached member lists, so a warm cache pays nothing extra.
+ */
+async function globalBoard(query: string | null): Promise<InteractionResponse> {
+  const statKey = resolveGlobalStat(query);
+  if (!statKey) {
+    return reply(`No global board named "${query}". Pick one from the suggestions.`);
+  }
+
+  const orgs = await listActiveOrgs();
+  const memberLists = await Promise.all(orgs.map((o) => listMembers(o.id)));
+  const rows = orgs.flatMap((org, i) =>
+    memberLists[i]
+      .filter((m) => m.status !== "retired" && m.status !== "exiled")
+      .map((m) => ({
+        roadName: m.roadName,
+        displayName: m.displayName,
+        orgName: org.name,
+        value: m.stats?.[statKey] ?? 0,
+      })),
+  );
+  if (!rows.length) return reply("No clubs are riding yet.");
+
+  // Same competition ranking as the club boards; road name breaks display
+  // ties because member numbers only mean something inside one club.
+  rows.sort((a, b) => b.value - a.value || a.roadName.localeCompare(b.roadName));
+  const ranks = rows.map((row, i) =>
+    i > 0 && rows[i - 1].value === row.value ? 0 : i + 1,
+  );
+  for (let i = 1; i < ranks.length; i++) if (ranks[i] === 0) ranks[i] = ranks[i - 1];
+
+  const format =
+    CRIMINAL_RECORD_ROWS.find((r) => r.statKey === statKey)?.format ??
+    ((n: number) => n.toLocaleString("en-US"));
+  const lines = rows.slice(0, BOARD_ROWS).map((row, i) => {
+    const lead = ranks[i] <= 3 ? MEDALS[ranks[i] - 1] : `${ranks[i]}.`;
+    return `${lead} "${row.roadName}" ${row.displayName} · ${row.orgName} · ${format(row.value)}`;
+  });
+  const overflow = rows.length - BOARD_ROWS;
+  const clubs = orgs.length === 1 ? "1 club" : `${orgs.length} clubs`;
+
+  return {
+    type: ResponseType.ChannelMessage,
+    data: {
+      content: [
+        `**${STAT_LABELS[statKey] ?? statKey}** global standings · ${clubs}`,
+        ...lines,
+        ...(overflow > 0 ? [`... and ${overflow} more riders`] : []),
+      ].join("\n"),
+    },
+  };
 }
 
 // ── Record formatting ──────────────────────────────────────────────────

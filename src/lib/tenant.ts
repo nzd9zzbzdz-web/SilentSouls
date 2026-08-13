@@ -80,3 +80,29 @@ export const getBranding = cache(
 export function orgSlugTag(slug: string): string {
   return `org:slug:${slug}`;
 }
+
+/**
+ * Every active club in this database, for the cross-club global leaderboard.
+ * Deliberately cross-tenant: global competition is the one feature whose
+ * point is seeing the other clubs. Orgs are created bootstrap-rare, so the
+ * TTL backstop alone is enough; nothing invalidates the tag on write.
+ */
+export const listActiveOrgs = cache(async (): Promise<Organization[]> => {
+  const load = async (): Promise<Organization[]> => {
+    const snap = await adminDb
+      .collection("organizations")
+      .where("status", "==", "active")
+      .get();
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Organization, "id">),
+    }));
+  };
+  if (!CACHE_ENABLED) return load();
+  const run = unstable_cache(
+    async () => encodeForCache(await load()),
+    ["activeOrgs"],
+    { tags: ["orgs:all"], revalidate: TTL.reference },
+  );
+  return decodeFromCache(await run()) as Organization[];
+});
