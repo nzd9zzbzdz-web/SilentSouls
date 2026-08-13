@@ -57,6 +57,64 @@ export function buildTicketMessage(input: TicketNotice): Record<string, unknown>
   };
 }
 
+/**
+ * Post the Activity Logger card into a channel and pin it.
+ *
+ * Unlike the ticket notification this REPORTS its outcome instead of
+ * swallowing it: an admin who asked for a card needs to know it did not
+ * arrive. Pinning is best-effort and reported separately, because it needs
+ * Manage Messages, which the bot may not have been granted; an unpinned card
+ * still works, it just scrolls away.
+ */
+export type PanelPostResult =
+  | { ok: true; pinned: boolean }
+  | { ok: false; reason: string };
+
+export async function postPanel(
+  channelId: string,
+  payload: Record<string, unknown>,
+): Promise<PanelPostResult> {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  if (!token) return { ok: false, reason: "the bot is not configured" };
+  const headers = {
+    Authorization: `Bot ${token}`,
+    "Content-Type": "application/json",
+  };
+
+  let messageId: string;
+  try {
+    const res = await fetch(
+      `https://discord.com/api/v10/channels/${channelId}/messages`,
+      { method: "POST", headers, body: JSON.stringify(payload) },
+    );
+    if (!res.ok) {
+      const detail = await res.text();
+      console.error(`Discord panel post failed: ${res.status} ${detail}`);
+      return {
+        ok: false,
+        reason:
+          res.status === 403
+            ? "the bot cannot post in that channel"
+            : `Discord refused the card (${res.status})`,
+      };
+    }
+    messageId = ((await res.json()) as { id: string }).id;
+  } catch (e) {
+    console.error("Discord panel post failed:", e);
+    return { ok: false, reason: "Discord could not be reached" };
+  }
+
+  try {
+    const pin = await fetch(
+      `https://discord.com/api/v10/channels/${channelId}/pins/${messageId}`,
+      { method: "PUT", headers },
+    );
+    return { ok: true, pinned: pin.ok };
+  } catch {
+    return { ok: true, pinned: false };
+  }
+}
+
 /** Post the ticket to the club's officer channel. Skips silently when the
  *  feature is unconfigured or this club has no channel to receive it. */
 export async function notifyTicketSubmitted(

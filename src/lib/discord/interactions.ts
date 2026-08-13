@@ -23,7 +23,7 @@ import {
   buildPanelModal,
   hexToInt,
 } from "@/lib/discord/panel";
-import { notifyTicketSubmitted } from "@/lib/discord/notify";
+import { notifyTicketSubmitted, postPanel } from "@/lib/discord/notify";
 import { composeLeaderboard, type LeaderboardCategory } from "@/lib/leaderboard";
 import {
   getActivity,
@@ -449,25 +449,73 @@ async function connect(interaction: DiscordInteraction): Promise<InteractionResp
   }
 
   const channelId = stringOption(interaction, "channel");
+  const ticketChannelId = stringOption(interaction, "tickets");
   await bindClub({
     orgId,
     guildId,
     ...(channelId ? { officerChannelId: channelId } : {}),
+    ...(ticketChannelId ? { ticketChannelId } : {}),
     connectedBy: linked.uid,
   });
 
   const org = await getOrgById(orgId);
+  const lines = [`Connected. ${org?.name ?? orgId} now rides in this server.`];
+
+  lines.push(
+    channelId
+      ? `New tickets land in <#${channelId}> for review.`
+      : "Set an officer channel with /connect channel:<channel> to receive tickets.",
+  );
+
+  // Naming a tickets channel puts the logger card there in the same breath,
+  // so setting a club up is one command rather than two.
+  if (ticketChannelId) {
+    lines.push(await postLoggerCard(orgId, org?.name ?? orgId, ticketChannelId));
+  } else {
+    lines.push(
+      "Add tickets:<channel> to have the Activity Logger card posted for members.",
+    );
+  }
+
   const hosted = await clubsInGuild(guildId);
   const others = hosted.filter((o) => o.id !== orgId);
-  return reply(
-    `Connected. ${org?.name ?? orgId} now rides in this server.` +
-      (channelId
-        ? ` New tickets land in <#${channelId}> for review.`
-        : " Set an officer channel with /connect channel:<channel> to receive tickets.") +
-      (others.length
-        ? ` Also here: ${clubChoices(others)}. Members are told apart by their own club, so nobody types a slug unless they ride with two.`
-        : ""),
+  if (others.length) {
+    lines.push(
+      `Also here: ${clubChoices(others)}. Members are told apart by their own club, so nobody types a slug unless they ride with two.`,
+    );
+  }
+  return reply(lines.join("\n"));
+}
+
+/** Build and post the club's logger card, reporting what actually happened. */
+async function postLoggerCard(
+  orgId: string,
+  orgName: string,
+  channelId: string,
+): Promise<string> {
+  const types = (await listActivityTypes(orgId)).filter((t) => t.active);
+  if (types.length === 0) {
+    return (
+      `No card posted in <#${channelId}>: this club has no active activity ` +
+      "types yet. Add them in Admin, Activity Types, then run /panel there."
+    );
+  }
+  const branding = await getBranding(orgId, "portal");
+  const result = await postPanel(
+    channelId,
+    buildPanelMessage({
+      orgId,
+      orgName,
+      types,
+      accentColor: hexToInt(branding?.colors?.primary),
+    }),
   );
+  if (!result.ok) {
+    return `Could not post the Activity Logger card in <#${channelId}>: ${result.reason}. Run /panel in that channel to retry.`;
+  }
+  return result.pinned
+    ? `Activity Logger card posted and pinned in <#${channelId}>.`
+    : `Activity Logger card posted in <#${channelId}>. It could not be pinned (the bot needs Manage Messages there), so it will scroll away as the channel fills.`;
 }
 
 async function myStats(interaction: DiscordInteraction): Promise<InteractionResponse> {

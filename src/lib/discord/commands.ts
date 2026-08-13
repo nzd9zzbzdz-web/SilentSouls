@@ -131,6 +131,12 @@ export const DISCORD_COMMANDS = [
         required: false,
       },
       {
+        type: 7,
+        name: "tickets",
+        description: "Members' channel; the Activity Logger card is posted there",
+        required: false,
+      },
+      {
         type: 3,
         name: "club",
         description: "Club slug, if you administer more than one",

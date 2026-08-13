@@ -7,7 +7,7 @@
  *
  * Against the Firestore emulator; isolated project.
  */
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
 process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = "discord-panel-test-isolated";
@@ -108,6 +108,102 @@ afterAll(async () => {
   await adminDb.recursiveDelete(orgRef(ORG));
   await wipe("users");
   await wipe("discordClubs");
+});
+
+describe("/connect posting the card", () => {
+  /** Stub Discord's REST: message create, then the pin. */
+  function stubDiscord(opts: { postOk?: boolean; pinOk?: boolean } = {}) {
+    const { postOk = true, pinOk = true } = opts;
+    const calls: { url: string; method?: string; body?: string }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL, init?: RequestInit) => {
+        const href = String(url);
+        calls.push({ url: href, method: init?.method, body: init?.body as string });
+        if (href.includes("/pins/")) {
+          // A 204 must carry a null body; passing "" makes Response throw.
+          return pinOk
+            ? new Response(null, { status: 204 })
+            : new Response("forbidden", { status: 403 });
+        }
+        return postOk
+          ? new Response(JSON.stringify({ id: "msg-1" }), { status: 200 })
+          : new Response("forbidden", { status: 403 });
+      }),
+    );
+    return calls;
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.DISCORD_BOT_TOKEN;
+  });
+
+  function connect(options: { name: string; type: number; value: string }[]) {
+    return {
+      type: 2,
+      guild_id: "G1",
+      data: { name: "connect", options },
+      member: { user: ADMIN },
+    };
+  }
+
+  it("posts and pins the card in the named tickets channel", async () => {
+    process.env.DISCORD_BOT_TOKEN = "tok";
+    const calls = stubDiscord();
+
+    const res = await handleDiscordCommand(
+      connect([
+        { name: "channel", type: 7, value: "C-review" },
+        { name: "tickets", type: 7, value: "C-tickets" },
+      ]),
+    );
+    expect(res.data?.content).toContain("posted and pinned in <#C-tickets>");
+
+    // The card went to the tickets channel, carrying the V2 flag.
+    const post = calls.find((c) => c.method === "POST")!;
+    expect(post.url).toContain("/channels/C-tickets/messages");
+    expect(JSON.parse(post.body!).flags).toBe(32768);
+    // And it was pinned.
+    expect(calls.some((c) => c.url.includes("/pins/msg-1"))).toBe(true);
+
+    // Both channels are remembered on the binding.
+    const binding = await adminDb.collection("discordClubs").doc(ORG).get();
+    expect(binding.data()).toMatchObject({
+      officerChannelId: "C-review",
+      ticketChannelId: "C-tickets",
+    });
+  });
+
+  it("still reports success when it cannot pin", async () => {
+    process.env.DISCORD_BOT_TOKEN = "tok";
+    stubDiscord({ pinOk: false });
+    const res = await handleDiscordCommand(
+      connect([{ name: "tickets", type: 7, value: "C-tickets" }]),
+    );
+    expect(res.data?.content).toContain("could not be pinned");
+    expect(res.data?.content).toContain("Manage Messages");
+  });
+
+  it("says so when Discord refuses the card", async () => {
+    process.env.DISCORD_BOT_TOKEN = "tok";
+    stubDiscord({ postOk: false });
+    const res = await handleDiscordCommand(
+      connect([{ name: "tickets", type: 7, value: "C-locked" }]),
+    );
+    expect(res.data?.content).toContain("cannot post in that channel");
+    expect(res.data?.content).toContain("/panel");
+  });
+
+  it("prompts for a tickets channel when none is given, and posts nothing", async () => {
+    process.env.DISCORD_BOT_TOKEN = "tok";
+    const calls = stubDiscord();
+    const res = await handleDiscordCommand(
+      connect([{ name: "channel", type: 7, value: "C-review" }]),
+    );
+    expect(res.data?.content).toContain("Add tickets:<channel>");
+    expect(calls).toHaveLength(0);
+  });
 });
 
 describe("hexToInt", () => {

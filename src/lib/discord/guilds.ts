@@ -30,6 +30,9 @@ export interface ClubBinding {
   guildId: string;
   /** Where this club's tickets land for review. Absent ⇒ env fallback. */
   officerChannelId?: string;
+  /** Where this club's Activity Logger card lives, so /connect can post it
+   *  and a later reconnect knows where it went. */
+  ticketChannelId?: string;
 }
 
 function toBinding(
@@ -42,6 +45,9 @@ function toBinding(
     guildId: data.guildId,
     ...(typeof data.officerChannelId === "string"
       ? { officerChannelId: data.officerChannelId }
+      : {}),
+    ...(typeof data.ticketChannelId === "string"
+      ? { ticketChannelId: data.ticketChannelId }
       : {}),
   };
 }
@@ -74,6 +80,7 @@ export async function bindClub(opts: {
   orgId: string;
   guildId: string;
   officerChannelId?: string;
+  ticketChannelId?: string;
   connectedBy: string;
 }): Promise<void> {
   await adminDb
@@ -84,6 +91,9 @@ export async function bindClub(opts: {
         guildId: opts.guildId,
         ...(opts.officerChannelId
           ? { officerChannelId: opts.officerChannelId }
+          : {}),
+        ...(opts.ticketChannelId
+          ? { ticketChannelId: opts.ticketChannelId }
           : {}),
         connectedBy: opts.connectedBy,
         updatedAt: FieldValue.serverTimestamp(),
