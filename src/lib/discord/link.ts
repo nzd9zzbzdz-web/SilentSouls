@@ -127,6 +127,28 @@ export async function findUserByDiscordId(
   return { uid: snap.docs[0].id, ...(snap.docs[0].data() as UserDoc) };
 }
 
+/**
+ * Turn Discord user ids (picked from a member picker) into the member ids
+ * this club records as witnesses. Anyone unlinked, or linked but not riding
+ * with this club, simply drops out: `Activity.witnesses` holds member ids, and
+ * inventing one for a stranger would put a name on a ticket that the roster
+ * cannot resolve. Callers report the shortfall rather than failing.
+ */
+export async function resolveWitnesses(
+  orgId: string,
+  discordIds: string[],
+): Promise<string[]> {
+  const ids = [...new Set(discordIds)].slice(0, 30); // Firestore `in` ceiling
+  if (ids.length === 0) return [];
+  const snap = await usersRef().where("discordId", "in", ids).get();
+  const memberIds: string[] = [];
+  for (const doc of snap.docs) {
+    const membership = (doc.data() as UserDoc).memberships?.[orgId];
+    if (membership?.memberId) memberIds.push(membership.memberId);
+  }
+  return memberIds;
+}
+
 /** Sever the link from the Discord side. True if there was one to sever. */
 export async function unlinkDiscordId(discordId: string): Promise<boolean> {
   const user = await findUserByDiscordId(discordId);

@@ -126,18 +126,28 @@ describe("/ticket command", () => {
     expect(res.data?.custom_id).toBe(`ticket:${ORG}:drug-sale`);
     expect(res.data?.title).toContain("Drug Sale");
 
-    const inputs = (res.data?.components as { components: { custom_id: string }[] }[])
-      .flatMap((row) => row.components)
-      .map((c) => c.custom_id);
-    expect(inputs).toEqual(["quantity", "description"]);
+    // /ticket opens the same dialog as the channel card, so the fields are
+    // Label-wrapped (Action Rows around modal inputs are deprecated) and the
+    // witness picker comes along too.
+    const parts = res.data?.components as {
+      type: number;
+      component: { custom_id: string };
+    }[];
+    expect(parts.every((p) => p.type === 18)).toBe(true);
+    expect(parts.map((p) => p.component.custom_id)).toEqual([
+      "quantity",
+      "description",
+      "witnesses",
+    ]);
   });
 
   it("omits the quantity input when the type disallows it", async () => {
     const res = await handleDiscordCommand(ticketCmd("club-ride"));
-    const inputs = (res.data?.components as { components: { custom_id: string }[] }[])
-      .flatMap((row) => row.components)
-      .map((c) => c.custom_id);
-    expect(inputs).toEqual(["description"]);
+    const parts = res.data?.components as { component: { custom_id: string } }[];
+    expect(parts.map((p) => p.component.custom_id)).toEqual([
+      "description",
+      "witnesses",
+    ]);
   });
 
   it("matches a hand-typed name as a courtesy", async () => {

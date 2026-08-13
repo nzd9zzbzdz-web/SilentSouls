@@ -13,8 +13,16 @@ import { bindClub, clubsInGuild } from "@/lib/discord/guilds";
 import {
   consumeLinkCode,
   findUserByDiscordId,
+  resolveWitnesses,
   unlinkDiscordId,
 } from "@/lib/discord/link";
+import {
+  PANEL_MODAL_PREFIX,
+  PANEL_SELECT_PREFIX,
+  buildPanelMessage,
+  buildPanelModal,
+  hexToInt,
+} from "@/lib/discord/panel";
 import { notifyTicketSubmitted } from "@/lib/discord/notify";
 import { composeLeaderboard, type LeaderboardCategory } from "@/lib/leaderboard";
 import {
@@ -26,7 +34,7 @@ import {
   listPatches,
   listRanks,
 } from "@/lib/queries";
-import { getOrgById, getOrgBySlug, listActiveOrgs } from "@/lib/tenant";
+import { getBranding, getOrgById, getOrgBySlug, listActiveOrgs } from "@/lib/tenant";
 import { submitActivitySchema } from "@/lib/schemas/activity";
 import type { Member, Organization, StatKey, SystemRole } from "@/lib/types";
 
@@ -78,10 +86,30 @@ export interface DiscordInteraction {
       /** Autocomplete: the option the user is currently typing. */
       focused?: boolean;
     }[];
-    /** Modal submits: action rows wrapping the text inputs. */
+    /** Select menus: which options were chosen. */
+    values?: string[];
+    /**
+     * Modal submits. Two shapes: a Label (type 18) wrapping ONE input in
+     * `component`, which is the current form, and the deprecated Action Row
+     * (type 1) holding inputs in `components`. Both are read.
+     */
     components?: {
       type: number;
-      components?: { type: number; custom_id?: string; value?: string }[];
+      custom_id?: string;
+      value?: string;
+      values?: string[];
+      component?: {
+        type: number;
+        custom_id?: string;
+        value?: string;
+        values?: string[];
+      };
+      components?: {
+        type: number;
+        custom_id?: string;
+        value?: string;
+        values?: string[];
+      }[];
     }[];
   };
   /** Present when invoked in a server; `user` when invoked from a DM. */
@@ -282,8 +310,94 @@ export async function handleDiscordCommand(
   if (command === "ticket") return ticket(interaction);
   if (command === "leaderboard") return leaderboard(interaction);
   if (command === "connect") return connect(interaction);
+  if (command === "panel") return panelCommand(interaction);
 
   return reply("Unknown command.");
+}
+
+// ── /panel: the permanent Activity Logger card ─────────────────────────
+
+/**
+ * Post the club's logger card into this channel. Admin-only like /connect,
+ * because the card is club furniture rather than a personal action, and it is
+ * bound to whichever club the runner administers.
+ */
+async function panelCommand(
+  interaction: DiscordInteraction,
+): Promise<InteractionResponse> {
+  if (!interaction.guild_id) {
+    return reply("Run /panel in the channel where the card should live.");
+  }
+  const pick = await pickOrg(interaction);
+  if (pick.kind === "none") return reply("This bot is not connected to a club yet.");
+  if (pick.kind !== "ok") {
+    return reply(`Name the club: /panel club:<slug>. Here: ${clubChoices(pick.orgs)}.`);
+  }
+  const org = pick.org;
+
+  const resolved = await resolveLinkedMember(org, interaction);
+  if (resolved.kind === "unlinked") {
+    return reply(
+      "Link your Discord account first: generate a code on the portal " +
+        "dashboard, then run /link code:<your code>.",
+    );
+  }
+  if (resolved.kind === "no_member") {
+    return reply(`Your portal account has no member record with ${org.name}.`);
+  }
+  if (resolved.role !== "admin") {
+    return reply("Only a club admin can post the logger card.");
+  }
+
+  const types = (await listActivityTypes(org.id)).filter((t) => t.active);
+  if (types.length === 0) {
+    return reply(
+      "This club has no active activity types yet. Add them in Admin, Activity Types.",
+    );
+  }
+
+  // The card wears the club's own colour; anything not a plain hex falls back
+  // to no accent rather than to another club's red.
+  const branding = await getBranding(org.id, "portal");
+  const message = buildPanelMessage({
+    orgId: org.id,
+    orgName: org.name,
+    types,
+    accentColor: hexToInt(branding?.colors?.primary),
+  });
+  return { type: ResponseType.ChannelMessage, data: message };
+}
+
+/** The card's dropdown: open the form for the chosen category. */
+async function panelSelect(
+  interaction: DiscordInteraction,
+): Promise<InteractionResponse> {
+  const orgId = (interaction.data?.custom_id ?? "").slice(PANEL_SELECT_PREFIX.length);
+  const typeId = interaction.data?.values?.[0];
+  if (!orgId || !typeId) return reply("Pick a category and try again.");
+
+  const org = await getOrgById(orgId);
+  if (!org || org.status === "suspended") {
+    return reply("That club is no longer taking tickets.");
+  }
+
+  const resolved = await resolveLinkedMember(org, interaction);
+  if (resolved.kind === "unlinked") {
+    return reply(
+      "Link your Discord account first: generate a code on the portal " +
+        "dashboard, then run /link code:<your code>.",
+    );
+  }
+  if (resolved.kind === "no_member") {
+    return reply(`Your portal account has no member record with ${org.name}.`);
+  }
+
+  const type = (await listActivityTypes(org.id)).find(
+    (t) => t.id === typeId && t.active,
+  );
+  if (!type) return reply("That category is no longer active.");
+
+  return { type: ResponseType.Modal, data: buildPanelModal(org.id, type) };
 }
 
 // ── /connect: bind this guild to a club (multi-group) ──────────────────
@@ -463,62 +577,49 @@ async function ticket(interaction: DiscordInteraction): Promise<InteractionRespo
     return reply("Pick an activity type from the suggestions and try again.");
   }
 
+  // Same dialog the channel panel opens, so the two ways in cannot drift.
+  // The club rides in the id: a modal submit is its own interaction, and in a
+  // network server the guild alone cannot say which club it belongs to.
+  const modal = buildPanelModal(org.id, type);
   return {
     type: ResponseType.Modal,
-    data: {
-      // The club rides along: a modal submit is its own interaction, and in a
-      // network server the guild alone cannot say which club it belongs to.
-      custom_id: `${TICKET_PREFIX}${org.id}:${type.id}`,
-      title: `Log: ${type.name}`.slice(0, 45),
-      components: [
-        ...(type.allowQuantity
-          ? [
-              {
-                type: 1,
-                components: [
-                  {
-                    type: 4, // text input
-                    custom_id: "quantity",
-                    label: "Quantity",
-                    style: 1, // short
-                    value: String(type.defaultQuantity || 1),
-                    required: true,
-                    max_length: 12,
-                  },
-                ],
-              },
-            ]
-          : []),
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: "description",
-              label: "What happened",
-              style: 2, // paragraph
-              min_length: 10,
-              max_length: 2000,
-              required: true,
-            },
-          ],
-        },
-      ],
-    },
+    data: { ...modal, custom_id: `${TICKET_PREFIX}${org.id}:${type.id}` },
   };
 }
 
-/** Text-input values out of a modal submit, keyed by custom_id. */
-function modalFields(interaction: DiscordInteraction): Map<string, string> {
-  const fields = new Map<string, string>();
-  for (const row of interaction.data?.components ?? []) {
-    for (const input of row.components ?? []) {
-      if (input.custom_id && typeof input.value === "string") {
-        fields.set(input.custom_id, input.value);
-      }
-    }
+/**
+ * Answers out of a modal submit, keyed by custom_id. Handles both shapes: a
+ * Label wrapping one input (`component`) and the deprecated Action Row
+ * holding several (`components`). Selects answer in `values`, text in
+ * `value`, so both are carried.
+ */
+interface ModalAnswer {
+  value?: string;
+  values?: string[];
+}
+
+function modalFields(interaction: DiscordInteraction): Map<string, ModalAnswer> {
+  const fields = new Map<string, ModalAnswer>();
+  const take = (input?: {
+    custom_id?: string;
+    value?: string;
+    values?: string[];
+  }) => {
+    if (!input?.custom_id) return;
+    fields.set(input.custom_id, { value: input.value, values: input.values });
+  };
+  for (const entry of interaction.data?.components ?? []) {
+    take(entry.component);
+    for (const input of entry.components ?? []) take(input);
+    // A bare input at top level, defensively.
+    if (!entry.component && !entry.components) take(entry);
   }
   return fields;
+}
+
+/** Convenience: the text a field carries, or "". */
+function textField(fields: Map<string, ModalAnswer>, key: string): string {
+  return fields.get(key)?.value ?? "";
 }
 
 /** The returned ticket modal: validate with the website's schema, submit
@@ -527,10 +628,16 @@ export async function handleModalSubmit(
   interaction: DiscordInteraction,
 ): Promise<InteractionResponse> {
   const customId = interaction.data?.custom_id ?? "";
-  if (!customId.startsWith(TICKET_PREFIX)) return reply("Unsupported form.");
+  // Both ways in open the same dialog; only the id prefix differs.
+  const prefix = customId.startsWith(PANEL_MODAL_PREFIX)
+    ? PANEL_MODAL_PREFIX
+    : customId.startsWith(TICKET_PREFIX)
+      ? TICKET_PREFIX
+      : null;
+  if (!prefix) return reply("Unsupported form.");
   // "{orgId}:{typeId}", or a bare typeId from a modal opened before clubs
   // rode along in the id.
-  const rest = customId.slice(TICKET_PREFIX.length);
+  const rest = customId.slice(prefix.length);
   const split = rest.indexOf(":");
   const modalOrgId = split === -1 ? null : rest.slice(0, split);
   const typeId = split === -1 ? rest : rest.slice(split + 1);
@@ -567,19 +674,26 @@ async function fileTicket(
   typeId: string,
 ): Promise<InteractionResponse> {
   const fields = modalFields(interaction);
-  const quantityRaw = (fields.get("quantity") ?? "1").replace(/[,\s]/g, "");
+  const quantityRaw = (textField(fields, "quantity") || "1").replace(/[,\s]/g, "");
   const quantity = Number(quantityRaw);
   if (!Number.isInteger(quantity) || quantity < 1) {
     return reply("Quantity must be a whole number of at least 1.");
   }
+
+  // Witnesses come back as Discord user ids from the member picker; only the
+  // ones linked to this club resolve to a member id worth recording.
+  const pickedWitnesses = fields.get("witnesses")?.values ?? [];
+  const witnesses = pickedWitnesses.length
+    ? await resolveWitnesses(org.id, pickedWitnesses)
+    : [];
 
   const parsed = submitActivitySchema.safeParse({
     orgId: org.id,
     entries: [{ typeId, quantity }],
     // Discord tickets are logged as of now; pick a date on the website form.
     date: new Date(),
-    description: fields.get("description") ?? "",
-    witnesses: [],
+    description: textField(fields, "description"),
+    witnesses,
   });
   if (!parsed.success) {
     return reply(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -616,8 +730,16 @@ async function fileTicket(
     description: parsed.data.description,
   });
 
+  // Say so when a picked witness could not be recorded, rather than dropping
+  // them silently: the member expects the name they chose to be on the ticket.
+  const dropped = pickedWitnesses.length - witnesses.length;
+  const witnessNote =
+    dropped > 0
+      ? ` ${dropped} witness${dropped === 1 ? "" : "es"} could not be recorded (not linked to this club).`
+      : "";
+
   return reply(
-    `Ticket filed: ${summary}. An officer will review it; approvals land on your record automatically.`,
+    `Ticket filed: ${summary}.${witnessNote} An officer will review it; approvals land on your record automatically.`,
   );
 }
 
@@ -641,6 +763,8 @@ export async function handleComponent(
   interaction: DiscordInteraction,
 ): Promise<InteractionResponse> {
   const customId = interaction.data?.custom_id ?? "";
+  // The logger card's dropdown shares this entry point with the review buttons.
+  if (customId.startsWith(PANEL_SELECT_PREFIX)) return panelSelect(interaction);
   if (!customId.startsWith(REVIEW_PREFIX)) return reply("Unsupported button.");
   // "review:{decision}:{orgId}:{activityId}", or the two-part form from
   // messages posted before clubs rode along in the id.
@@ -734,7 +858,9 @@ export async function handleAutocomplete(
 ): Promise<InteractionResponse> {
   const empty = { type: ResponseType.Autocomplete, data: { choices: [] } };
   const command = interaction.data?.name;
-  if (command !== "ticket" && command !== "leaderboard") return empty;
+  if (command !== "ticket" && command !== "leaderboard" && command !== "panel") {
+    return empty;
+  }
 
   const focused = interaction.data?.options?.find((o) => o.focused);
   const partial =

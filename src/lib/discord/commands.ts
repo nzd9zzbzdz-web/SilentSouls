@@ -99,6 +99,23 @@ export const DISCORD_COMMANDS = [
   },
   {
     type: 1,
+    name: "panel",
+    description: "Post the club's Activity Logger card in this channel (admins)",
+    // Same reasoning as /connect: a member who found this could only ever be
+    // refused, so keep it out of their picker.
+    default_member_permissions: "32",
+    options: [
+      {
+        type: 3,
+        name: "club",
+        description: "Club slug, if you administer more than one",
+        required: false,
+        autocomplete: true,
+      },
+    ],
+  },
+  {
+    type: 1,
     name: "connect",
     description: "Bring a club into this server (club admins only)",
     // Hidden from anyone without Discord's Manage Server permission (1 << 5).
