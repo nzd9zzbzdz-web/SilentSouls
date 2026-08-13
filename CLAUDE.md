@@ -278,6 +278,53 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   never in body text.
 - Cut layouts store normalized u/v (0..1) coords per vest surface — designed for a
   future Three.js/R3F renderer; don't invent a different coordinate scheme.
+- **Discord is a second transport over the same core, never a second system.**
+  `src/lib/activities-core.ts` owns the ticket lifecycle (submit / approve /
+  deny) as plain functions taking an already-authenticated actor; the Server
+  Actions in `src/actions/activities.ts` and the Discord handlers in
+  `src/lib/discord/` are both thin wrappers over it. A behaviour change belongs
+  in the core, or the two surfaces drift. The 20-a-day submission cap is keyed
+  by uid, so the two surfaces share ONE allowance.
+  - The bot is an HTTP **interactions endpoint**
+    (`src/app/api/discord/interactions/route.ts`), not a gateway bot: it ships
+    with the site, shares the Admin SDK and the cached read layer, and needs no
+    second host (a gateway bot cannot run on Vercel). Discord's Ed25519
+    signature IS the auth (`verify.ts`, node:crypto, no dependency); the route
+    fails closed with 503 when `DISCORD_PUBLIC_KEY` is unset and 401 on a bad
+    signature. Because it is unauthenticated by design, it must never trust a
+    client-supplied member id: every action resolves the caller from the SIGNED
+    payload through the account link.
+  - **It is the one mutating transport that is not a Server Action**, which is
+    why `expireOrgTags` exists beside `revalidateOrgTags` in `src/lib/cache.ts`.
+    `updateTag` throws outside an action, and `revalidateTag(tag,"max")` would
+    serve the stale stat once (reading as a lost approval), so the route uses
+    `revalidateTag(tag,{expire:0})`. Actions keep `updateTag`: they render the
+    page in their own response and need read-your-own-writes. The rule that no
+    action module may be imported by a route handler still holds.
+  - **Account linking lives on `users/{uid}.discordId`**, written only by
+    redeeming a short-lived code from `discordLinkCodes/{code}` (minted by the
+    signed-in website, spent by `/link` in Discord, one transaction with the
+    code doc as the lock). Account-level like memberships, so one link serves
+    every club. One Discord account maps to one portal account; a collision is
+    refused, never moved.
+  - **One Discord server can host several clubs.** Bindings are per club in
+    `discordClubs/{orgId}` (guildId + that club's officerChannelId), written by
+    `/connect` behind the club's admin role. Each interaction resolves its club
+    from the CALLER's membership, so a member of one club never names it;
+    only someone riding with two in the same server is asked. `DISCORD_ORG_ID`
+    is the fallback for an unbound server and for DMs. Modal and button
+    `custom_id`s carry the orgId (`ticket:{orgId}:{typeId}`,
+    `review:{decision}:{orgId}:{activityId}`) so a submit or a decision cannot
+    land on the wrong club; the older two-part ids are still honoured.
+  - **Discord roles are not portal permissions.** Whether a click may approve
+    is decided by the portal role on `users/{uid}.memberships` (the same mirror
+    `syncUserClaims` builds claims from). Discord roles only decide who can SEE
+    a channel. Racing officers are settled by the engine's transaction, so the
+    second click is told it came second.
+  - `src/lib/discord/notify.ts` is the ONLY place the app sends TO Discord;
+    delivery failures are logged and never fail the submission behind them.
+    A private channel needs the bot's own role explicitly allowed or posts fail
+    silently. Re-run `npm run register-discord` after editing `commands.ts`.
 
 ## Roadmap state
 
@@ -285,6 +332,15 @@ M1 Foundation ✅ · M2 Members ✅ · M3 Activities ✅ · M4 Patch Engine ✅
 M5 Prospects (read-only board shipped; officer write flows outstanding)
 M7 Gallery ✅ · M8 Digital Cut renderer ✅ (route exists, deliberately not in the
 nav) · M9 Multi-tenant expansion (custom domains, org wizard, impersonation).
+
+**Discord ✅ and LIVE** (`/ping`, `/mystats`, `/link`, `/unlink`, `/ticket`,
+`/leaderboard`, `/connect`): linking, ticket submission, officer review with
+Approve/Deny buttons, club and global standings, and several clubs per server.
+Only a custom Discord Activity (an embedded UI) is left, and it is deliberately
+unstarted. GLOBAL standings span every club in ONE database; the Ninth Circle
+fork is a separate Firebase project, so it competes on its own network until it
+either folds into this deployment or gains a sync layer. Nothing federates two
+databases today, on purpose.
 
 **Cut from the product 2026-08-10, do not rebuild without asking:** Events,
 Church, Votes and Timeline. The pages, the `events` / `votes` / `timeline`
