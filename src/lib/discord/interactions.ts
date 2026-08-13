@@ -1,9 +1,13 @@
 import "server-only";
 import {
+  EngineError,
   SubmissionError,
+  approveActivityTx,
+  denyActivityCore,
   submitActivityCore,
 } from "@/lib/activities-core";
 import { describeActivity } from "@/lib/activity-entries";
+import { expireOrgTags } from "@/lib/cache";
 import { CRIMINAL_RECORD_ROWS } from "@/lib/constants";
 import {
   consumeLinkCode,
@@ -16,6 +20,7 @@ import {
   getMember,
   listActivityTypes,
   listMembers,
+  listPatches,
   listRanks,
 } from "@/lib/queries";
 import { getOrgById } from "@/lib/tenant";
@@ -45,6 +50,7 @@ export const InteractionType = {
 export const ResponseType = {
   Pong: 1,
   ChannelMessage: 4,
+  UpdateMessage: 7,
   Autocomplete: 8,
   Modal: 9,
 } as const;
@@ -78,6 +84,8 @@ export interface DiscordInteraction {
   /** Present when invoked in a server; `user` when invoked from a DM. */
   member?: { user?: DiscordUser };
   user?: DiscordUser;
+  /** Component clicks: the message the button lives on. */
+  message?: { content?: string };
 }
 
 export interface InteractionResponse {
@@ -406,15 +414,21 @@ export async function handleModalSubmit(
   );
 }
 
-// ── Officer review buttons (verification only in this phase) ───────────
+// ── Officer review buttons ─────────────────────────────────────────────
 
 const REVIEW_PREFIX = "review:";
 
 /**
- * A click on the officer-channel Approve/Deny buttons. This phase PROVES the
- * permission chain (signed click → account link → membership role, the same
- * mirror custom claims are built from) and reads the ticket's live status;
- * it deliberately writes nothing. The live decision arrives next phase.
+ * A click on the officer-channel Approve/Deny buttons, live: the permission
+ * chain runs first (signed click → account link → membership role, the same
+ * mirror custom claims are built from), then the decision goes through the
+ * SAME core the website's action wraps. Approval runs the patch engine, so
+ * duplicate clicks and racing officers are settled by its transaction: the
+ * first commit wins, everyone else gets "already reviewed". After an
+ * approval the members/awards cache tags are expired route-handler-style
+ * (expireOrgTags), so the website shows the moved stats on its next request.
+ * The channel message itself is updated in place: decision stamped, buttons
+ * removed, which is every officer's signal that the ticket is settled.
  */
 export async function handleComponent(
   interaction: DiscordInteraction,
@@ -443,17 +457,53 @@ export async function handleComponent(
     return reply("Officers only. Your account holds the member role.");
   }
 
+  // Friendly pre-check for stale buttons; the engine's transaction is the
+  // real authority when two officers race past this read together.
   const activity = await getActivity(org.id, activityId);
   if (!activity) return reply("That ticket no longer exists.");
   if (activity.status !== "pending") {
     return reply(`This ticket was already ${activity.status}.`);
   }
 
-  const verb = decision === "approve" ? "Approving" : "Denying";
-  return reply(
-    `Officer verified. ${verb} from Discord goes live in the next update; ` +
-      "until then, review this ticket on the website.",
-  );
+  const officer = `"${resolved.member.roadName}" ${resolved.member.displayName}`;
+  let stamp: string;
+  try {
+    if (decision === "approve") {
+      const result = await approveActivityTx(org.id, activityId, resolved.uid);
+      // The engine moved cached data; expire it the route-handler-safe way.
+      expireOrgTags(org.id, "members", "awards");
+
+      stamp = `✅ **Approved** by ${officer}`;
+      if (result.awardedPatchIds.length) {
+        const patches = await listPatches(org.id);
+        const names = result.awardedPatchIds.map(
+          (id) => patches.find((p) => p.id === id)?.name ?? id,
+        );
+        stamp += `\nAwarded: ${names.join(", ")}`;
+      }
+    } else {
+      await denyActivityCore(org.id, activityId, resolved.uid);
+      stamp = `⛔ **Denied** by ${officer}`;
+    }
+  } catch (e) {
+    if (e instanceof EngineError) {
+      if (e.code === "not_pending") return reply("This ticket was already reviewed.");
+      if (e.code === "activity_not_found") return reply("That ticket no longer exists.");
+      return reply("Member record not found");
+    }
+    console.error(e);
+    return reply("Something went wrong applying the decision.");
+  }
+
+  // Stamp the decision onto the channel message and retire its buttons.
+  const original = interaction.message?.content;
+  return {
+    type: ResponseType.UpdateMessage,
+    data: {
+      content: original ? `${original}\n\n${stamp}` : stamp,
+      components: [],
+    },
+  };
 }
 
 /** Live suggestions for /ticket's type option: the org's active types. */

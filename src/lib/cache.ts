@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { unstable_cache, updateTag } from "next/cache";
+import { revalidateTag, unstable_cache, updateTag } from "next/cache";
 import { Timestamp } from "@/lib/firebase/admin";
 
 /**
@@ -186,4 +186,20 @@ export type OrgTagName = keyof typeof orgTags;
  */
 export function revalidateOrgTags(orgId: string, ...names: OrgTagName[]): void {
   for (const name of names) updateTag(orgTags[name](orgId));
+}
+
+/**
+ * The ROUTE-HANDLER-safe sibling of `revalidateOrgTags`, for the one mutating
+ * transport that is not a Server Action: the Discord interactions route, where
+ * an officer's button click moves member stats. `updateTag` throws outside an
+ * action; `revalidateTag` with `{ expire: 0 }` expires the tagged entries
+ * immediately, so the next portal request blocks for fresh data. The default
+ * "max" profile would instead serve the stale stat once (stale-while-
+ * revalidate), which reads as a lost approval to whoever checks the website.
+ * The route renders no page of its own, so updateTag's read-your-own-writes
+ * advantage buys it nothing anyway. No-op outside production, like the cache.
+ */
+export function expireOrgTags(orgId: string, ...names: OrgTagName[]): void {
+  if (!CACHE_ENABLED) return;
+  for (const name of names) revalidateTag(orgTags[name](orgId), { expire: 0 });
 }
