@@ -27,25 +27,36 @@ if (!APP_ID || !BOT_TOKEN || !GUILD_ID) {
   process.exit(1);
 }
 
-const res = await fetch(
-  `https://discord.com/api/v10/applications/${APP_ID}/guilds/${GUILD_ID}/commands`,
-  {
-    method: "PUT",
-    headers: {
-      Authorization: `Bot ${BOT_TOKEN}`,
-      "Content-Type": "application/json",
+// Wrapped rather than top-level await: tsx compiles these scripts to CJS,
+// which rejects top-level await outright.
+async function main() {
+  const res = await fetch(
+    `https://discord.com/api/v10/applications/${APP_ID}/guilds/${GUILD_ID}/commands`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bot ${BOT_TOKEN}`,
+        "Content-Type": "application/json",
+        // Discord blocks requests without a recognizable agent (error 40333).
+        "User-Agent": "DiscordBot (https://github.com/brotherhood-portal, 1.0)",
+      },
+      body: JSON.stringify(DISCORD_COMMANDS),
     },
-    body: JSON.stringify(DISCORD_COMMANDS),
-  },
-);
+  );
 
-if (!res.ok) {
-  console.error(`Discord rejected the commands: ${res.status} ${await res.text()}`);
-  process.exit(1);
+  if (!res.ok) {
+    console.error(`Discord rejected the commands: ${res.status} ${await res.text()}`);
+    process.exit(1);
+  }
+
+  const commands = (await res.json()) as { name: string }[];
+  console.log(
+    `Registered ${commands.length} command(s) in guild ${GUILD_ID}: ` +
+      commands.map((c) => `/${c.name}`).join(", "),
+  );
 }
 
-const commands = (await res.json()) as { name: string }[];
-console.log(
-  `Registered ${commands.length} command(s) in guild ${GUILD_ID}: ` +
-    commands.map((c) => `/${c.name}`).join(", "),
-);
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
