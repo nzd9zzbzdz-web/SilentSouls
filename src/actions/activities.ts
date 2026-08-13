@@ -60,6 +60,7 @@ export async function submitActivity(
     const typeById = new Map(types.map((t) => [t.id, t.name]));
     await notifyTicketSubmitted(input.orgId, {
       activityId,
+      orgId: input.orgId,
       memberLabel: member
         ? `"${member.roadName}" ${member.displayName}`
         : "A member",

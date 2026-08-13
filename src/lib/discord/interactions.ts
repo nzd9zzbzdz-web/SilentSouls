@@ -9,7 +9,7 @@ import {
 import { describeActivity } from "@/lib/activity-entries";
 import { expireOrgTags } from "@/lib/cache";
 import { CRIMINAL_RECORD_ROWS, PATCH_LADDERS, STAT_LABELS } from "@/lib/constants";
-import { getGuildBinding, setGuildBinding } from "@/lib/discord/guilds";
+import { bindClub, clubsInGuild } from "@/lib/discord/guilds";
 import {
   consumeLinkCode,
   findUserByDiscordId,
@@ -117,27 +117,131 @@ function stringOption(
 }
 
 /**
- * The club this interaction speaks to: the guild's binding when one exists
- * (multi-group; written by /connect), else the DISCORD_ORG_ID pin (the
- * one-club deployment, and DMs). Null when neither resolves or the club is
- * suspended (a suspended club's portal is frozen for everyone, and the bot
- * follows requireOrgRole's lead, reading as disconnected).
+ * Which club an interaction speaks to.
+ *
+ * A network server hosts several clubs, one private category each, so the
+ * server alone no longer names a club. Precedence:
+ *   1. an explicit `club:<slug>` option, checked against this server's clubs
+ *   2. the only club this server hosts
+ *   3. the only one of this server's clubs the CALLER rides with — which is
+ *      what makes the common case invisible: a member of one club never
+ *      types a slug, wherever in the server they are
+ *   4. the DISCORD_ORG_ID pin, for a server with no bindings at all and for
+ *      DMs (the single-club deployment keeps working untouched)
+ * Anything still undecided comes back `ambiguous`, carrying the candidates so
+ * the reply can name them.
+ *
+ * A suspended club resolves to nothing: its portal is frozen for everyone, and
+ * the bot follows requireOrgRole's lead by reading as disconnected.
  */
-async function orgForInteraction(
-  interaction: DiscordInteraction,
-): Promise<Organization | null> {
-  const binding = interaction.guild_id
-    ? await getGuildBinding(interaction.guild_id)
-    : null;
-  const orgId = binding?.orgId ?? process.env.DISCORD_ORG_ID;
-  const org = orgId ? await getOrgById(orgId) : null;
-  return org?.status === "suspended" ? null : org;
+type OrgPick =
+  | { kind: "ok"; org: Organization }
+  | { kind: "none" }
+  | { kind: "unknown_club"; orgs: Organization[] }
+  | { kind: "ambiguous"; orgs: Organization[] };
+
+async function pickOrg(interaction: DiscordInteraction): Promise<OrgPick> {
+  const hosted = interaction.guild_id
+    ? (await clubsInGuild(interaction.guild_id)).filter(
+        (o) => o.status !== "suspended",
+      )
+    : [];
+
+  // An unbound server (or a DM) falls back to the env pin.
+  if (hosted.length === 0) {
+    const orgId = process.env.DISCORD_ORG_ID;
+    const org = orgId ? await getOrgById(orgId) : null;
+    return org && org.status !== "suspended" ? { kind: "ok", org } : { kind: "none" };
+  }
+
+  const slug = stringOption(interaction, "club");
+  if (slug) {
+    const needle = slug.toLowerCase();
+    const named = hosted.find(
+      (o) => o.slug.toLowerCase() === needle || o.id.toLowerCase() === needle,
+    );
+    return named
+      ? { kind: "ok", org: named }
+      : { kind: "unknown_club", orgs: hosted };
+  }
+
+  if (hosted.length === 1) return { kind: "ok", org: hosted[0] };
+
+  // Narrow to the caller's own clubs before giving up.
+  const user = invoker(interaction);
+  const linked = user?.id ? await findUserByDiscordId(user.id) : null;
+  const mine = linked
+    ? hosted.filter((o) => Boolean(linked.memberships?.[o.id]))
+    : [];
+  if (mine.length === 1) return { kind: "ok", org: mine[0] };
+  return { kind: "ambiguous", orgs: mine.length > 1 ? mine : hosted };
+}
+
+/** "Ravens of Death MC (ravens), Ninth Circle (ninth-circle)" */
+function clubChoices(orgs: Organization[]): string {
+  return orgs.map((o) => `${o.name} (${o.slug})`).join(", ");
 }
 
 /**
- * Resolve the invoker to their member record through the account link. The
- * memberships mirror on users/{uid} is what custom claims are built FROM
- * (syncUserClaims), so trusting it here matches the website's authority.
+ * Resolve an interaction to a club AND the caller's member record in it, the
+ * shape every member-scoped command needs. Returns a ready-made reply for
+ * every failure so the commands stay about their own work.
+ */
+type ClubContext =
+  | { kind: "ok"; org: Organization; uid: string; member: Member; role: SystemRole }
+  | { kind: "fail"; response: InteractionResponse };
+
+async function resolveContext(
+  interaction: DiscordInteraction,
+  command: string,
+  /** Appended to the "not linked yet" reply, where a command has a way to be
+   *  useful without a link (looking a member up by road name). */
+  unlinkedHint?: string,
+): Promise<ClubContext> {
+  const pick = await pickOrg(interaction);
+  if (pick.kind === "none") {
+    return { kind: "fail", response: reply("This bot is not connected to a club yet.") };
+  }
+  if (pick.kind === "unknown_club") {
+    return {
+      kind: "fail",
+      response: reply(`This server hosts: ${clubChoices(pick.orgs)}.`),
+    };
+  }
+  if (pick.kind === "ambiguous") {
+    return {
+      kind: "fail",
+      response: reply(
+        `Name the club: /${command} club:<slug>. Here: ${clubChoices(pick.orgs)}.`,
+      ),
+    };
+  }
+
+  const org = pick.org;
+  const resolved = await resolveLinkedMember(org, interaction);
+  if (resolved.kind === "unlinked") {
+    return {
+      kind: "fail",
+      response: reply(
+        "Link your Discord account first: generate a code on the portal " +
+          "dashboard, then run /link code:<your code>." +
+          (unlinkedHint ? ` ${unlinkedHint}` : ""),
+      ),
+    };
+  }
+  if (resolved.kind === "no_member") {
+    return {
+      kind: "fail",
+      response: reply(`Your portal account has no member record with ${org.name}.`),
+    };
+  }
+  return { kind: "ok", org, uid: resolved.uid, member: resolved.member, role: resolved.role };
+}
+
+/**
+ * Resolve the invoker to their member record in ONE club through the account
+ * link. The memberships mirror on users/{uid} is what custom claims are built
+ * FROM (syncUserClaims), so trusting it here matches the website's authority.
  */
 type LinkedMember =
   | { kind: "ok"; uid: string; member: Member; role: SystemRole }
@@ -185,15 +289,17 @@ export async function handleDiscordCommand(
 // ── /connect: bind this guild to a club (multi-group) ──────────────────
 
 /**
- * Run inside a server by a linked club ADMIN, this writes the guild → club
- * binding that every later interaction resolves through. The admin role is
- * proven the same way officer clicks are: signed invoker → account link →
- * membership role. An admin of several clubs names one with club:<slug>.
+ * Run inside a server by a linked club ADMIN, this binds ONE club to this
+ * server and names the channel its tickets land in. Run it once per club: a
+ * network server hosting five clubs has five bindings, each with its own
+ * officer channel, and members are told apart by their own memberships.
+ * The admin role is proven the same way officer clicks are: signed invoker →
+ * account link → membership role.
  */
 async function connect(interaction: DiscordInteraction): Promise<InteractionResponse> {
   const guildId = interaction.guild_id;
   if (!guildId) {
-    return reply("Run /connect inside the server you want to bind to your club.");
+    return reply("Run /connect inside the server you want to bind your club to.");
   }
 
   const user = invoker(interaction);
@@ -229,42 +335,51 @@ async function connect(interaction: DiscordInteraction): Promise<InteractionResp
   }
 
   const channelId = stringOption(interaction, "channel");
-  await setGuildBinding(guildId, {
+  await bindClub({
     orgId,
+    guildId,
     ...(channelId ? { officerChannelId: channelId } : {}),
     connectedBy: linked.uid,
   });
 
   const org = await getOrgById(orgId);
+  const hosted = await clubsInGuild(guildId);
+  const others = hosted.filter((o) => o.id !== orgId);
   return reply(
-    `Connected. This server now speaks for ${org?.name ?? orgId}.` +
+    `Connected. ${org?.name ?? orgId} now rides in this server.` +
       (channelId
         ? ` New tickets land in <#${channelId}> for review.`
-        : " Set an officer channel with /connect channel:<channel> to receive tickets."),
+        : " Set an officer channel with /connect channel:<channel> to receive tickets.") +
+      (others.length
+        ? ` Also here: ${clubChoices(others)}. Members are told apart by their own club, so nobody types a slug unless they ride with two.`
+        : ""),
   );
 }
 
 async function myStats(interaction: DiscordInteraction): Promise<InteractionResponse> {
-  const org = await orgForInteraction(interaction);
-  if (!org) return reply("This bot is not connected to a club yet.");
-
   const query = stringOption(interaction, "member");
 
   // No argument: the caller means themselves, resolved through the link.
   if (!query) {
-    const resolved = await resolveLinkedMember(org, interaction);
-    if (resolved.kind === "unlinked") {
-      return reply(
-        "This Discord account is not linked yet. Generate a code on the portal " +
-          "dashboard, then run /link code:<your code>. " +
-          "You can also ask by road name: /mystats member:<road name>",
-      );
-    }
-    if (resolved.kind === "no_member") {
-      return reply(`Your portal account has no member record with ${org.name}.`);
-    }
-    return recordReply(org, resolved.member);
+    const ctx = await resolveContext(
+      interaction,
+      "mystats",
+      "You can also ask by road name: /mystats member:<road name>",
+    );
+    if (ctx.kind === "fail") return ctx.response;
+    return recordReply(ctx.org, ctx.member);
   }
+
+  // Looking someone else up needs a club but not a membership.
+  const pick = await pickOrg(interaction);
+  if (pick.kind === "none") return reply("This bot is not connected to a club yet.");
+  if (pick.kind !== "ok") {
+    return reply(
+      `Name the club: /mystats club:<slug> member:${query}. ` +
+        `Here: ${clubChoices(pick.orgs)}.`,
+    );
+  }
+  const org = pick.org;
 
   const members = await listMembers(org.id);
   const needle = query.toLowerCase();
@@ -333,19 +448,9 @@ const TICKET_PREFIX = "ticket:";
 
 /** /ticket type:<id> answers with a modal asking for the details. */
 async function ticket(interaction: DiscordInteraction): Promise<InteractionResponse> {
-  const org = await orgForInteraction(interaction);
-  if (!org) return reply("This bot is not connected to a club yet.");
-
-  const resolved = await resolveLinkedMember(org, interaction);
-  if (resolved.kind === "unlinked") {
-    return reply(
-      "Link your Discord account first: generate a code on the portal " +
-        "dashboard, then run /link code:<your code>.",
-    );
-  }
-  if (resolved.kind === "no_member") {
-    return reply(`Your portal account has no member record with ${org.name}.`);
-  }
+  const ctx = await resolveContext(interaction, "ticket");
+  if (ctx.kind === "fail") return ctx.response;
+  const org = ctx.org;
 
   const typeValue = stringOption(interaction, "type");
   const types = await listActivityTypes(org.id);
@@ -361,7 +466,9 @@ async function ticket(interaction: DiscordInteraction): Promise<InteractionRespo
   return {
     type: ResponseType.Modal,
     data: {
-      custom_id: `${TICKET_PREFIX}${type.id}`,
+      // The club rides along: a modal submit is its own interaction, and in a
+      // network server the guild alone cannot say which club it belongs to.
+      custom_id: `${TICKET_PREFIX}${org.id}:${type.id}`,
       title: `Log: ${type.name}`.slice(0, 45),
       components: [
         ...(type.allowQuantity
@@ -421,12 +528,26 @@ export async function handleModalSubmit(
 ): Promise<InteractionResponse> {
   const customId = interaction.data?.custom_id ?? "";
   if (!customId.startsWith(TICKET_PREFIX)) return reply("Unsupported form.");
-  const typeId = customId.slice(TICKET_PREFIX.length);
+  // "{orgId}:{typeId}", or a bare typeId from a modal opened before clubs
+  // rode along in the id.
+  const rest = customId.slice(TICKET_PREFIX.length);
+  const split = rest.indexOf(":");
+  const modalOrgId = split === -1 ? null : rest.slice(0, split);
+  const typeId = split === -1 ? rest : rest.slice(split + 1);
 
-  const org = await orgForInteraction(interaction);
-  if (!org) return reply("This bot is not connected to a club yet.");
-
-  const resolved = await resolveLinkedMember(org, interaction);
+  const org = modalOrgId ? await getOrgById(modalOrgId) : null;
+  if (modalOrgId && (!org || org.status === "suspended")) {
+    return reply("That club is no longer taking tickets.");
+  }
+  // The modal names its club; older ones fall back to the usual resolution.
+  const resolved = org
+    ? await resolveLinkedMember(org, interaction)
+    : ({ kind: "unlinked" } as LinkedMember);
+  if (!org) {
+    const ctx = await resolveContext(interaction, "ticket");
+    if (ctx.kind === "fail") return ctx.response;
+    return fileTicket(interaction, ctx.org, ctx.uid, ctx.member, typeId);
+  }
   if (resolved.kind === "unlinked") {
     return reply("Link your Discord account first, then file the ticket again.");
   }
@@ -434,6 +555,17 @@ export async function handleModalSubmit(
     return reply(`Your portal account has no member record with ${org.name}.`);
   }
 
+  return fileTicket(interaction, org, resolved.uid, resolved.member, typeId);
+}
+
+/** The shared tail of a modal submit: validate, file, notify, confirm. */
+async function fileTicket(
+  interaction: DiscordInteraction,
+  org: Organization,
+  uid: string,
+  member: Member,
+  typeId: string,
+): Promise<InteractionResponse> {
   const fields = modalFields(interaction);
   const quantityRaw = (fields.get("quantity") ?? "1").replace(/[,\s]/g, "");
   const quantity = Number(quantityRaw);
@@ -455,10 +587,7 @@ export async function handleModalSubmit(
 
   let filed: Awaited<ReturnType<typeof submitActivityCore>>;
   try {
-    filed = await submitActivityCore(
-      { uid: resolved.uid, memberId: resolved.member.id },
-      parsed.data,
-    );
+    filed = await submitActivityCore({ uid, memberId: member.id }, parsed.data);
   } catch (e) {
     if (e instanceof SubmissionError) {
       // Same phrasing as the website's action, so the two surfaces agree.
@@ -481,7 +610,8 @@ export async function handleModalSubmit(
   // Officer-channel heads-up; never blocks or fails the filing.
   await notifyTicketSubmitted(org.id, {
     activityId: filed.activityId,
-    memberLabel: `"${resolved.member.roadName}" ${resolved.member.displayName}`,
+    orgId: org.id,
+    memberLabel: `"${member.roadName}" ${member.displayName}`,
     summary,
     description: parsed.data.description,
   });
@@ -512,13 +642,28 @@ export async function handleComponent(
 ): Promise<InteractionResponse> {
   const customId = interaction.data?.custom_id ?? "";
   if (!customId.startsWith(REVIEW_PREFIX)) return reply("Unsupported button.");
-  const [, decision, activityId] = customId.split(":");
+  // "review:{decision}:{orgId}:{activityId}", or the two-part form from
+  // messages posted before clubs rode along in the id.
+  const parts = customId.split(":");
+  const decision = parts[1];
+  const buttonOrgId = parts.length >= 4 ? parts[2] : null;
+  const activityId = parts.length >= 4 ? parts.slice(3).join(":") : parts[2];
   if ((decision !== "approve" && decision !== "deny") || !activityId) {
     return reply("Unsupported button.");
   }
 
-  const org = await orgForInteraction(interaction);
-  if (!org) return reply("This bot is not connected to a club yet.");
+  // The button names its club; older messages fall back to resolution.
+  let org: Organization | null = null;
+  if (buttonOrgId) {
+    org = await getOrgById(buttonOrgId);
+    if (!org || org.status === "suspended") {
+      return reply("That club is no longer taking reviews.");
+    }
+  } else {
+    const pick = await pickOrg(interaction);
+    if (pick.kind !== "ok") return reply("This bot is not connected to a club yet.");
+    org = pick.org;
+  }
 
   const resolved = await resolveLinkedMember(org, interaction);
   if (resolved.kind === "unlinked") {
@@ -590,12 +735,37 @@ export async function handleAutocomplete(
   const empty = { type: ResponseType.Autocomplete, data: { choices: [] } };
   const command = interaction.data?.name;
   if (command !== "ticket" && command !== "leaderboard") return empty;
-  const org = await orgForInteraction(interaction);
-  if (!org) return empty;
 
   const focused = interaction.data?.options?.find((o) => o.focused);
   const partial =
     typeof focused?.value === "string" ? focused.value.trim().toLowerCase() : "";
+
+  // Global boards span every club, so they need no club resolved — and must
+  // not go silent in a network server where the caller's club is ambiguous.
+  if (command === "leaderboard" && stringOption(interaction, "scope") === "global") {
+    const choices = GLOBAL_STATS.filter((k) =>
+      (STAT_LABELS[k] ?? k).toLowerCase().includes(partial),
+    )
+      .slice(0, 25)
+      .map((k) => ({ name: STAT_LABELS[k] ?? k, value: k }));
+    return { type: ResponseType.Autocomplete, data: { choices } };
+  }
+
+  // Suggesting the club option itself needs no club resolved yet.
+  if (focused?.name === "club") {
+    const hosted = interaction.guild_id
+      ? await clubsInGuild(interaction.guild_id)
+      : [];
+    const choices = hosted
+      .filter((o) => o.name.toLowerCase().includes(partial) || o.slug.includes(partial))
+      .slice(0, 25)
+      .map((o) => ({ name: o.name, value: o.slug }));
+    return { type: ResponseType.Autocomplete, data: { choices } };
+  }
+
+  const pick = await pickOrg(interaction);
+  const org = pick.kind === "ok" ? pick.org : null;
+  if (!org) return empty;
 
   if (command === "ticket") {
     const types = await listActivityTypes(org.id);
@@ -606,17 +776,8 @@ export async function handleAutocomplete(
     return { type: ResponseType.Autocomplete, data: { choices } };
   }
 
-  // Global boards run on the standard criminal-record stats (per-club emblem
-  // ladders differ); club boards suggest the club's own live ladders.
-  if (stringOption(interaction, "scope") === "global") {
-    const choices = GLOBAL_STATS.filter((k) =>
-      (STAT_LABELS[k] ?? k).toLowerCase().includes(partial),
-    )
-      .slice(0, 25)
-      .map((k) => ({ name: STAT_LABELS[k] ?? k, value: k }));
-    return { type: ResponseType.Autocomplete, data: { choices } };
-  }
-
+  // Club boards suggest the club's own live emblem ladders (global boards
+  // were answered above, before any club had to be resolved).
   const boards = await loadBoards(org.id);
   const choices = boards
     .filter((b) => b.label.toLowerCase().includes(partial))
@@ -651,12 +812,19 @@ async function loadBoards(orgId: string): Promise<LeaderboardCategory[]> {
 async function leaderboard(
   interaction: DiscordInteraction,
 ): Promise<InteractionResponse> {
-  const org = await orgForInteraction(interaction);
-  if (!org) return reply("This bot is not connected to a club yet.");
-
+  // Global spans every club, so it needs no club resolution at all.
   if (stringOption(interaction, "scope") === "global") {
     return globalBoard(stringOption(interaction, "category"));
   }
+
+  const pick = await pickOrg(interaction);
+  if (pick.kind === "none") return reply("This bot is not connected to a club yet.");
+  if (pick.kind !== "ok") {
+    return reply(
+      `Name the club: /leaderboard club:<slug>. Here: ${clubChoices(pick.orgs)}.`,
+    );
+  }
+  const org = pick.org;
 
   const boards = await loadBoards(org.id);
   if (!boards.length) {

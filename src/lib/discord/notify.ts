@@ -13,6 +13,9 @@ import { officerChannelFor } from "@/lib/discord/guilds";
 
 export interface TicketNotice {
   activityId: string;
+  /** The club the ticket belongs to. Rides in the button ids because one
+   *  server can host several clubs, so the guild cannot say which. */
+  orgId: string;
   /** `"Reaper" Marcus Vane` */
   memberLabel: string;
   /** `Drug Sale ×20 · Felony` — describeActivity's line. */
@@ -40,13 +43,13 @@ export function buildTicketMessage(input: TicketNotice): Record<string, unknown>
             type: 2, // button
             style: 3, // success (green)
             label: "Approve",
-            custom_id: `review:approve:${input.activityId}`,
+            custom_id: `review:approve:${input.orgId}:${input.activityId}`,
           },
           {
             type: 2,
             style: 4, // danger (red)
             label: "Deny",
-            custom_id: `review:deny:${input.activityId}`,
+            custom_id: `review:deny:${input.orgId}:${input.activityId}`,
           },
         ],
       },

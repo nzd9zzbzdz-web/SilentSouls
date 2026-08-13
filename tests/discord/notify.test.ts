@@ -16,18 +16,19 @@ const { buildTicketMessage, notifyTicketSubmitted } = await import(
 
 const NOTICE = {
   activityId: "a1",
+  orgId: "org-1",
   memberLabel: '"Reaper" Marcus Vane',
   summary: "Drug Sale ×20",
   description: "moved product across the docks",
 };
 
 async function wipeGuilds() {
-  const snap = await adminDb.collection("discordGuilds").get();
+  const snap = await adminDb.collection("discordClubs").get();
   await Promise.all(snap.docs.map((d) => d.ref.delete()));
 }
 
 describe("buildTicketMessage", () => {
-  it("carries the summary and both review buttons", () => {
+  it("carries the summary, the club, and both review buttons", () => {
     const msg = buildTicketMessage(NOTICE) as {
       content: string;
       components: { components: { custom_id: string; label: string }[] }[];
@@ -38,9 +39,11 @@ describe("buildTicketMessage", () => {
 
     const buttons = msg.components[0].components;
     expect(buttons.map((b) => b.label)).toEqual(["Approve", "Deny"]);
+    // The club rides in the id: one server can host several clubs, so the
+    // guild a button is clicked in cannot say which club it belongs to.
     expect(buttons.map((b) => b.custom_id)).toEqual([
-      "review:approve:a1",
-      "review:deny:a1",
+      "review:approve:org-1:a1",
+      "review:deny:org-1:a1",
     ]);
   });
 
@@ -86,11 +89,11 @@ describe("notifyTicketSubmitted", () => {
   });
 
   it("prefers the club's own bound officer channel", async () => {
-    await adminDb.collection("discordGuilds").doc("G-2").set({
-      orgId: "org-2",
+    await adminDb.collection("discordClubs").doc("org-2").set({
+      guildId: "G-2",
       officerChannelId: "chan-9",
     });
-    await notifyTicketSubmitted("org-2", NOTICE);
+    await notifyTicketSubmitted("org-2", { ...NOTICE, orgId: "org-2" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url] = fetchMock.mock.calls[0] as unknown as [string];
     expect(url).toBe("https://discord.com/api/v10/channels/chan-9/messages");

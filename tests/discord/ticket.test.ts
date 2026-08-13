@@ -121,7 +121,9 @@ describe("/ticket command", () => {
   it("answers with a modal for a quantity type", async () => {
     const res = await handleDiscordCommand(ticketCmd("drug-sale"));
     expect(res.type).toBe(9); // modal
-    expect(res.data?.custom_id).toBe("ticket:drug-sale");
+    // The club rides in the id so the submit cannot land on the wrong club
+    // in a server that hosts several.
+    expect(res.data?.custom_id).toBe(`ticket:${ORG}:drug-sale`);
     expect(res.data?.title).toContain("Drug Sale");
 
     const inputs = (res.data?.components as { components: { custom_id: string }[] }[])
@@ -140,7 +142,7 @@ describe("/ticket command", () => {
 
   it("matches a hand-typed name as a courtesy", async () => {
     const res = await handleDiscordCommand(ticketCmd("drug sale"));
-    expect(res.data?.custom_id).toBe("ticket:drug-sale");
+    expect(res.data?.custom_id).toBe(`ticket:${ORG}:drug-sale`);
   });
 
   it("refuses unknown and disabled types", async () => {

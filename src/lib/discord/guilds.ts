@@ -1,55 +1,87 @@
 import "server-only";
 import { cache } from "react";
 import { FieldValue, adminDb, orgRef } from "@/lib/firebase/admin";
+import { getOrgById } from "@/lib/tenant";
+import type { Organization } from "@/lib/types";
 
 /**
- * Guild → club bindings: which club a Discord server speaks for. This is the
- * multi-group layer; one bot deployment serves every club in the database,
- * resolving the org PER INTERACTION from the signed guild id instead of the
- * single DISCORD_ORG_ID pin (which remains the fallback, so a one-club
- * deployment needs no binding at all).
+ * Which clubs a Discord server hosts, and where each one's tickets land.
+ *
+ * ONE SERVER CAN HOST SEVERAL CLUBS: a network server gives each club its own
+ * private category, so the binding is per CLUB (doc id = orgId) rather than
+ * per server. That also makes the two lookups this module owes cheap and
+ * direct: a club's officer channel is one document read, and "which clubs
+ * live in this server" is one indexed query.
+ *
+ * A club belongs to at most one server — its Discord home — so binding it
+ * again simply moves it.
  *
  * Written only by /connect, which demands the club's ADMIN role through the
- * account link. Root collection `discordGuilds`, doc id = guild id,
- * server-only in rules like invites and link codes.
+ * account link. Root collection `discordClubs`, server-only in rules like
+ * invites and link codes.
  *
  * Deliberately not cross-request cached: one doc read per Discord command is
  * noise next to a portal page, and a stale binding would misroute a club.
  * React cache() dedupes within a single interaction.
  */
 
-export interface GuildBinding {
+export interface ClubBinding {
   orgId: string;
+  guildId: string;
   /** Where this club's tickets land for review. Absent ⇒ env fallback. */
   officerChannelId?: string;
 }
 
-export const getGuildBinding = cache(
-  async (guildId: string): Promise<GuildBinding | null> => {
-    const snap = await adminDb.collection("discordGuilds").doc(guildId).get();
+function toBinding(
+  orgId: string,
+  data: FirebaseFirestore.DocumentData,
+): ClubBinding | null {
+  if (typeof data.guildId !== "string") return null;
+  return {
+    orgId,
+    guildId: data.guildId,
+    ...(typeof data.officerChannelId === "string"
+      ? { officerChannelId: data.officerChannelId }
+      : {}),
+  };
+}
+
+/** One club's Discord home, or null when it has never been connected. */
+export const getClubBinding = cache(
+  async (orgId: string): Promise<ClubBinding | null> => {
+    const snap = await adminDb.collection("discordClubs").doc(orgId).get();
     const data = snap.data();
-    if (typeof data?.orgId !== "string") return null;
-    return {
-      orgId: data.orgId,
-      ...(typeof data.officerChannelId === "string"
-        ? { officerChannelId: data.officerChannelId }
-        : {}),
-    };
+    return data ? toBinding(orgId, data) : null;
   },
 );
 
-/** Bind a guild to a club (merge: a rebind without a channel keeps the old
+/** Every club this server hosts, in binding order. Empty for an unbound
+ *  server, which then falls back to the DISCORD_ORG_ID pin. */
+export const clubsInGuild = cache(
+  async (guildId: string): Promise<Organization[]> => {
+    const snap = await adminDb
+      .collection("discordClubs")
+      .where("guildId", "==", guildId)
+      .get();
+    const orgs = await Promise.all(snap.docs.map((d) => getOrgById(d.id)));
+    return orgs.filter((o): o is Organization => o !== null);
+  },
+);
+
+/** Bind a club to a server (merge: rebinding without a channel keeps the old
  *  channel). Audited in the club's own log. */
-export async function setGuildBinding(
-  guildId: string,
-  opts: { orgId: string; officerChannelId?: string; connectedBy: string },
-): Promise<void> {
+export async function bindClub(opts: {
+  orgId: string;
+  guildId: string;
+  officerChannelId?: string;
+  connectedBy: string;
+}): Promise<void> {
   await adminDb
-    .collection("discordGuilds")
-    .doc(guildId)
+    .collection("discordClubs")
+    .doc(opts.orgId)
     .set(
       {
-        orgId: opts.orgId,
+        guildId: opts.guildId,
         ...(opts.officerChannelId
           ? { officerChannelId: opts.officerChannelId }
           : {}),
@@ -61,28 +93,21 @@ export async function setGuildBinding(
   await orgRef(opts.orgId).collection("auditLogs").add({
     actorUid: opts.connectedBy,
     action: "discord.connect",
-    targetPath: `discordGuilds/${guildId}`,
+    targetPath: `discordClubs/${opts.orgId}`,
     detail: opts.officerChannelId
-      ? `guild ${guildId}, officer channel ${opts.officerChannelId}`
-      : `guild ${guildId}`,
+      ? `guild ${opts.guildId}, officer channel ${opts.officerChannelId}`
+      : `guild ${opts.guildId}`,
     at: FieldValue.serverTimestamp(),
   });
 }
 
 /**
- * Where a club's ticket notifications go: its bound guild's officer channel,
- * or the single-club env fallback when this org is the env-pinned one.
+ * Where a club's ticket notifications go: its own bound channel, or the
+ * single-club env fallback when this org is the env-pinned one.
  */
 export async function officerChannelFor(orgId: string): Promise<string | null> {
-  const snap = await adminDb
-    .collection("discordGuilds")
-    .where("orgId", "==", orgId)
-    .limit(1)
-    .get();
-  const bound = snap.empty
-    ? undefined
-    : (snap.docs[0].data().officerChannelId as string | undefined);
-  if (bound) return bound;
+  const binding = await getClubBinding(orgId);
+  if (binding?.officerChannelId) return binding.officerChannelId;
   if (
     process.env.DISCORD_OFFICER_CHANNEL_ID &&
     orgId === process.env.DISCORD_ORG_ID

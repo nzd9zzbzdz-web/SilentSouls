@@ -5,8 +5,20 @@
  * outside Next, so this module must import nothing.
  *
  * Wire values from Discord's application-commands docs: command type 1 is
- * CHAT_INPUT (a slash command), option type 3 is STRING.
+ * CHAT_INPUT (a slash command), option type 3 is STRING, type 7 is CHANNEL.
+ *
+ * The `club` option repeats on the member-facing commands because ONE SERVER
+ * CAN HOST SEVERAL CLUBS. It is always optional and almost never typed: the
+ * bot resolves the club from the caller's own membership, and only asks when
+ * somebody genuinely rides with two clubs in the same server.
  */
+const CLUB_OPTION = {
+  type: 3,
+  name: "club",
+  description: "Which club (only needed if you ride with more than one here)",
+  required: false,
+  autocomplete: true,
+};
 export const DISCORD_COMMANDS = [
   {
     type: 1,
@@ -24,6 +36,7 @@ export const DISCORD_COMMANDS = [
         description: "Road name to look up; leave empty for your own record",
         required: false,
       },
+      CLUB_OPTION,
     ],
   },
   {
@@ -56,6 +69,7 @@ export const DISCORD_COMMANDS = [
         required: true,
         autocomplete: true,
       },
+      CLUB_OPTION,
     ],
   },
   {
@@ -80,17 +94,18 @@ export const DISCORD_COMMANDS = [
           { name: "global", value: "global" },
         ],
       },
+      CLUB_OPTION,
     ],
   },
   {
     type: 1,
     name: "connect",
-    description: "Bind this server to your club (club admins only)",
+    description: "Bring a club into this server (club admins only)",
     options: [
       {
         type: 7, // channel
         name: "channel",
-        description: "Officer channel where new tickets land for review",
+        description: "Officer channel where this club's tickets land for review",
         required: false,
       },
       {

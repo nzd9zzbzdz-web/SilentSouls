@@ -51,9 +51,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    match /discordGuilds/{guildId} {
-      // Which club a Discord server speaks for. Written only by /connect
-      // (admin role proven through the account link). Server-only.
+    match /discordClubs/{orgId} {
+      // Which Discord server a club rides in, and where its tickets land for
+      // review. One server can host several clubs, so this is keyed by club.
+      // Written only by /connect (admin role proven through the account
+      // link). Server-only.
       allow read, write: if false;
     }
 
