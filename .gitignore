@@ -47,3 +47,6 @@ next-env.d.ts
 # raw source art (optimized copies live in public/brand)
 /images/
 /Images/
+
+# vercel CLI project link (added by `vercel link`)
+.vercel
