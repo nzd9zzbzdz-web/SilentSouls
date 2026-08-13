@@ -153,7 +153,7 @@ export async function notifyTreasurySubmitted(
  * still works, it just scrolls away.
  */
 export type PanelPostResult =
-  | { ok: true; pinned: boolean }
+  | { ok: true; pinned: boolean; messageId: string }
   | { ok: false; reason: string };
 
 export async function postPanel(
@@ -195,9 +195,66 @@ export async function postPanel(
       `https://discord.com/api/v10/channels/${channelId}/pins/${messageId}`,
       { method: "PUT", headers },
     );
-    return { ok: true, pinned: pin.ok };
+    return { ok: true, pinned: pin.ok, messageId };
   } catch {
-    return { ok: true, pinned: false };
+    return { ok: true, pinned: false, messageId };
+  }
+}
+
+/**
+ * Re-render the pinned Club Bank card with the current balance.
+ *
+ * Called after every approved movement, from BOTH transports. Best-effort in
+ * the same spirit as notifyTicketSubmitted: a failed edit leaves a stale
+ * number on a card, which must never be allowed to fail the approval that
+ * already committed. No card bound ⇒ nothing to do.
+ */
+export async function updateBankPanel(orgId: string): Promise<void> {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  if (!token) return;
+
+  try {
+    const [{ getClubBinding }, { getTreasuryBalance }, { getOrgById, getBranding }] =
+      await Promise.all([
+        import("@/lib/discord/guilds"),
+        import("@/lib/queries"),
+        import("@/lib/tenant"),
+      ]);
+    const binding = await getClubBinding(orgId);
+    const panel = binding?.bankPanel;
+    if (!panel) return;
+
+    const [balance, org, branding] = await Promise.all([
+      getTreasuryBalance(orgId),
+      getOrgById(orgId),
+      getBranding(orgId, "portal"),
+    ]);
+    const { buildBankPanelMessage } = await import("@/lib/discord/bank-panel");
+    const { hexToInt } = await import("@/lib/discord/panel");
+
+    const res = await fetch(
+      `https://discord.com/api/v10/channels/${panel.channelId}/messages/${panel.messageId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bot ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          buildBankPanelMessage({
+            orgId,
+            orgName: org?.name ?? orgId,
+            balance,
+            accentColor: hexToInt(branding?.colors?.primary),
+          }),
+        ),
+      },
+    );
+    if (!res.ok) {
+      console.error(`Discord bank panel refresh failed: ${res.status} ${await res.text()}`);
+    }
+  } catch (e) {
+    console.error("Discord bank panel refresh failed:", e);
   }
 }
 

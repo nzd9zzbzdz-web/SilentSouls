@@ -14,7 +14,14 @@ import {
   STAT_LABELS,
   formatMoney,
 } from "@/lib/constants";
-import { bindClub, clubsInGuild } from "@/lib/discord/guilds";
+import { bindClub, clubsInGuild, setBankPanel } from "@/lib/discord/guilds";
+import {
+  BANK_MODAL_PREFIX,
+  BANK_SELECT_PREFIX,
+  buildBankModal,
+  buildBankPanelMessage,
+  isTxKind,
+} from "@/lib/discord/bank-panel";
 import {
   consumeLinkCode,
   findUserByDiscordId,
@@ -32,6 +39,7 @@ import {
   notifyTicketSubmitted,
   notifyTreasurySubmitted,
   postPanel,
+  updateBankPanel,
 } from "@/lib/discord/notify";
 import { composeLeaderboard, type LeaderboardCategory } from "@/lib/leaderboard";
 import {
@@ -148,6 +156,9 @@ export interface DiscordInteraction {
   /** The server the interaction came from; absent in DMs. Signed, so it is
    *  Discord's word on WHERE, the way `member.user` is its word on WHO. */
   guild_id?: string;
+  /** The channel the interaction came from. Signed like guild_id, which is
+   *  what lets /bankpanel record where it posted the card. */
+  channel_id?: string;
 }
 
 export interface InteractionResponse {
@@ -348,6 +359,7 @@ export async function handleDiscordCommand(
   if (command === "connect") return connect(interaction);
   if (command === "panel") return panelCommand(interaction);
   if (command === "bank") return bank(interaction);
+  if (command === "bankpanel") return bankPanelCommand(interaction);
   if (command === "dues") return moneyTicket(interaction, "dues");
   if (command === "deposit") return moneyTicket(interaction, "deposit");
   if (command === "withdraw") return moneyTicket(interaction, "withdrawal");
@@ -716,6 +728,27 @@ export async function handleModalSubmit(
   interaction: DiscordInteraction,
 ): Promise<InteractionResponse> {
   const customId = interaction.data?.custom_id ?? "";
+
+  // The bank's own form is a separate pipeline from the activity ticket's.
+  if (customId.startsWith(BANK_MODAL_PREFIX)) {
+    const rest = customId.slice(BANK_MODAL_PREFIX.length);
+    const split = rest.indexOf(":");
+    const bankOrgId = split === -1 ? "" : rest.slice(0, split);
+    const kind = split === -1 ? "" : rest.slice(split + 1);
+    if (!bankOrgId || !isTxKind(kind)) return reply("Unsupported form.");
+
+    const org = await getOrgById(bankOrgId);
+    if (!org || org.status === "suspended") return reply("That club's bank is closed.");
+    const resolved = await resolveLinkedMember(org, interaction);
+    if (resolved.kind === "unlinked") {
+      return reply("Link your Discord account first, then file it again.");
+    }
+    if (resolved.kind === "no_member") {
+      return reply(`Your portal account has no member record with ${org.name}.`);
+    }
+    return fileBankForm(interaction, org, resolved.uid, resolved.member, kind);
+  }
+
   // Both ways in open the same dialog; only the id prefix differs.
   const prefix = customId.startsWith(PANEL_MODAL_PREFIX)
     ? PANEL_MODAL_PREFIX
@@ -852,8 +885,12 @@ const BANK_ROWS = 8;
 async function bank(interaction: DiscordInteraction): Promise<InteractionResponse> {
   const ctx = await resolveContext(interaction, "bank");
   if (ctx.kind === "fail") return ctx.response;
-  const org = ctx.org;
+  return reply(await bankReadout(ctx.org));
+}
 
+/** The account as Discord markdown. Shared by /bank and the card's dropdown,
+ *  so the two can never disagree about what the books say. */
+async function bankReadout(org: Organization): Promise<string> {
   const [balance, ledger, members] = await Promise.all([
     getTreasuryBalance(org.id),
     listTreasuryLedger(org.id),
@@ -885,13 +922,165 @@ async function bank(interaction: DiscordInteraction): Promise<InteractionRespons
       return `${sign}${formatMoney(t.amount)} · ${KIND_VERB[t.kind]} · "${who}"${note}${date ? ` · ${date}` : ""}`;
     });
 
+  return [
+    `**Club Bank** · ${org.name}`,
+    `Balance: **${formatMoney(balance)}**`,
+    `Dues this month: ${paid} of ${riding.length} paid`,
+    ...(rows.length ? ["", "**Recent movements**", ...rows] : ["", "No settled movements yet."]),
+  ].join("\n");
+}
+
+/**
+ * Post the club's Club Bank card into this channel, and remember where it
+ * went so every approval can edit its balance in place. Admin-only like
+ * /panel: the card is club furniture, not a personal action.
+ */
+async function bankPanelCommand(
+  interaction: DiscordInteraction,
+): Promise<InteractionResponse> {
+  if (!interaction.guild_id) {
+    return reply("Run /bankpanel in the channel where the card should live.");
+  }
+  const pick = await pickOrg(interaction);
+  if (pick.kind === "none") return reply("This bot is not connected to a club yet.");
+  if (pick.kind !== "ok") {
+    return reply(`Name the club: /bankpanel club:<slug>. Here: ${clubChoices(pick.orgs)}.`);
+  }
+  const org = pick.org;
+
+  const resolved = await resolveLinkedMember(org, interaction);
+  if (resolved.kind === "unlinked") {
+    return reply(
+      "Link your Discord account first: generate a code on the portal " +
+        "dashboard, then run /link code:<your code>.",
+    );
+  }
+  if (resolved.kind === "no_member") {
+    return reply(`Your portal account has no member record with ${org.name}.`);
+  }
+  if (resolved.role !== "admin") {
+    return reply("Only a club admin can post the Club Bank card.");
+  }
+
+  const channelId = interaction.channel_id;
+  if (!channelId) {
+    return reply("Could not read which channel this is. Try again in a text channel.");
+  }
+
+  const [balance, branding] = await Promise.all([
+    getTreasuryBalance(org.id),
+    getBranding(org.id, "portal"),
+  ]);
+  // Posted through the REST route rather than returned as the interaction
+  // response, because the card has to be a message we can find and edit later.
+  const result = await postPanel(
+    channelId,
+    buildBankPanelMessage({
+      orgId: org.id,
+      orgName: org.name,
+      balance,
+      accentColor: hexToInt(branding?.colors?.primary),
+    }),
+  );
+  if (!result.ok) {
+    return reply(`Could not post the Club Bank card: ${result.reason}.`);
+  }
+  await setBankPanel(org.id, { channelId, messageId: result.messageId });
+
   return reply(
-    [
-      `**Club Bank** · ${org.name}`,
-      `Balance: **${formatMoney(balance)}**`,
-      `Dues this month: ${paid} of ${riding.length} paid`,
-      ...(rows.length ? ["", "**Recent movements**", ...rows] : ["", "No settled movements yet."]),
-    ].join("\n"),
+    `Club Bank card posted${result.pinned ? " and pinned" : ""}. Its balance updates itself on every approval.` +
+      (result.pinned
+        ? ""
+        : " It could not be pinned (the bot needs Manage Messages here), so it will scroll away as the channel fills."),
+  );
+}
+
+/** The card's dropdown: open a form, or read the account back. */
+async function bankSelect(
+  interaction: DiscordInteraction,
+): Promise<InteractionResponse> {
+  const orgId = (interaction.data?.custom_id ?? "").slice(BANK_SELECT_PREFIX.length);
+  const choice = interaction.data?.values?.[0];
+  if (!orgId || !choice) return reply("Pick a movement and try again.");
+
+  const org = await getOrgById(orgId);
+  if (!org || org.status === "suspended") {
+    return reply("That club's bank is closed.");
+  }
+
+  const resolved = await resolveLinkedMember(org, interaction);
+  if (resolved.kind === "unlinked") {
+    return reply(
+      "Link your Discord account first: generate a code on the portal " +
+        "dashboard, then run /link code:<your code>.",
+    );
+  }
+  if (resolved.kind === "no_member") {
+    return reply(`Your portal account has no member record with ${org.name}.`);
+  }
+
+  if (choice === "balance") return reply(await bankReadout(org));
+  if (!isTxKind(choice)) return reply("Pick a movement and try again.");
+
+  return { type: ResponseType.Modal, data: buildBankModal(org.id, choice) };
+}
+
+/** The returned bank form: validate with the website's schema, file through
+ *  the same core the Server Action wraps. */
+async function fileBankForm(
+  interaction: DiscordInteraction,
+  org: Organization,
+  uid: string,
+  member: Member,
+  kind: TreasuryTxKind,
+): Promise<InteractionResponse> {
+  const fields = modalFields(interaction);
+  const rawAmount = textField(fields, "amount").replace(/[,$\s]/g, "");
+  if (!/^\d+$/.test(rawAmount)) {
+    return reply("The amount must be a whole number of dollars.");
+  }
+
+  const parsed = submitTreasuryTxSchema.safeParse({
+    orgId: org.id,
+    kind,
+    amount: Number(rawAmount),
+    note: textField(fields, "note"),
+  });
+  if (!parsed.success) {
+    return reply(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  let txId: string;
+  try {
+    ({ txId } = await submitTreasuryTxCore(
+      { uid, memberId: member.id },
+      {
+        orgId: org.id,
+        kind,
+        amount: parsed.data.amount,
+        note: parsed.data.note.trim(),
+        subjectMemberId: member.id,
+      },
+    ));
+  } catch (e) {
+    if (e instanceof TreasuryError && e.code === "daily_limit") {
+      return reply("Daily submission limit reached");
+    }
+    console.error(e);
+    return reply("Something went wrong filing that.");
+  }
+
+  await notifyTreasurySubmitted(org.id, {
+    txId,
+    orgId: org.id,
+    kind,
+    amount: parsed.data.amount,
+    memberLabel: `"${member.roadName}" ${member.displayName}`,
+    note: parsed.data.note.trim(),
+  });
+
+  return reply(
+    `${KIND_VERB[kind]} of ${formatMoney(parsed.data.amount)} filed. It lands on the books once a treasury reviewer approves it.`,
   );
 }
 
@@ -1019,6 +1208,9 @@ async function handleTreasuryButton(
       // The balance moved and dues stamp the member doc; expire both tags
       // route-handler-style so the website reads fresh on its next request.
       expireOrgTags(org.id, "treasury", "members");
+      // The pinned card carries the balance, so it is now a message telling
+      // the channel the wrong number. Best-effort; never fails the approval.
+      await updateBankPanel(org.id);
       stamp = `✅ **Approved** by ${reviewer} · balance ${formatMoney(result.balance)}`;
     } else {
       await denyTreasuryTxCore(org.id, txId, resolved.uid);
@@ -1076,6 +1268,7 @@ export async function handleComponent(
   const customId = interaction.data?.custom_id ?? "";
   // The logger card's dropdown and the bank's buttons share this entry point.
   if (customId.startsWith(PANEL_SELECT_PREFIX)) return panelSelect(interaction);
+  if (customId.startsWith(BANK_SELECT_PREFIX)) return bankSelect(interaction);
   if (customId.startsWith(TREASURY_PREFIX)) return handleTreasuryButton(interaction);
   if (!customId.startsWith(REVIEW_PREFIX)) return reply("Unsupported button.");
   // "review:{decision}:{orgId}:{activityId}", or the two-part form from

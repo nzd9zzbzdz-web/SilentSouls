@@ -33,6 +33,9 @@ export interface ClubBinding {
   /** Where this club's Activity Logger card lives, so /connect can post it
    *  and a later reconnect knows where it went. */
   ticketChannelId?: string;
+  /** The pinned Club Bank card, so every approval can edit its balance in
+   *  place. Absent ⇒ no card posted, and the refresh is a no-op. */
+  bankPanel?: { channelId: string; messageId: string };
 }
 
 function toBinding(
@@ -49,7 +52,22 @@ function toBinding(
     ...(typeof data.ticketChannelId === "string"
       ? { ticketChannelId: data.ticketChannelId }
       : {}),
+    ...(typeof data.bankPanel?.channelId === "string" &&
+    typeof data.bankPanel?.messageId === "string"
+      ? { bankPanel: { channelId: data.bankPanel.channelId, messageId: data.bankPanel.messageId } }
+      : {}),
   };
+}
+
+/** Remember where the Club Bank card was posted, so approvals can edit it. */
+export async function setBankPanel(
+  orgId: string,
+  panel: { channelId: string; messageId: string },
+): Promise<void> {
+  await adminDb
+    .collection("discordClubs")
+    .doc(orgId)
+    .set({ bankPanel: panel, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 }
 
 /** One club's Discord home, or null when it has never been connected. */

@@ -297,7 +297,14 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   `/bank` shows the account); only `canReviewTreasury` rules, and a withdrawal
   the balance cannot cover is refused, never applied negative. Amounts are
   whole positive dollars; direction comes from the kind. Its own 20-a-day
-  rate-limit counter per uid, separate from activity tickets. Review clears
+  rate-limit counter per uid, separate from activity tickets. There is also a
+  pinned **Club Bank card** (`/bankpanel`, admin-only, `src/lib/discord/bank-panel.ts`),
+  the Activity Logger pattern with one difference: it carries the LIVE balance,
+  so every approval on either transport calls `updateBankPanel` to edit the
+  message in place. Its location rides on `discordClubs/{orgId}.bankPanel`
+  (channelId + messageId, written by `setBankPanel`); no card bound ⇒ no-op.
+  A failed edit leaves the card stale but never fails the approval behind it,
+  which is why the dropdown's own balance option reads live. Review clears
   the `treasury` tag (approvals also `members`); the Discord buttons
   (`treasury:{decision}:{orgId}:{txId}`) use `expireOrgTags` like the activity
   buttons. Reviewers may file dues FOR another member (cash handed over in

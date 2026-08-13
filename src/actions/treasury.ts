@@ -13,7 +13,7 @@ import {
   type TreasuryApproval,
 } from "@/lib/treasury-core";
 import { formatMoney } from "@/lib/constants";
-import { notifyTreasurySubmitted } from "@/lib/discord/notify";
+import { notifyTreasurySubmitted, updateBankPanel } from "@/lib/discord/notify";
 import { getMember } from "@/lib/queries";
 import {
   reviewTreasuryTxSchema,
@@ -137,6 +137,9 @@ export async function reviewTreasuryTx(
       // The balance moved and, for dues, the member doc took a stamp — both
       // are cached reads behind the bank page, /bank, and the Dues Roll.
       revalidateOrgTags(orgId, "treasury", "members");
+      // Discord's pinned card shows the balance, so a website approval has to
+      // correct it too. Best-effort; never fails the approval behind it.
+      await updateBankPanel(orgId);
       revalidatePath(`/[orgSlug]/portal/treasury`, "page");
       return { ok: true, data: result };
     }
