@@ -50,3 +50,4 @@ next-env.d.ts
 
 # vercel CLI project link (added by `vercel link`)
 .vercel
+.claude/
