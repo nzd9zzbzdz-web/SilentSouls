@@ -277,6 +277,32 @@ describe("club resolution in a shared server", () => {
     const names = (res.data?.choices as { name: string }[]).map((c) => c.name);
     expect(names.sort()).toEqual(["Alpha MC", "Bravo MC"]);
   });
+
+  // The club picker is keyed on the FOCUSED OPTION, not on a list of command
+  // names. It used to sit behind such a list, and every command missing from
+  // it suggested nothing at all: /mystats and /bankpanel were both dead that
+  // way. Every command that declares a club option belongs here.
+  it.each(["mystats", "ticket", "leaderboard", "panel", "bankpanel", "bank", "dues", "deposit", "withdraw"])(
+    "suggests clubs for /%s",
+    async (name) => {
+      const res = await handleAutocomplete({
+        type: 4,
+        guild_id: NETWORK,
+        data: { name, options: [{ name: "club", type: 3, value: "al", focused: true }] },
+      });
+      const choices = res.data?.choices as { name: string; value: string }[];
+      expect(choices).toEqual([{ name: "Alpha MC", value: ORG_A }]);
+    },
+  );
+
+  it("suggests nothing for a command with no club option", async () => {
+    const res = await handleAutocomplete({
+      type: 4,
+      guild_id: NETWORK,
+      data: { name: "ping", options: [] },
+    });
+    expect(res.data?.choices).toEqual([]);
+  });
 });
 
 describe("per-club officer power in a shared server", () => {

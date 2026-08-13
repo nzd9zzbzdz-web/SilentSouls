@@ -1357,21 +1357,39 @@ export async function handleComponent(
   };
 }
 
-/** Live suggestions: /ticket's activity types, /leaderboard's categories. */
+/** Live suggestions: the club picker on any command that has one, /ticket's
+ *  activity types, and /leaderboard's categories. */
 export async function handleAutocomplete(
   interaction: DiscordInteraction,
 ): Promise<InteractionResponse> {
   const empty = { type: ResponseType.Autocomplete, data: { choices: [] } };
   const command = interaction.data?.name;
-  // The bank commands are here for their club option only.
-  const known = ["ticket", "leaderboard", "panel", "bank", "dues", "deposit", "withdraw"];
-  if (!command || !known.includes(command)) {
-    return empty;
-  }
+  if (!command) return empty;
 
   const focused = interaction.data?.options?.find((o) => o.focused);
   const partial =
     typeof focused?.value === "string" ? focused.value.trim().toLowerCase() : "";
+
+  // The `club` picker is answered FIRST, for every command that carries one.
+  // It used to sit behind a hardcoded allowlist of command names, which meant
+  // a new command with a club option silently suggested nothing until someone
+  // remembered to add it — /mystats and /bankpanel were both dead that way.
+  // Keyed on the FOCUSED OPTION rather than the command, so it cannot rot
+  // again. Needs no club resolved: it is the thing resolving one.
+  if (focused?.name === "club") {
+    const hosted = interaction.guild_id
+      ? await clubsInGuild(interaction.guild_id)
+      : [];
+    const choices = hosted
+      .filter((o) => o.name.toLowerCase().includes(partial) || o.slug.includes(partial))
+      .slice(0, 25)
+      .map((o) => ({ name: o.name, value: o.slug }));
+    return { type: ResponseType.Autocomplete, data: { choices } };
+  }
+
+  // Everything below suggests something OTHER than a club, and only these two
+  // commands have such an option.
+  if (command !== "ticket" && command !== "leaderboard") return empty;
 
   // Global boards span every club, so they need no club resolved — and must
   // not go silent in a network server where the caller's club is ambiguous.
@@ -1381,18 +1399,6 @@ export async function handleAutocomplete(
     )
       .slice(0, 25)
       .map((k) => ({ name: STAT_LABELS[k] ?? k, value: k }));
-    return { type: ResponseType.Autocomplete, data: { choices } };
-  }
-
-  // Suggesting the club option itself needs no club resolved yet.
-  if (focused?.name === "club") {
-    const hosted = interaction.guild_id
-      ? await clubsInGuild(interaction.guild_id)
-      : [];
-    const choices = hosted
-      .filter((o) => o.name.toLowerCase().includes(partial) || o.slug.includes(partial))
-      .slice(0, 25)
-      .map((o) => ({ name: o.name, value: o.slug }));
     return { type: ResponseType.Autocomplete, data: { choices } };
   }
 
@@ -1408,10 +1414,6 @@ export async function handleAutocomplete(
       .map((t) => ({ name: t.name, value: t.id }));
     return { type: ResponseType.Autocomplete, data: { choices } };
   }
-
-  // Only the standings command suggests boards; everything else that reaches
-  // here (panel, the bank commands) autocompletes nothing but its club.
-  if (command !== "leaderboard") return empty;
 
   // Club boards suggest the club's own live emblem ladders (global boards
   // were answered above, before any club had to be resolved).
