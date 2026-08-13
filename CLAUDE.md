@@ -336,10 +336,9 @@ nav) · M9 Multi-tenant expansion (custom domains, org wizard, impersonation).
 **Discord ✅ and LIVE** (`/ping`, `/mystats`, `/link`, `/unlink`, `/ticket`,
 `/leaderboard`, `/connect`): linking, ticket submission, officer review with
 Approve/Deny buttons, club and global standings, and several clubs per server.
-Only a custom Discord Activity (an embedded UI) is left, and it is deliberately
-unstarted. GLOBAL standings span every club in ONE database; the Ninth Circle
-fork is a separate Firebase project, so it competes on its own network until it
-either folds into this deployment or gains a sync layer. Nothing federates two
+GLOBAL standings span every club in ONE database; the Ninth Circle fork is a
+separate Firebase project, so it competes on its own network until it either
+folds into this deployment or gains a sync layer. Nothing federates two
 databases today, on purpose.
 
 **Cut from the product 2026-08-10, do not rebuild without asking:** Events,
@@ -351,6 +350,17 @@ original plan had them as M5/M6/M7; they are not deferred, they are gone. Git
 history has the implementations if the club ever changes its mind.
 `ProspectProfile.status` keeps `vote_pending` on purpose: the club still votes,
 just not in the portal, so an officer sets that status by hand.
+
+**The Discord ACTIVITY was cut 2026-08-13, do not rebuild without asking.** An
+embedded UI (`/activity`, `@discord/embedded-app-sdk`, an OAuth session route
+and a proxy rewrite on `frame_id`) was built and then removed the same day. It
+worked, but an UNVERIFIED Activity only launches in servers under ~25 members
+and only for the dev team and named testers, which is the opposite direction
+from a club that intends to grow, and lifting the limit means taking the app
+through Discord verification. The slash commands already cover the same jobs
+for everyone in any size server. Git history has the implementation. The bot
+itself is untouched by this: it is an HTTP interactions endpoint, not an
+Activity, and needs no verification.
 
 ## Windows dev notes
 
