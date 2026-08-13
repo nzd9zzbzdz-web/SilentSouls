@@ -247,6 +247,22 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   `CRIMINAL_RECORD_ROWS` — members log those rows as ordinary activities and an
   officer approves, same pipeline as a club run. `member.rapSheet` is the dead
   hand-authored predecessor; nothing reads it.
+  - Approval has no reverse gear, so a ticket approved with the wrong quantity
+    would otherwise leave the record permanently wrong. `saveMemberStats`
+    (`src/actions/member-stats.ts`, admin-only, surfaced as **Record
+    Correction** on the member profile) is the ONLY path that moves a stat by
+    hand, and the only one that moves one DOWN. Values are absolute, a reason
+    is required, and every before/after lands in the audit log as
+    `member.stats`. The ticket itself keeps its original numbers — this
+    corrects the record, it does not rewrite history.
+  - It re-judges that member's awards in the same batch, so a correction never
+    leaves a rung lit that the record no longer reaches. Same two rules as
+    `reconcilePatchAwards`: a manual award (`awardedBy` = a uid) is never
+    revoked, and a patch with no requirement has nothing to measure it
+    against. Granting stays narrower than revoking, matching
+    `backfillPatchAwards`: only ACTIVE patches are handed out, but a retired
+    one still carrying a requirement can be taken back. Revoked worn patches
+    come off the cut; emblems were never on it.
 - **Seed changes don't reach existing orgs** — the seeder only runs on a
   destructive reseed. Admin → Activity Types flags drift and fixes it via
   `syncDefaultActivityTypes` (no CLI or credentials needed): adds missing

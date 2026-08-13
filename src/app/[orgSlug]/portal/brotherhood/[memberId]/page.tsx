@@ -9,6 +9,10 @@ import {
 import { EmblemLadders } from "@/components/portal/EmblemLadders";
 import { Leaderboard } from "@/components/portal/Leaderboard";
 import { MemberBio } from "@/components/portal/MemberBio";
+import {
+  MemberStatsEditor,
+  type StatEditGroup,
+} from "@/components/portal/MemberStatsEditor";
 import { ServiceRecord } from "@/components/portal/ServiceRecord";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { composeLadders, patchArtUrl } from "@/lib/patch-ladders";
@@ -19,13 +23,15 @@ import { orgRef } from "@/lib/firebase/admin";
 import { getBranding, getOrgBySlug } from "@/lib/tenant";
 import {
   getMember,
+  listActivityTypes,
   listMemberAwards,
   listPatchArtVersions,
   listPatches,
   listRanks,
   listServiceRecord,
 } from "@/lib/queries";
-import { CRIMINAL_RECORD_ROWS } from "@/lib/constants";
+import { CRIMINAL_RECORD_ROWS, STAT_LABELS } from "@/lib/constants";
+import { STAT_KEYS } from "@/lib/types";
 import { resolveBranding } from "@/lib/branding-resolve";
 import type { Timestamp } from "firebase-admin/firestore";
 
@@ -43,6 +49,9 @@ export default async function MemberDetailPage({
   // plain member's upload waits on an officer before the public roster shows
   // it — see uploadCharacterRender.
   const canManageArt = access.role === "admin";
+  // Correcting a stat by hand is the one way a number goes DOWN, and it can
+  // take an emblem back with it. Admins only, re-gated in saveMemberStats.
+  const canEditStats = access.role === "admin";
   const needsApproval =
     isSelf && !access.isSuper && access.role !== "admin" && access.role !== "officer";
   // Standing on your own mark and writing your own story are yours. Both are
@@ -68,19 +77,30 @@ export default async function MemberDetailPage({
   // Standings ride along in the same batch: loadLeaderboard reads members and
   // awards the profile doesn't otherwise need, and awaiting it after this
   // Promise.all would cost a serial round-trip for nothing.
-  const [ranks, awards, patches, branding, career, sponsor, patchArt, leaderboard] =
-    await Promise.all([
-      listRanks(org.id),
-      listMemberAwards(org.id, memberId),
-      listPatches(org.id),
-      getBranding(org.id, "portal"),
-      listServiceRecord(org.id, memberId),
-      member.sponsorMemberId
-        ? getMember(org.id, member.sponsorMemberId)
-        : Promise.resolve(null),
-      listPatchArtVersions(org.id),
-      loadLeaderboard(org.id),
-    ]);
+  const [
+    ranks,
+    awards,
+    patches,
+    branding,
+    career,
+    sponsor,
+    patchArt,
+    leaderboard,
+    activityTypes,
+  ] = await Promise.all([
+    listRanks(org.id),
+    listMemberAwards(org.id, memberId),
+    listPatches(org.id),
+    getBranding(org.id, "portal"),
+    listServiceRecord(org.id, memberId),
+    member.sponsorMemberId
+      ? getMember(org.id, member.sponsorMemberId)
+      : Promise.resolve(null),
+    listPatchArtVersions(org.id),
+    loadLeaderboard(org.id),
+    // Only the correction editor needs these, and it only renders for admins.
+    canEditStats ? listActivityTypes(org.id) : Promise.resolve([]),
+  ]);
   const rank = ranks.find((r) => r.id === member.rankId);
   const patchById = new Map(patches.map((p) => [p.id, p]));
   const brand = resolveBranding(branding, "portal", org);
@@ -125,6 +145,42 @@ export default async function MemberDetailPage({
       danger: row.danger,
     };
   });
+
+  // The same rows, opened up for correction. Criminal record is always the
+  // whole panel; the club stats show what the club still logs plus any retired
+  // key that carries history, so a dead stat with a value can still be fixed.
+  const criminalKeys = new Set(CRIMINAL_RECORD_ROWS.map((row) => row.statKey));
+  const liveStatKeys = new Set(
+    activityTypes.filter((type) => type.active).map((type) => type.statKey),
+  );
+  const statGroups: StatEditGroup[] = canEditStats
+    ? [
+        {
+          title: "Criminal Record",
+          rows: CRIMINAL_RECORD_ROWS.map((row) => {
+            const value = member.stats?.[row.statKey] ?? 0;
+            return {
+              statKey: row.statKey,
+              label: row.label,
+              value,
+              ...(row.format ? { display: row.format(value) } : {}),
+            };
+          }),
+        },
+        {
+          title: "Club Activity",
+          rows: STAT_KEYS.filter(
+            (key) =>
+              !criminalKeys.has(key) &&
+              (liveStatKeys.has(key) || (member.stats?.[key] ?? 0) > 0),
+          ).map((key) => ({
+            statKey: key,
+            label: STAT_LABELS[key] ?? key,
+            value: member.stats?.[key] ?? 0,
+          })),
+        },
+      ].filter((group) => group.rows.length > 0)
+    : [];
 
   const careerItems = composeServiceRecord({
     memberNumber: member.memberNumber,
@@ -230,6 +286,15 @@ export default async function MemberDetailPage({
         isSelf={isSelf}
         roadName={member.roadName}
       />
+
+      {canEditStats && statGroups.length > 0 && (
+        <MemberStatsEditor
+          orgId={org.id}
+          memberId={memberId}
+          roadName={member.roadName}
+          groups={statGroups}
+        />
+      )}
 
       <Tabs defaultValue="service" className="gap-4">
         <TabsList>

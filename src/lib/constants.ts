@@ -52,6 +52,13 @@ export const CRIMINAL_RECORD_ROWS: {
  */
 export const MAX_ACTIVITY_QUANTITY = 10_000_000;
 
+/**
+ * Ceiling on a hand-corrected stat. Stats accumulate across a whole career, so
+ * this sits well above any single ticket's quantity; it exists to catch a
+ * fat-fingered paste, not to bound a real record.
+ */
+export const MAX_STAT_VALUE = 1_000_000_000;
+
 /** $0 · $12.5K · $2.4M — keeps six figures from blowing out the panel. */
 export function formatDirtyMoney(n: number): string {
   if (n >= 1_000_000) return `$${trimZero(n / 1_000_000)}M`;

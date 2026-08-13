@@ -29,7 +29,7 @@ async function getCandidatePatches(orgId: string): Promise<Patch[]> {
 }
 
 /** Nudge v downward until the spot isn't occupied (simple collision avoidance). */
-function placeOnCut(
+export function placeOnCut(
   layout: CutLayout,
   placement: Omit<CutPlacement, "zIndex" | "mirrored">,
 ): CutPlacement {
@@ -47,7 +47,7 @@ function placeOnCut(
  * run five tiers across eleven stats, so placing them would bury a vest
  * fifty-five deep — they live as levels on the member's profile instead.
  */
-function isWorn(patch: Patch): boolean {
+export function isWorn(patch: Patch): boolean {
   return patch.emblem !== true;
 }
 

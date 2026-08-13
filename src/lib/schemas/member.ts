@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { STAT_KEYS } from "@/lib/types";
+import { MAX_STAT_VALUE } from "@/lib/constants";
 
 export const memberStatusSchema = z.enum([
   "hangaround",
@@ -46,6 +48,44 @@ export const saveMemberBioSchema = z.object({
   bio: z.string().max(600, "Keep it under 600 characters"),
 });
 export type SaveMemberBioInput = z.infer<typeof saveMemberBioSchema>;
+
+/**
+ * Hand-corrected stats. Values are ABSOLUTE, not deltas: the admin types what
+ * the record should say, which is how they read it off the character screen.
+ * An array rather than a record so each row carries its own error message, the
+ * same shape a ticket's entries take.
+ *
+ * The reason is required. Stats are earned through officer-approved tickets, so
+ * a number that moved any other way has to say why in the audit log.
+ */
+export const saveMemberStatsSchema = z.object({
+  orgId: z.string().min(1),
+  memberId: z.string().min(1),
+  stats: z
+    .array(
+      z.object({
+        statKey: z.enum(STAT_KEYS),
+        value: z
+          .number()
+          .int("Stats are whole numbers")
+          .min(0, "A stat cannot go below zero")
+          .max(
+            MAX_STAT_VALUE,
+            `That is over the ${MAX_STAT_VALUE.toLocaleString("en-US")} ceiling`,
+          ),
+      }),
+    )
+    .min(1, "Nothing to correct")
+    .max(STAT_KEYS.length)
+    .refine((rows) => new Set(rows.map((r) => r.statKey)).size === rows.length, {
+      message: "Each stat can only appear once",
+    }),
+  reason: z
+    .string()
+    .min(3, "Say why the record is being corrected")
+    .max(300, "Keep the reason under 300 characters"),
+});
+export type SaveMemberStatsInput = z.infer<typeof saveMemberStatsSchema>;
 
 export const deleteMemberSchema = z.object({
   orgId: z.string().min(1),
