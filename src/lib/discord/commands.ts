@@ -101,6 +101,11 @@ export const DISCORD_COMMANDS = [
     type: 1,
     name: "connect",
     description: "Bring a club into this server (club admins only)",
+    // Hidden from anyone without Discord's Manage Server permission (1 << 5).
+    // Presentation only: the real gate is the club's ADMIN portal role,
+    // checked against the caller's linked account. Without this, every member
+    // sees a setup command they can only ever be refused by.
+    default_member_permissions: "32",
     options: [
       {
         type: 7, // channel
