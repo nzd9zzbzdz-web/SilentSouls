@@ -58,4 +58,18 @@ export const DISCORD_COMMANDS = [
       },
     ],
   },
+  {
+    type: 1,
+    name: "leaderboard",
+    description: "Club standings for a stat category",
+    options: [
+      {
+        type: 3,
+        name: "category",
+        description: "Which board (defaults to the first)",
+        required: false,
+        autocomplete: true,
+      },
+    ],
+  },
 ];

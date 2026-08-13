@@ -15,10 +15,12 @@ import {
   unlinkDiscordId,
 } from "@/lib/discord/link";
 import { notifyTicketSubmitted } from "@/lib/discord/notify";
+import { composeLeaderboard, type LeaderboardCategory } from "@/lib/leaderboard";
 import {
   getActivity,
   getMember,
   listActivityTypes,
+  listAwardsByMember,
   listMembers,
   listPatches,
   listRanks,
@@ -163,6 +165,7 @@ export async function handleDiscordCommand(
   if (command === "link") return link(interaction);
   if (command === "unlink") return unlink(interaction);
   if (command === "ticket") return ticket(interaction);
+  if (command === "leaderboard") return leaderboard(interaction);
 
   return reply("Unknown command.");
 }
@@ -506,24 +509,112 @@ export async function handleComponent(
   };
 }
 
-/** Live suggestions for /ticket's type option: the org's active types. */
+/** Live suggestions: /ticket's activity types, /leaderboard's categories. */
 export async function handleAutocomplete(
   interaction: DiscordInteraction,
 ): Promise<InteractionResponse> {
   const empty = { type: ResponseType.Autocomplete, data: { choices: [] } };
-  if (interaction.data?.name !== "ticket") return empty;
+  const command = interaction.data?.name;
+  if (command !== "ticket" && command !== "leaderboard") return empty;
   const org = await botOrg();
   if (!org) return empty;
 
   const focused = interaction.data?.options?.find((o) => o.focused);
   const partial =
     typeof focused?.value === "string" ? focused.value.trim().toLowerCase() : "";
-  const types = await listActivityTypes(org.id);
-  const choices = types
-    .filter((t) => t.active && t.name.toLowerCase().includes(partial))
-    .slice(0, 25) // Discord's ceiling
-    .map((t) => ({ name: t.name, value: t.id }));
+
+  if (command === "ticket") {
+    const types = await listActivityTypes(org.id);
+    const choices = types
+      .filter((t) => t.active && t.name.toLowerCase().includes(partial))
+      .slice(0, 25) // Discord's ceiling
+      .map((t) => ({ name: t.name, value: t.id }));
+    return { type: ResponseType.Autocomplete, data: { choices } };
+  }
+
+  const boards = await loadBoards(org.id);
+  const choices = boards
+    .filter((b) => b.label.toLowerCase().includes(partial))
+    .slice(0, 25)
+    .map((b) => ({ name: b.label, value: b.statKey }));
   return { type: ResponseType.Autocomplete, data: { choices } };
+}
+
+// ── /leaderboard: the club standings as channel banter ─────────────────
+
+/**
+ * The standings with none of the imagery: Discord renders text, so the
+ * render-existence and art-version reads the website's loader makes are
+ * skipped entirely. Three org-cached reads, all shared with the portal pages,
+ * so a warm cache serves this for zero Firestore documents.
+ */
+async function loadBoards(orgId: string): Promise<LeaderboardCategory[]> {
+  const [members, awardsByMember, patches] = await Promise.all([
+    listMembers(orgId),
+    listAwardsByMember(orgId),
+    listPatches(orgId),
+  ]);
+  return composeLeaderboard({
+    members,
+    awardsByMember,
+    patches,
+    artUrlFor: () => null,
+    imageFor: () => ({ url: "", hasRender: false }),
+  });
+}
+
+async function leaderboard(
+  interaction: DiscordInteraction,
+): Promise<InteractionResponse> {
+  const org = await botOrg();
+  if (!org) return reply("This bot is not connected to a club yet.");
+
+  const boards = await loadBoards(org.id);
+  if (!boards.length) {
+    return reply("No standings yet. Earn some emblems first.");
+  }
+
+  const query = stringOption(interaction, "category");
+  const board = query
+    ? boards.find((b) => b.statKey === query) ??
+      boards.find((b) => b.label.toLowerCase() === query.toLowerCase())
+    : boards[0];
+  if (!board) {
+    return reply(
+      `No standings board named "${query}". Pick one from the suggestions.`,
+    );
+  }
+
+  // Standings are club banter: the one reply besides /ping the whole channel
+  // gets to see. Same data any member reads on the Standings page.
+  return {
+    type: ResponseType.ChannelMessage,
+    data: { content: formatLeaderboard(org, board) },
+  };
+}
+
+const MEDALS = ["🥇", "🥈", "🥉"];
+const BOARD_ROWS = 15;
+
+/** One board as Discord markdown. Ties share a medal, just like the website
+ *  shares a rank (1, 2, 2, 4). */
+export function formatLeaderboard(
+  org: Organization,
+  board: LeaderboardCategory,
+): string {
+  const lines = board.rows.slice(0, BOARD_ROWS).map((row) => {
+    const lead = row.rank <= 3 ? MEDALS[row.rank - 1] : `${row.rank}.`;
+    const emblem = row.topEmblem
+      ? ` · ${row.topEmblem.name} (${row.level}/${row.levelTotal})`
+      : "";
+    return `${lead} "${row.roadName}" ${row.displayName} · ${row.valueLabel}${emblem}`;
+  });
+  const overflow = board.rows.length - BOARD_ROWS;
+  return [
+    `**${board.label}** standings · ${org.name}`,
+    ...lines,
+    ...(overflow > 0 ? [`... and ${overflow} more on the website`] : []),
+  ].join("\n");
 }
 
 // ── Record formatting ──────────────────────────────────────────────────
