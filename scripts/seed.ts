@@ -157,8 +157,10 @@ const MEMBERS: MemberSeed[] = [
     stats: { ...rap(121, 7, 12, 30, 11, 860_000), clubRuns: 52, churchAttendance: 31, operations: 12, territoryDefense: 8, recruitment: 1, specialAssignments: 4, territoryPatrol: 17, communityOutreach: 9, charityEvents: 6 },
   },
   {
+    // The Treasurer seat: a MEMBER portal role who can still rule on the bank,
+    // which is exactly the treasury permission carve-out worth demoing.
     id: "m-ledger", displayName: "Jimmy Okafor", roadName: "Ledger",
-    email: "ledger@silentsouls.rp", rankName: "Patched Member", role: "member",
+    email: "ledger@silentsouls.rp", rankName: "Treasurer", role: "member",
     status: "patched", memberNumber: 9, joinDate: "2024-03-08",
     rapStatus: "At Large",
     stats: { ...rap(64, 15, 3, 18, 6, 3_800_000), clubRuns: 23, churchAttendance: 19, operations: 6, territoryDefense: 3, communityOutreach: 11, charityEvents: 8, securityDetail: 5 },

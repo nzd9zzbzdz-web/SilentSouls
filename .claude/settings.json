@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"c:/Claude code skills/brotherhood-portal\" diff HEAD -- scripts/seed.ts)"
+    ]
+  }
+}

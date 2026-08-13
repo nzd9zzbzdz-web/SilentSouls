@@ -1,5 +1,7 @@
 import "server-only";
 import { officerChannelFor } from "@/lib/discord/guilds";
+import { formatMoney } from "@/lib/constants";
+import type { TreasuryTxKind } from "@/lib/types";
 
 /**
  * Outbound Discord messages: the officer channel's heads-up when a ticket is
@@ -35,6 +37,9 @@ export function buildTicketMessage(input: TicketNotice): Record<string, unknown>
       input.summary,
       `> ${description}`,
     ].join("\n"),
+    // Member-typed text rides in this message; without this a description
+    // containing @everyone would ping the whole channel.
+    allowed_mentions: { parse: [] },
     components: [
       {
         type: 1, // action row
@@ -55,6 +60,87 @@ export function buildTicketMessage(input: TicketNotice): Record<string, unknown>
       },
     ],
   };
+}
+
+export interface TreasuryNotice {
+  txId: string;
+  /** Same reason the ticket buttons carry it: one server, several clubs. */
+  orgId: string;
+  kind: TreasuryTxKind;
+  amount: number;
+  /** `"Reaper" Marcus Vane` — whose movement it is. */
+  memberLabel: string;
+  note: string;
+}
+
+const TREASURY_KIND_LABEL: Record<TreasuryTxKind, string> = {
+  dues: "Dues payment",
+  deposit: "Deposit",
+  withdrawal: "Withdrawal",
+};
+
+/** The money-ticket payload, split out pure so tests can pin the shape. */
+export function buildTreasuryMessage(input: TreasuryNotice): Record<string, unknown> {
+  const note = input.note.length > 300 ? `${input.note.slice(0, 300)}...` : input.note;
+  return {
+    content: [
+      `**${TREASURY_KIND_LABEL[input.kind]}** of ${formatMoney(input.amount)} from ${input.memberLabel}`,
+      ...(note ? [`> ${note}`] : []),
+      "Admins and the Treasurer rule on the bank.",
+    ].join("\n"),
+    // Member-typed note: never let an @everyone in it ping the channel.
+    allowed_mentions: { parse: [] },
+    components: [
+      {
+        type: 1, // action row
+        components: [
+          {
+            type: 2, // button
+            style: 3, // success (green)
+            label: "Approve",
+            custom_id: `treasury:approve:${input.orgId}:${input.txId}`,
+          },
+          {
+            type: 2,
+            style: 4, // danger (red)
+            label: "Deny",
+            custom_id: `treasury:deny:${input.orgId}:${input.txId}`,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/** Post a money movement to the club's officer channel. Same silent-skip and
+ *  never-fails contract as the activity notification it mirrors. */
+export async function notifyTreasurySubmitted(
+  orgId: string,
+  input: TreasuryNotice,
+): Promise<void> {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  if (!token) return;
+  const channel = await officerChannelFor(orgId);
+  if (!channel) return;
+
+  try {
+    const res = await fetch(
+      `https://discord.com/api/v10/channels/${channel}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bot ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(buildTreasuryMessage(input)),
+      },
+    );
+    if (!res.ok) {
+      console.error(`Discord treasury notify failed: ${res.status} ${await res.text()}`);
+    }
+  } catch (e) {
+    console.error("Discord treasury notify failed:", e);
+  }
 }
 
 /**

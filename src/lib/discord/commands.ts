@@ -99,6 +99,82 @@ export const DISCORD_COMMANDS = [
   },
   {
     type: 1,
+    name: "bank",
+    description: "The club bank: balance, recent ledger, and dues status",
+    options: [CLUB_OPTION],
+  },
+  {
+    type: 1,
+    name: "dues",
+    description: "Pay your club dues (goes to the Treasurer for approval)",
+    options: [
+      {
+        type: 4, // integer
+        name: "amount",
+        description: "Whole dollars",
+        required: true,
+        min_value: 1,
+        // Mirrors MAX_TREASURY_AMOUNT (this module imports nothing).
+        max_value: 1000000000,
+      },
+      {
+        type: 3,
+        name: "note",
+        description: "Anything the Treasurer should know",
+        required: false,
+        max_length: 300,
+      },
+      CLUB_OPTION,
+    ],
+  },
+  {
+    type: 1,
+    name: "deposit",
+    description: "Log money going INTO the club bank",
+    options: [
+      {
+        type: 4,
+        name: "amount",
+        description: "Whole dollars",
+        required: true,
+        min_value: 1,
+        max_value: 1000000000,
+      },
+      {
+        type: 3,
+        name: "note",
+        description: "Where the money came from",
+        required: true,
+        max_length: 300,
+      },
+      CLUB_OPTION,
+    ],
+  },
+  {
+    type: 1,
+    name: "withdraw",
+    description: "Request money OUT of the club bank",
+    options: [
+      {
+        type: 4,
+        name: "amount",
+        description: "Whole dollars",
+        required: true,
+        min_value: 1,
+        max_value: 1000000000,
+      },
+      {
+        type: 3,
+        name: "note",
+        description: "What the money is for",
+        required: true,
+        max_length: 300,
+      },
+      CLUB_OPTION,
+    ],
+  },
+  {
+    type: 1,
     name: "panel",
     description: "Post the club's Activity Logger card in this channel (admins)",
     // Same reasoning as /connect: a member who found this could only ever be

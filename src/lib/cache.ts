@@ -164,6 +164,7 @@ export const orgTags = {
   map: (orgId: string) => `org:${orgId}:map`,
   gallery: (orgId: string) => `org:${orgId}:gallery`,
   roles: (orgId: string) => `org:${orgId}:roles`,
+  treasury: (orgId: string) => `org:${orgId}:treasury`,
 } as const;
 
 export type OrgTagName = keyof typeof orgTags;

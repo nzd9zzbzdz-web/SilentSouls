@@ -8,7 +8,12 @@ import {
 } from "@/lib/activities-core";
 import { describeActivity } from "@/lib/activity-entries";
 import { expireOrgTags } from "@/lib/cache";
-import { CRIMINAL_RECORD_ROWS, PATCH_LADDERS, STAT_LABELS } from "@/lib/constants";
+import {
+  CRIMINAL_RECORD_ROWS,
+  PATCH_LADDERS,
+  STAT_LABELS,
+  formatMoney,
+} from "@/lib/constants";
 import { bindClub, clubsInGuild } from "@/lib/discord/guilds";
 import {
   consumeLinkCode,
@@ -23,20 +28,43 @@ import {
   buildPanelModal,
   hexToInt,
 } from "@/lib/discord/panel";
-import { notifyTicketSubmitted, postPanel } from "@/lib/discord/notify";
+import {
+  notifyTicketSubmitted,
+  notifyTreasurySubmitted,
+  postPanel,
+} from "@/lib/discord/notify";
 import { composeLeaderboard, type LeaderboardCategory } from "@/lib/leaderboard";
 import {
   getActivity,
   getMember,
+  getTreasuryBalance,
+  getTreasuryTx,
   listActivityTypes,
   listAwardsByMember,
   listMembers,
   listPatches,
   listRanks,
+  listTreasuryLedger,
 } from "@/lib/queries";
 import { getBranding, getOrgById, getOrgBySlug, listActiveOrgs } from "@/lib/tenant";
 import { submitActivitySchema } from "@/lib/schemas/activity";
-import type { Member, Organization, StatKey, SystemRole } from "@/lib/types";
+import { submitTreasuryTxSchema } from "@/lib/schemas/treasury";
+import {
+  TreasuryError,
+  approveTreasuryTxCore,
+  canReviewTreasury,
+  denyTreasuryTxCore,
+  isDuesCurrent,
+  memberRankFresh,
+  submitTreasuryTxCore,
+} from "@/lib/treasury-core";
+import type {
+  Member,
+  Organization,
+  StatKey,
+  SystemRole,
+  TreasuryTxKind,
+} from "@/lib/types";
 
 /**
  * The Discord transport's command dispatch, kept apart from the HTTP route so
@@ -142,6 +170,14 @@ function stringOption(
 ): string | null {
   const value = interaction.data?.options?.find((o) => o.name === name)?.value;
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function integerOption(
+  interaction: DiscordInteraction,
+  name: string,
+): number | null {
+  const value = interaction.data?.options?.find((o) => o.name === name)?.value;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 /**
@@ -311,6 +347,10 @@ export async function handleDiscordCommand(
   if (command === "leaderboard") return leaderboard(interaction);
   if (command === "connect") return connect(interaction);
   if (command === "panel") return panelCommand(interaction);
+  if (command === "bank") return bank(interaction);
+  if (command === "dues") return moneyTicket(interaction, "dues");
+  if (command === "deposit") return moneyTicket(interaction, "deposit");
+  if (command === "withdraw") return moneyTicket(interaction, "withdrawal");
 
   return reply("Unknown command.");
 }
@@ -791,6 +831,229 @@ async function fileTicket(
   );
 }
 
+// ── The club bank: /bank, /dues, /deposit, /withdraw ───────────────────
+
+const TREASURY_PREFIX = "treasury:";
+
+const KIND_VERB: Record<TreasuryTxKind, string> = {
+  dues: "Dues payment",
+  deposit: "Deposit",
+  withdrawal: "Withdrawal",
+};
+
+/** How many settled movements /bank shows before pointing at the website. */
+const BANK_ROWS = 8;
+
+/**
+ * The club's account at a glance: balance, dues currency, recent settled
+ * movements. Ephemeral like /mystats — the bank is club business, and channel
+ * membership is not club membership in a network server.
+ */
+async function bank(interaction: DiscordInteraction): Promise<InteractionResponse> {
+  const ctx = await resolveContext(interaction, "bank");
+  if (ctx.kind === "fail") return ctx.response;
+  const org = ctx.org;
+
+  const [balance, ledger, members] = await Promise.all([
+    getTreasuryBalance(org.id),
+    listTreasuryLedger(org.id),
+    listMembers(org.id),
+  ]);
+  const memberById = new Map(members.map((m) => [m.id, m]));
+
+  // Dues currency across the riding club — same rule as the portal's Dues
+  // Roll (approved dues payment inside the current calendar month).
+  const riding = members.filter(
+    (m) => m.status !== "retired" && m.status !== "exiled",
+  );
+  const paid = riding.filter((m) => isDuesCurrent(m)).length;
+
+  const rows = ledger
+    .filter((t) => t.status === "approved")
+    .slice(0, BANK_ROWS)
+    .map((t) => {
+      const sign = t.kind === "withdrawal" ? "-" : "+";
+      const who = memberById.get(t.memberId)?.roadName ?? "unknown";
+      const when = (t.reviewedAt as { toDate?: () => Date })?.toDate?.();
+      const date = when
+        ? when.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+        : "";
+      const note =
+        t.kind === "dues"
+          ? ""
+          : ` · ${t.note.length > 40 ? `${t.note.slice(0, 40)}...` : t.note}`;
+      return `${sign}${formatMoney(t.amount)} · ${KIND_VERB[t.kind]} · "${who}"${note}${date ? ` · ${date}` : ""}`;
+    });
+
+  return reply(
+    [
+      `**Club Bank** · ${org.name}`,
+      `Balance: **${formatMoney(balance)}**`,
+      `Dues this month: ${paid} of ${riding.length} paid`,
+      ...(rows.length ? ["", "**Recent movements**", ...rows] : ["", "No settled movements yet."]),
+    ].join("\n"),
+  );
+}
+
+/** /dues, /deposit and /withdraw all file the same money ticket. */
+async function moneyTicket(
+  interaction: DiscordInteraction,
+  kind: TreasuryTxKind,
+): Promise<InteractionResponse> {
+  const command = kind === "withdrawal" ? "withdraw" : kind;
+  const ctx = await resolveContext(interaction, command);
+  if (ctx.kind === "fail") return ctx.response;
+  const org = ctx.org;
+
+  // Same schema the website's action parses, so the two ways in cannot drift.
+  const parsed = submitTreasuryTxSchema.safeParse({
+    orgId: org.id,
+    kind,
+    amount: integerOption(interaction, "amount") ?? 0,
+    note: stringOption(interaction, "note") ?? "",
+  });
+  if (!parsed.success) {
+    return reply(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  let txId: string;
+  try {
+    ({ txId } = await submitTreasuryTxCore(
+      { uid: ctx.uid, memberId: ctx.member.id },
+      {
+        orgId: org.id,
+        kind,
+        amount: parsed.data.amount,
+        note: parsed.data.note.trim(),
+        // Discord always files for the caller; naming someone else is a
+        // website flow for treasury reviewers.
+        subjectMemberId: ctx.member.id,
+      },
+    ));
+  } catch (e) {
+    if (e instanceof TreasuryError && e.code === "daily_limit") {
+      return reply("Daily submission limit reached");
+    }
+    console.error(e);
+    return reply("Something went wrong filing the ticket.");
+  }
+
+  // Officer-channel heads-up; never blocks or fails the filing.
+  await notifyTreasurySubmitted(org.id, {
+    txId,
+    orgId: org.id,
+    kind,
+    amount: parsed.data.amount,
+    memberLabel: `"${ctx.member.roadName}" ${ctx.member.displayName}`,
+    note: parsed.data.note.trim(),
+  });
+
+  const verb =
+    kind === "withdrawal"
+      ? "Withdrawal request filed"
+      : kind === "deposit"
+        ? "Deposit logged"
+        : "Dues payment filed";
+  return reply(
+    `${verb}: ${formatMoney(parsed.data.amount)}. It lands on the books once a treasury reviewer approves it.`,
+  );
+}
+
+/**
+ * A click on the treasury Approve/Deny buttons. Same permission chain as the
+ * activity review buttons (signed click → account link → membership), but the
+ * gate is the treasury's own: portal admins and the Treasurer seat, checked
+ * by canReviewTreasury against the clicker's rank on their member doc. The
+ * core's transaction settles racing reviewers; the channel message is stamped
+ * and its buttons retired.
+ */
+async function handleTreasuryButton(
+  interaction: DiscordInteraction,
+): Promise<InteractionResponse> {
+  // "treasury:{decision}:{orgId}:{txId}" — no legacy short form to honour.
+  const parts = (interaction.data?.custom_id ?? "").split(":");
+  const decision = parts[1];
+  const buttonOrgId = parts[2];
+  const txId = parts.slice(3).join(":");
+  if ((decision !== "approve" && decision !== "deny") || !buttonOrgId || !txId) {
+    return reply("Unsupported button.");
+  }
+
+  const org = await getOrgById(buttonOrgId);
+  if (!org || org.status === "suspended") {
+    return reply("That club is no longer taking reviews.");
+  }
+
+  const resolved = await resolveLinkedMember(org, interaction);
+  if (resolved.kind === "unlinked") {
+    return reply(
+      "Link your Discord account first: generate a code on the portal " +
+        "dashboard, then run /link code:<your code>.",
+    );
+  }
+  if (resolved.kind === "no_member") {
+    return reply(`Your portal account has no member record with ${org.name}.`);
+  }
+  // The rank comes off a FRESH member read: money authority must not outlive
+  // a demotion by a cache TTL (resolved.member came through getMember).
+  const rankId = canReviewTreasury(resolved.role, undefined)
+    ? undefined
+    : await memberRankFresh(org.id, resolved.member.id);
+  if (!canReviewTreasury(resolved.role, rankId)) {
+    return reply("Only an admin or the Treasurer can rule on the bank.");
+  }
+
+  // Friendly pre-check for stale buttons; the core's transaction is the real
+  // authority when two reviewers race past this read together.
+  const movement = await getTreasuryTx(org.id, txId);
+  if (!movement) return reply("That transaction no longer exists.");
+  if (movement.status !== "pending") {
+    return reply(`This transaction was already ${movement.status}.`);
+  }
+
+  const reviewer = `"${resolved.member.roadName}" ${resolved.member.displayName}`;
+  let stamp: string;
+  try {
+    if (decision === "approve") {
+      const result = await approveTreasuryTxCore(org.id, txId, resolved.uid);
+      // The balance moved and dues stamp the member doc; expire both tags
+      // route-handler-style so the website reads fresh on its next request.
+      expireOrgTags(org.id, "treasury", "members");
+      stamp = `✅ **Approved** by ${reviewer} · balance ${formatMoney(result.balance)}`;
+    } else {
+      await denyTreasuryTxCore(org.id, txId, resolved.uid);
+      // Settled movements land on the cached ledger even when denied — the
+      // same reason the web action's deny path revalidates the treasury tag.
+      expireOrgTags(org.id, "treasury");
+      stamp = `⛔ **Denied** by ${reviewer}`;
+    }
+  } catch (e) {
+    if (e instanceof TreasuryError) {
+      if (e.code === "not_pending") {
+        return reply("This transaction was already reviewed.");
+      }
+      if (e.code === "insufficient_funds") {
+        return reply(
+          `The bank holds ${formatMoney(Number(e.detail ?? 0))}; it cannot cover this withdrawal.`,
+        );
+      }
+      return reply("That transaction no longer exists.");
+    }
+    console.error(e);
+    return reply("Something went wrong applying the decision.");
+  }
+
+  // Stamp the decision onto the channel message and retire its buttons.
+  const original = interaction.message?.content;
+  return {
+    type: ResponseType.UpdateMessage,
+    data: {
+      content: original ? `${original}\n\n${stamp}` : stamp,
+      components: [],
+    },
+  };
+}
+
 // ── Officer review buttons ─────────────────────────────────────────────
 
 const REVIEW_PREFIX = "review:";
@@ -811,8 +1074,9 @@ export async function handleComponent(
   interaction: DiscordInteraction,
 ): Promise<InteractionResponse> {
   const customId = interaction.data?.custom_id ?? "";
-  // The logger card's dropdown shares this entry point with the review buttons.
+  // The logger card's dropdown and the bank's buttons share this entry point.
   if (customId.startsWith(PANEL_SELECT_PREFIX)) return panelSelect(interaction);
+  if (customId.startsWith(TREASURY_PREFIX)) return handleTreasuryButton(interaction);
   if (!customId.startsWith(REVIEW_PREFIX)) return reply("Unsupported button.");
   // "review:{decision}:{orgId}:{activityId}", or the two-part form from
   // messages posted before clubs rode along in the id.
@@ -906,7 +1170,9 @@ export async function handleAutocomplete(
 ): Promise<InteractionResponse> {
   const empty = { type: ResponseType.Autocomplete, data: { choices: [] } };
   const command = interaction.data?.name;
-  if (command !== "ticket" && command !== "leaderboard" && command !== "panel") {
+  // The bank commands are here for their club option only.
+  const known = ["ticket", "leaderboard", "panel", "bank", "dues", "deposit", "withdraw"];
+  if (!command || !known.includes(command)) {
     return empty;
   }
 
@@ -949,6 +1215,10 @@ export async function handleAutocomplete(
       .map((t) => ({ name: t.name, value: t.id }));
     return { type: ResponseType.Autocomplete, data: { choices } };
   }
+
+  // Only the standings command suggests boards; everything else that reaches
+  // here (panel, the bank commands) autocompletes nothing but its club.
+  if (command !== "leaderboard") return empty;
 
   // Club boards suggest the club's own live emblem ladders (global boards
   // were answered above, before any club had to be resolved).

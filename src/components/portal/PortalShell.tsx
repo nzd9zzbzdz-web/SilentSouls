@@ -7,6 +7,7 @@ import {
   Award,
   ClipboardCheck,
   Image as ImageIcon,
+  Landmark,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -53,6 +54,7 @@ const MAIN_NAV = [
   { href: "/patch-wall", label: "Patch Wall", icon: Award },
   // Next to the wall on purpose: same emblems, ranked against the club.
   { href: "/standings", label: "Standings", icon: Trophy },
+  { href: "/treasury", label: "Club Bank", icon: Landmark },
   { href: "/gallery", label: "Gallery", icon: ImageIcon },
   { href: "/prospects", label: "Prospects", icon: UserPlus },
 ];

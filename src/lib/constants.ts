@@ -59,6 +59,30 @@ export const MAX_ACTIVITY_QUANTITY = 10_000_000;
  */
 export const MAX_STAT_VALUE = 1_000_000_000;
 
+/**
+ * Ceiling on one treasury transaction. Same reasoning as MAX_STAT_VALUE: it
+ * exists to catch a pasted extra zero, not to bound a real club's money.
+ */
+export const MAX_TREASURY_AMOUNT = 1_000_000_000;
+
+/**
+ * Exact dollars for the club bank: $12,500, never $12.5K. The compact
+ * formatDirtyMoney below is for stat panels where space wins; a ledger is the
+ * one place the club expects to see every digit.
+ */
+export function formatMoney(n: number): string {
+  return `$${n.toLocaleString("en-US")}`;
+}
+
+/**
+ * The Treasurer seat's rank doc id (rankDocId("Treasurer")), spelled out as a
+ * constant because treasury review keys on it. Club rank is deliberately not a
+ * portal permission ANYWHERE ELSE — this is the one carve-out, made because
+ * the club's book-keeper is a rank, not a portal role, and it gates only the
+ * treasury's approve/deny. See canReviewTreasury in treasury-core.
+ */
+export const TREASURER_RANK_ID = "treasurer";
+
 /** $0 · $12.5K · $2.4M — keeps six figures from blowing out the panel. */
 export function formatDirtyMoney(n: number): string {
   if (n >= 1_000_000) return `$${trimZero(n / 1_000_000)}M`;

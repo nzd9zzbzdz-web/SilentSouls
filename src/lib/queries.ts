@@ -14,6 +14,7 @@ import type {
   Rank,
   ServiceRecordEntry,
   SystemRole,
+  TreasuryTransaction,
 } from "@/lib/types";
 
 // Small, stable collections. `orgCached` holds them ACROSS requests (see
@@ -447,6 +448,74 @@ export const listOrgRoles = orgCached(
     return byUid;
   },
 );
+
+/** The club bank's running balance. Missing account doc ⇒ zero: the club has
+ *  never moved money. Cleared by the treasury tag on every review. */
+export const getTreasuryBalance = orgCached(
+  "treasuryBalance",
+  (orgId) => [orgTags.treasury(orgId)],
+  TTL.club,
+  async (orgId: string): Promise<number> => {
+    const snap = await orgRef(orgId).collection("treasury").doc("account").get();
+    return (snap.data()?.balance ?? 0) as number;
+  },
+);
+
+/**
+ * The bank statement: settled movements (approved AND denied), newest ruling
+ * first. One cached read serves the portal ledger and /bank; the pending
+ * queue stays on the uncached listTreasuryTransactions below, same split as
+ * activities.
+ */
+export const listTreasuryLedger = orgCached(
+  "treasuryLedger",
+  (orgId) => [orgTags.treasury(orgId)],
+  TTL.club,
+  async (orgId: string): Promise<TreasuryTransaction[]> => {
+    const snap = await orgRef(orgId)
+      .collection("treasuryTransactions")
+      .where("status", "in", ["approved", "denied"])
+      .orderBy("reviewedAt", "desc")
+      .limit(100)
+      .get();
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<TreasuryTransaction, "id">),
+    }));
+  },
+);
+
+/** Pending queue and a member's own filings — deliberately uncached, like
+ *  listActivities: review surfaces must see the current truth. */
+export async function listTreasuryTransactions(
+  orgId: string,
+  opts: { memberId?: string; status?: TreasuryTransaction["status"]; limit?: number } = {},
+): Promise<TreasuryTransaction[]> {
+  let q = orgRef(orgId)
+    .collection("treasuryTransactions")
+    .orderBy("createdAt", "desc") as FirebaseFirestore.Query;
+  if (opts.memberId) q = q.where("memberId", "==", opts.memberId);
+  if (opts.status) q = q.where("status", "==", opts.status);
+  const snap = await q.limit(opts.limit ?? 25).get();
+  return snap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<TreasuryTransaction, "id">),
+  }));
+}
+
+/** One movement, fresh: review surfaces must see the current status. */
+export async function getTreasuryTx(
+  orgId: string,
+  txId: string,
+): Promise<TreasuryTransaction | null> {
+  const snap = await orgRef(orgId)
+    .collection("treasuryTransactions")
+    .doc(txId)
+    .get();
+  return snap.exists
+    ? { id: snap.id, ...(snap.data() as Omit<TreasuryTransaction, "id">) }
+    : null;
+}
 
 export async function listActivities(
   orgId: string,

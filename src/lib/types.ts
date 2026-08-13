@@ -352,6 +352,9 @@ export interface Member {
   stats: MemberStats;
   patchCount: number;
   lastActivityAt?: Timestamp | Date;
+  /** Stamped by treasury approval when a dues payment lands, so the Dues Roll
+   *  reads off the member list instead of querying the ledger per member. */
+  lastDuesPaidAt?: Timestamp | Date;
   createdAt: Timestamp | Date;
 }
 
@@ -382,6 +385,45 @@ export interface Activity {
   reviewedAt?: Timestamp | Date;
   reviewNote?: string;
   createdAt: Timestamp | Date;
+}
+
+// ── Treasury: the club bank ────────────────────────────────────────────
+
+/** Dues and deposits pay IN; withdrawals pay OUT. */
+export type TreasuryTxKind = "dues" | "deposit" | "withdrawal";
+
+/**
+ * One money movement, pending until a reviewer rules on it. Same lifecycle as
+ * an activity ticket on purpose (anyone files, review applies it), but the
+ * review gate is narrower: portal admins and the member holding the Treasurer
+ * rank, not every officer — see canReviewTreasury in treasury-core.
+ */
+export interface TreasuryTransaction {
+  id: string;
+  kind: TreasuryTxKind;
+  /** Whole dollars, always positive; `kind` carries the direction. */
+  amount: number;
+  /** Whose money movement this is — for dues, the member whose dues are paid. */
+  memberId: string;
+  /** Who actually filed it. Differs from memberId when a reviewer logs cash
+   *  handed over in person. */
+  submittedByUid: string;
+  note: string;
+  status: ActivityStatus;
+  createdAt: Timestamp | Date;
+  reviewedBy?: string;
+  reviewedAt?: Timestamp | Date;
+  reviewNote?: string;
+  /** The account balance after this transaction applied. Approved rows only —
+   *  it makes the ledger read like a bank statement. */
+  balanceAfter?: number;
+}
+
+/** organizations/{orgId}/treasury/account — the running balance. Missing doc
+ *  means the club has never moved money: balance zero. */
+export interface TreasuryAccount {
+  balance: number;
+  updatedAt: Timestamp | Date;
 }
 
 export type PatchCategory =

@@ -160,6 +160,18 @@ service cloud.firestore {
         allow read: if isMember(orgId);
         allow write: if false;
       }
+      match /treasury/{docId} {
+        // The club bank's running balance. Club-visible like the ledger below;
+        // moved only inside the approval transaction (Admin SDK).
+        allow read: if isMember(orgId);
+        allow write: if false;
+      }
+      match /treasuryTransactions/{txId} {
+        // Money movements: dues, deposits, withdrawals. Club-visible by design,
+        // same as the activity feed — the club's money is the club's business.
+        allow read: if isMember(orgId);
+        allow write: if false;
+      }
       match /auditLogs/{logId} {
         allow read: if isOrgAdmin(orgId);
         allow write: if false;

@@ -280,6 +280,28 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   tiering and cut visuals only; portal access is the role claim. Enforcer and
   Chaplain are titled members — they wear a tab but sit outside the officer
   table; Head Enforcer is the officer rank.
+  - ONE deliberate carve-out: treasury review. `canReviewTreasury`
+    (`src/lib/treasury-core.ts`) admits portal ADMINS plus the member whose
+    `rankId` is `TREASURER_RANK_ID` — the club's book-keeper is a rank, not a
+    portal role, and the club wanted the top table and the Treasurer ruling on
+    money, NOT every officer. It gates nothing but the bank, both transports
+    check it through their own auth (session / account link), and Discord
+    roles still grant nothing. Do not widen it and do not copy the pattern to
+    another feature without asking.
+- **The club bank is the ticket pipeline wearing money** (`treasuryTransactions`
+  \+ the running balance in `treasury/account`, moved ONLY inside the approval
+  transaction in `src/lib/treasury-core.ts`, which also stamps the row's
+  `balanceAfter` and, for dues, the payer's `member.lastDuesPaidAt` — the Dues
+  Roll reads off the member list, zero extra queries). Anyone files
+  (portal Club Bank page, or `/dues` `/deposit` `/withdraw` on Discord;
+  `/bank` shows the account); only `canReviewTreasury` rules, and a withdrawal
+  the balance cannot cover is refused, never applied negative. Amounts are
+  whole positive dollars; direction comes from the kind. Its own 20-a-day
+  rate-limit counter per uid, separate from activity tickets. Review clears
+  the `treasury` tag (approvals also `members`); the Discord buttons
+  (`treasury:{decision}:{orgId}:{txId}`) use `expireOrgTags` like the activity
+  buttons. Reviewers may file dues FOR another member (cash handed over in
+  person) — web only, re-checked server-side.
 - The club activity set is **criminal-record-first**: only Club Ride and Church
   survive from the original 13 spec types. Retired stat keys stay in `STAT_KEYS`
   so historical values still render.
@@ -350,8 +372,10 @@ M7 Gallery ✅ · M8 Digital Cut renderer ✅ (route exists, deliberately not in
 nav) · M9 Multi-tenant expansion (custom domains, org wizard, impersonation).
 
 **Discord ✅ and LIVE** (`/ping`, `/mystats`, `/link`, `/unlink`, `/ticket`,
-`/leaderboard`, `/connect`): linking, ticket submission, officer review with
-Approve/Deny buttons, club and global standings, and several clubs per server.
+`/leaderboard`, `/connect`, `/panel`, and the bank: `/bank`, `/dues`,
+`/deposit`, `/withdraw`): linking, ticket submission, officer review with
+Approve/Deny buttons, the club treasury, club and global standings, and
+several clubs per server.
 GLOBAL standings span every club in ONE database; the Ninth Circle fork is a
 separate Firebase project, so it competes on its own network until it either
 folds into this deployment or gains a sync layer. Nothing federates two
