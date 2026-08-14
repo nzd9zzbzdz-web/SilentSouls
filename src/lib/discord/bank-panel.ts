@@ -1,6 +1,6 @@
 import "server-only";
-import { formatMoney } from "@/lib/constants";
-import type { TreasuryTxKind } from "@/lib/types";
+import { TREASURY_BOOK_LABEL, formatMoney } from "@/lib/constants";
+import type { TreasuryBalances, TreasuryBook, TreasuryTxKind } from "@/lib/types";
 
 /**
  * The in-channel Club Bank card, and the forms it opens.
@@ -31,16 +31,40 @@ const STRING_SELECT = 3;
 const TEXT_INPUT = 4;
 const LABEL = 18;
 
-/** The dropdown's four jobs. The first three open a form; the last reads. */
+/**
+ * The dropdown's jobs: each movement once per book, then the readout.
+ *
+ * The book rides in the DROPDOWN rather than in the form because of the split
+ * this module already lives by: the card holds what a dropdown can choose and
+ * the dialog holds what has to be typed. It also means the member picks the
+ * book while looking at both balances, which is the moment they can tell
+ * which one they meant.
+ */
 export const BANK_ACTIONS = [
-  { value: "dues", label: "Pay Dues", description: "Your club dues" },
-  { value: "deposit", label: "Deposit", description: "Money going into the bank" },
-  { value: "withdrawal", label: "Withdrawal", description: "Money coming out" },
-  { value: "balance", label: "Balance and ledger", description: "Read the account" },
+  { value: "dues:clean", label: "Pay Dues (clean)", description: "Your club dues, money that can be shown" },
+  { value: "dues:dirty", label: "Pay Dues (dirty)", description: "Your club dues, money that cannot" },
+  { value: "deposit:clean", label: "Deposit (clean)", description: "Money in, and the club can account for it" },
+  { value: "deposit:dirty", label: "Deposit (dirty)", description: "Money in, and it cannot be shown" },
+  { value: "withdrawal:clean", label: "Withdrawal (clean)", description: "Money out of the clean book" },
+  { value: "withdrawal:dirty", label: "Withdrawal (dirty)", description: "Money out of the dirty book" },
+  { value: "balance", label: "Balance and ledger", description: "Read both books" },
 ] as const;
 
 export function isTxKind(value: string): value is TreasuryTxKind {
   return value === "dues" || value === "deposit" || value === "withdrawal";
+}
+
+/**
+ * Read a dropdown value back into the movement it names. A bare kind with no
+ * book ("deposit") still resolves, to the clean book: cards posted before the
+ * split are live messages in real channels and their dropdowns keep working.
+ */
+export function parseBankChoice(
+  value: string,
+): { kind: TreasuryTxKind; book: TreasuryBook } | null {
+  const [kind, book] = value.split(":");
+  if (!isTxKind(kind)) return null;
+  return { kind, book: book === "dirty" ? "dirty" : "clean" };
 }
 
 /**
@@ -50,7 +74,7 @@ export function isTxKind(value: string): value is TreasuryTxKind {
 export function buildBankPanelMessage(opts: {
   orgId: string;
   orgName: string;
-  balance: number;
+  balances: TreasuryBalances;
   accentColor: number | null;
 }): Record<string, unknown> {
   return {
@@ -64,7 +88,7 @@ export function buildBankPanelMessage(opts: {
             type: TEXT_DISPLAY,
             content:
               `## 🏦 Club Bank\n` +
-              `### ${formatMoney(opts.balance)}\n` +
+              `### ${formatMoney(opts.balances.clean)} clean · ${formatMoney(opts.balances.dirty)} dirty\n` +
               `**${opts.orgName}** · an admin or the Treasurer rules on every movement.`,
           },
           { type: SEPARATOR, divider: true, spacing: 1 },
@@ -98,18 +122,23 @@ export function buildBankPanelMessage(opts: {
 export function buildBankModal(
   orgId: string,
   kind: TreasuryTxKind,
+  book: TreasuryBook,
 ): Record<string, unknown> {
   const title =
     kind === "dues" ? "Pay Dues" : kind === "deposit" ? "Log a Deposit" : "Request a Withdrawal";
 
   return {
-    custom_id: `${BANK_MODAL_PREFIX}${orgId}:${kind}`,
-    title,
+    // The book rides in the id, like the club does: the dropdown that chose
+    // it is gone by the time this comes back.
+    custom_id: `${BANK_MODAL_PREFIX}${orgId}:${kind}:${book}`,
+    title: `${title} · ${TREASURY_BOOK_LABEL[book]}`,
     components: [
       {
         type: LABEL,
         label: "Amount",
-        description: "Whole dollars. No minus signs.",
+        // Names the book again inside the dialog: the dropdown that chose it
+        // is no longer on screen, and this is the last chance to notice.
+        description: `Whole dollars, on the ${TREASURY_BOOK_LABEL[book].toLowerCase()} book. No minus signs.`,
         component: {
           type: TEXT_INPUT,
           custom_id: "amount",

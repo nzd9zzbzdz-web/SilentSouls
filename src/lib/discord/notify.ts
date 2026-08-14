@@ -1,7 +1,7 @@
 import "server-only";
 import { officerChannelFor } from "@/lib/discord/guilds";
-import { formatMoney } from "@/lib/constants";
-import type { TreasuryTxKind } from "@/lib/types";
+import { TREASURY_BOOK_LABEL, formatMoney } from "@/lib/constants";
+import type { TreasuryBook, TreasuryTxKind } from "@/lib/types";
 
 /**
  * Outbound Discord messages: the officer channel's heads-up when a ticket is
@@ -67,6 +67,9 @@ export interface TreasuryNotice {
   /** Same reason the ticket buttons carry it: one server, several clubs. */
   orgId: string;
   kind: TreasuryTxKind;
+  /** Which book approving it would move. On the notice because it changes the
+   *  decision: the reviewer should not have to open the site to find out. */
+  book: TreasuryBook;
   amount: number;
   /** `"Reaper" Marcus Vane` — whose movement it is. */
   memberLabel: string;
@@ -82,9 +85,10 @@ const TREASURY_KIND_LABEL: Record<TreasuryTxKind, string> = {
 /** The money-ticket payload, split out pure so tests can pin the shape. */
 export function buildTreasuryMessage(input: TreasuryNotice): Record<string, unknown> {
   const note = input.note.length > 300 ? `${input.note.slice(0, 300)}...` : input.note;
+  const book = TREASURY_BOOK_LABEL[input.book].toLowerCase();
   return {
     content: [
-      `**${TREASURY_KIND_LABEL[input.kind]}** of ${formatMoney(input.amount)} from ${input.memberLabel}`,
+      `**${TREASURY_KIND_LABEL[input.kind]}** of ${formatMoney(input.amount)} from ${input.memberLabel} · ${book} book`,
       ...(note ? [`> ${note}`] : []),
       "Admins and the Treasurer rule on the bank.",
     ].join("\n"),
@@ -202,7 +206,7 @@ export async function postPanel(
 }
 
 /**
- * Re-render the pinned Club Bank card with the current balance.
+ * Re-render the pinned Club Bank card with the current balance of both books.
  *
  * Called after every approved movement, from BOTH transports. Best-effort in
  * the same spirit as notifyTicketSubmitted: a failed edit leaves a stale
@@ -214,7 +218,7 @@ export async function updateBankPanel(orgId: string): Promise<void> {
   if (!token) return;
 
   try {
-    const [{ getClubBinding }, { getTreasuryBalance }, { getOrgById, getBranding }] =
+    const [{ getClubBinding }, { getTreasuryBalances }, { getOrgById, getBranding }] =
       await Promise.all([
         import("@/lib/discord/guilds"),
         import("@/lib/queries"),
@@ -224,8 +228,8 @@ export async function updateBankPanel(orgId: string): Promise<void> {
     const panel = binding?.bankPanel;
     if (!panel) return;
 
-    const [balance, org, branding] = await Promise.all([
-      getTreasuryBalance(orgId),
+    const [balances, org, branding] = await Promise.all([
+      getTreasuryBalances(orgId),
       getOrgById(orgId),
       getBranding(orgId, "portal"),
     ]);
@@ -244,7 +248,7 @@ export async function updateBankPanel(orgId: string): Promise<void> {
           buildBankPanelMessage({
             orgId,
             orgName: org?.name ?? orgId,
-            balance,
+            balances,
             accentColor: hexToInt(branding?.colors?.primary),
           }),
         ),

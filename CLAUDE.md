@@ -289,7 +289,7 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
     roles still grant nothing. Do not widen it and do not copy the pattern to
     another feature without asking.
 - **The club bank is the ticket pipeline wearing money** (`treasuryTransactions`
-  \+ the running balance in `treasury/account`, moved ONLY inside the approval
+  \+ the running balances in `treasury/account`, moved ONLY inside the approval
   transaction in `src/lib/treasury-core.ts`, which also stamps the row's
   `balanceAfter` and, for dues, the payer's `member.lastDuesPaidAt` — the Dues
   Roll reads off the member list, zero extra queries). Anyone files
@@ -309,6 +309,33 @@ patch@silentsouls.rp (prospect, 1 club run from Road Warrior), platform@brotherh
   (`treasury:{decision}:{orgId}:{txId}`) use `expireOrgTags` like the activity
   buttons. Reviewers may file dues FOR another member (cash handed over in
   person) — web only, re-checked server-side.
+  - **The club keeps TWO BOOKS, clean and dirty** (`TreasuryBook`), and the
+    filer names one on every movement: a Book toggle on the web form, a
+    required `book` choice option on the three slash commands, and a
+    kind-and-book pair in the card's dropdown (`dues:dirty`, and
+    `parseBankChoice` reads it back). Both surfaces show both figures; the
+    book is not restricted to officers.
+    - They are two FIELDS of the one account doc (`clean`, `dirty`), not two
+      accounts: one read, one write, and the single-document transaction goes
+      on settling racing reviewers unchanged. What the split changes is that
+      **a book is the unit of solvency** — a withdrawal is covered by the book
+      it names or refused, and the other book is NEVER raided to cover it.
+      `balanceAfter` is that row's book, never the total.
+    - **The migration is a fallback, not a script.** `accountBooks()` reads
+      `clean ?? balance ?? 0`, so a club that banked money before the split
+      keeps every dollar of it as clean money with nothing run; `bookOf()`
+      reads a row with no `book` field as clean for the same reason. Those two
+      functions are the ONLY places that default is spelled. The first
+      approval materialises both fields; the legacy `balance` is then dead but
+      deliberately left in place, so the split stays reversible. `getTreasuryBalances`
+      took a NEW cache key with its new shape, so no cached bare number can
+      outlive the deploy.
+    - Pre-split Discord cards are live messages in real channels, so the bare
+      dropdown value (`deposit`) and the two-part modal id (`bankform:{orgId}:{kind}`)
+      both still resolve, to the clean book.
+    - There is deliberately NO way to move money between the books. Washing
+      dirty into clean was considered and left out; adding it is a rule change
+      to make on purpose, not a fourth `TreasuryTxKind` someone slips in.
 - The club activity set is **criminal-record-first**: only Club Ride and Church
   survive from the original 13 spec types. Retired stat keys stay in `STAT_KEYS`
   so historical values still render.

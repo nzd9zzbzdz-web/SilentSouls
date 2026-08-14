@@ -12,6 +12,7 @@ import {
   CRIMINAL_RECORD_ROWS,
   PATCH_LADDERS,
   STAT_LABELS,
+  TREASURY_BOOK_LABEL,
   formatMoney,
 } from "@/lib/constants";
 import { bindClub, clubsInGuild, setBankPanel } from "@/lib/discord/guilds";
@@ -21,6 +22,7 @@ import {
   buildBankModal,
   buildBankPanelMessage,
   isTxKind,
+  parseBankChoice,
 } from "@/lib/discord/bank-panel";
 import {
   consumeLinkCode,
@@ -45,7 +47,7 @@ import { composeLeaderboard, type LeaderboardCategory } from "@/lib/leaderboard"
 import {
   getActivity,
   getMember,
-  getTreasuryBalance,
+  getTreasuryBalances,
   getTreasuryTx,
   listActivityTypes,
   listAwardsByMember,
@@ -60,8 +62,10 @@ import { submitTreasuryTxSchema } from "@/lib/schemas/treasury";
 import {
   TreasuryError,
   approveTreasuryTxCore,
+  bookOf,
   canReviewTreasury,
   denyTreasuryTxCore,
+  insufficientFundsMessage,
   isDuesCurrent,
   memberRankFresh,
   submitTreasuryTxCore,
@@ -71,6 +75,7 @@ import type {
   Organization,
   StatKey,
   SystemRole,
+  TreasuryBook,
   TreasuryTxKind,
 } from "@/lib/types";
 
@@ -731,11 +736,14 @@ export async function handleModalSubmit(
 
   // The bank's own form is a separate pipeline from the activity ticket's.
   if (customId.startsWith(BANK_MODAL_PREFIX)) {
-    const rest = customId.slice(BANK_MODAL_PREFIX.length);
-    const split = rest.indexOf(":");
-    const bankOrgId = split === -1 ? "" : rest.slice(0, split);
-    const kind = split === -1 ? "" : rest.slice(split + 1);
+    // "bankform:{orgId}:{kind}:{book}". A two-part id from a card posted
+    // before the books split still opens, on the clean book, the same way an
+    // unlabelled row reads clean.
+    const [bankOrgId = "", kind = "", rawBook] = customId
+      .slice(BANK_MODAL_PREFIX.length)
+      .split(":");
     if (!bankOrgId || !isTxKind(kind)) return reply("Unsupported form.");
+    const book: TreasuryBook = rawBook === "dirty" ? "dirty" : "clean";
 
     const org = await getOrgById(bankOrgId);
     if (!org || org.status === "suspended") return reply("That club's bank is closed.");
@@ -746,7 +754,7 @@ export async function handleModalSubmit(
     if (resolved.kind === "no_member") {
       return reply(`Your portal account has no member record with ${org.name}.`);
     }
-    return fileBankForm(interaction, org, resolved.uid, resolved.member, kind);
+    return fileBankForm(interaction, org, resolved.uid, resolved.member, kind, book);
   }
 
   // Both ways in open the same dialog; only the id prefix differs.
@@ -891,8 +899,8 @@ async function bank(interaction: DiscordInteraction): Promise<InteractionRespons
 /** The account as Discord markdown. Shared by /bank and the card's dropdown,
  *  so the two can never disagree about what the books say. */
 async function bankReadout(org: Organization): Promise<string> {
-  const [balance, ledger, members] = await Promise.all([
-    getTreasuryBalance(org.id),
+  const [balances, ledger, members] = await Promise.all([
+    getTreasuryBalances(org.id),
     listTreasuryLedger(org.id),
     listMembers(org.id),
   ]);
@@ -919,12 +927,14 @@ async function bankReadout(org: Organization): Promise<string> {
         t.kind === "dues"
           ? ""
           : ` · ${t.note.length > 40 ? `${t.note.slice(0, 40)}...` : t.note}`;
-      return `${sign}${formatMoney(t.amount)} · ${KIND_VERB[t.kind]} · "${who}"${note}${date ? ` · ${date}` : ""}`;
+      const book = TREASURY_BOOK_LABEL[bookOf(t)].toLowerCase();
+      return `${sign}${formatMoney(t.amount)} ${book} · ${KIND_VERB[t.kind]} · "${who}"${note}${date ? ` · ${date}` : ""}`;
     });
 
   return [
     `**Club Bank** · ${org.name}`,
-    `Balance: **${formatMoney(balance)}**`,
+    `Clean: **${formatMoney(balances.clean)}** · Dirty: **${formatMoney(balances.dirty)}**`,
+    `Both books: ${formatMoney(balances.total)}`,
     `Dues this month: ${paid} of ${riding.length} paid`,
     ...(rows.length ? ["", "**Recent movements**", ...rows] : ["", "No settled movements yet."]),
   ].join("\n");
@@ -967,8 +977,8 @@ async function bankPanelCommand(
     return reply("Could not read which channel this is. Try again in a text channel.");
   }
 
-  const [balance, branding] = await Promise.all([
-    getTreasuryBalance(org.id),
+  const [balances, branding] = await Promise.all([
+    getTreasuryBalances(org.id),
     getBranding(org.id, "portal"),
   ]);
   // Posted through the REST route rather than returned as the interaction
@@ -978,7 +988,7 @@ async function bankPanelCommand(
     buildBankPanelMessage({
       orgId: org.id,
       orgName: org.name,
-      balance,
+      balances,
       accentColor: hexToInt(branding?.colors?.primary),
     }),
   );
@@ -1020,9 +1030,13 @@ async function bankSelect(
   }
 
   if (choice === "balance") return reply(await bankReadout(org));
-  if (!isTxKind(choice)) return reply("Pick a movement and try again.");
+  const movement = parseBankChoice(choice);
+  if (!movement) return reply("Pick a movement and try again.");
 
-  return { type: ResponseType.Modal, data: buildBankModal(org.id, choice) };
+  return {
+    type: ResponseType.Modal,
+    data: buildBankModal(org.id, movement.kind, movement.book),
+  };
 }
 
 /** The returned bank form: validate with the website's schema, file through
@@ -1033,6 +1047,7 @@ async function fileBankForm(
   uid: string,
   member: Member,
   kind: TreasuryTxKind,
+  book: TreasuryBook,
 ): Promise<InteractionResponse> {
   const fields = modalFields(interaction);
   const rawAmount = textField(fields, "amount").replace(/[,$\s]/g, "");
@@ -1043,6 +1058,7 @@ async function fileBankForm(
   const parsed = submitTreasuryTxSchema.safeParse({
     orgId: org.id,
     kind,
+    book,
     amount: Number(rawAmount),
     note: textField(fields, "note"),
   });
@@ -1057,6 +1073,7 @@ async function fileBankForm(
       {
         orgId: org.id,
         kind,
+        book,
         amount: parsed.data.amount,
         note: parsed.data.note.trim(),
         subjectMemberId: member.id,
@@ -1074,13 +1091,14 @@ async function fileBankForm(
     txId,
     orgId: org.id,
     kind,
+    book,
     amount: parsed.data.amount,
     memberLabel: `"${member.roadName}" ${member.displayName}`,
     note: parsed.data.note.trim(),
   });
 
   return reply(
-    `${KIND_VERB[kind]} of ${formatMoney(parsed.data.amount)} filed. It lands on the books once a treasury reviewer approves it.`,
+    `${KIND_VERB[kind]} of ${formatMoney(parsed.data.amount)} filed on the ${TREASURY_BOOK_LABEL[book].toLowerCase()} book. It lands once a treasury reviewer approves it.`,
   );
 }
 
@@ -1095,9 +1113,12 @@ async function moneyTicket(
   const org = ctx.org;
 
   // Same schema the website's action parses, so the two ways in cannot drift.
+  // `book` is a required choice option, so Discord itself guarantees one of
+  // the two values arrives; the schema is still what rules on it.
   const parsed = submitTreasuryTxSchema.safeParse({
     orgId: org.id,
     kind,
+    book: stringOption(interaction, "book") ?? "clean",
     amount: integerOption(interaction, "amount") ?? 0,
     note: stringOption(interaction, "note") ?? "",
   });
@@ -1112,6 +1133,7 @@ async function moneyTicket(
       {
         orgId: org.id,
         kind,
+        book: parsed.data.book,
         amount: parsed.data.amount,
         note: parsed.data.note.trim(),
         // Discord always files for the caller; naming someone else is a
@@ -1132,6 +1154,7 @@ async function moneyTicket(
     txId,
     orgId: org.id,
     kind,
+    book: parsed.data.book,
     amount: parsed.data.amount,
     memberLabel: `"${ctx.member.roadName}" ${ctx.member.displayName}`,
     note: parsed.data.note.trim(),
@@ -1144,7 +1167,7 @@ async function moneyTicket(
         ? "Deposit logged"
         : "Dues payment filed";
   return reply(
-    `${verb}: ${formatMoney(parsed.data.amount)}. It lands on the books once a treasury reviewer approves it.`,
+    `${verb}: ${formatMoney(parsed.data.amount)} on the ${TREASURY_BOOK_LABEL[parsed.data.book].toLowerCase()} book. It lands once a treasury reviewer approves it.`,
   );
 }
 
@@ -1211,7 +1234,7 @@ async function handleTreasuryButton(
       // The pinned card carries the balance, so it is now a message telling
       // the channel the wrong number. Best-effort; never fails the approval.
       await updateBankPanel(org.id);
-      stamp = `✅ **Approved** by ${reviewer} · balance ${formatMoney(result.balance)}`;
+      stamp = `✅ **Approved** by ${reviewer} · ${TREASURY_BOOK_LABEL[result.book].toLowerCase()} book ${formatMoney(result.balance)}`;
     } else {
       await denyTreasuryTxCore(org.id, txId, resolved.uid);
       // Settled movements land on the cached ledger even when denied — the
@@ -1225,9 +1248,7 @@ async function handleTreasuryButton(
         return reply("This transaction was already reviewed.");
       }
       if (e.code === "insufficient_funds") {
-        return reply(
-          `The bank holds ${formatMoney(Number(e.detail ?? 0))}; it cannot cover this withdrawal.`,
-        );
+        return reply(`${insufficientFundsMessage(e)}.`);
       }
       return reply("That transaction no longer exists.");
     }
@@ -1377,9 +1398,19 @@ export async function handleAutocomplete(
   // Keyed on the FOCUSED OPTION rather than the command, so it cannot rot
   // again. Needs no club resolved: it is the thing resolving one.
   if (focused?.name === "club") {
-    const hosted = interaction.guild_id
-      ? await clubsInGuild(interaction.guild_id)
+    let hosted = interaction.guild_id
+      ? (await clubsInGuild(interaction.guild_id)).filter(
+          (o) => o.status !== "suspended",
+        )
       : [];
+    // Mirror pickOrg's precedence: an unbound server (or a DM) falls back to
+    // the DISCORD_ORG_ID pin. Without this the picker is empty on every
+    // single-club deployment that never ran /connect, which reads as broken
+    // even though every command resolves that club perfectly well.
+    if (hosted.length === 0 && process.env.DISCORD_ORG_ID) {
+      const pinned = await getOrgById(process.env.DISCORD_ORG_ID);
+      if (pinned && pinned.status !== "suspended") hosted = [pinned];
+    }
     const choices = hosted
       .filter((o) => o.name.toLowerCase().includes(partial) || o.slug.includes(partial))
       .slice(0, 25)

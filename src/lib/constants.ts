@@ -1,5 +1,5 @@
 import { CHARACTER_SILHOUETTE_FILE } from "./branding-defaults";
-import type { CharacterPose, StatKey } from "./types";
+import type { CharacterPose, StatKey, TreasuryBook } from "./types";
 
 // Slugs that can never be org slugs (static route segments win in App Router,
 // but we validate at org creation too).
@@ -73,6 +73,21 @@ export const MAX_TREASURY_AMOUNT = 1_000_000_000;
 export function formatMoney(n: number): string {
   return `$${n.toLocaleString("en-US")}`;
 }
+
+/** The two books, in the order every picker, panel and ledger lists them. */
+export const TREASURY_BOOKS: readonly TreasuryBook[] = ["clean", "dirty"];
+
+/** One word each, used on every surface so the club learns one vocabulary. */
+export const TREASURY_BOOK_LABEL: Record<TreasuryBook, string> = {
+  clean: "Clean",
+  dirty: "Dirty",
+};
+
+/** What each book is for, on the surfaces that have room to say it. */
+export const TREASURY_BOOK_BLURB: Record<TreasuryBook, string> = {
+  clean: "Money the club can account for",
+  dirty: "Money the club cannot account for",
+};
 
 /**
  * The Treasurer seat's rank doc id (rankDocId("Treasurer")), spelled out as a

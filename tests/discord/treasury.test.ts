@@ -40,9 +40,17 @@ async function wipe(collection: string) {
   await Promise.all(snap.docs.map((d) => d.ref.delete()));
 }
 
+/** The clean book. Pre-split cases here seed only `balance`, which is exactly
+ *  the shape a club that banked money before the split still has. */
 async function balance(): Promise<number> {
   const snap = await orgRef(ORG).collection("treasury").doc("account").get();
-  return (snap.data()?.balance ?? 0) as number;
+  const data = snap.data();
+  return Number(data?.clean ?? data?.balance ?? 0);
+}
+
+async function dirtyBalance(): Promise<number> {
+  const snap = await orgRef(ORG).collection("treasury").doc("account").get();
+  return Number(snap.data()?.dirty ?? 0);
 }
 
 beforeEach(async () => {
@@ -123,21 +131,57 @@ afterAll(async () => {
 describe("money-ticket commands", () => {
   it("/dues files a pending movement for the caller", async () => {
     const res = await handleDiscordCommand(
-      command("dues", [{ name: "amount", type: 4, value: 500 }], { id: "D1" }),
+      command(
+        "dues",
+        [
+          { name: "amount", type: 4, value: 500 },
+          { name: "book", type: 3, value: "clean" },
+        ],
+        { id: "D1" },
+      ),
     );
     expect(res.data?.content).toContain("Dues payment filed");
     expect(res.data?.content).toContain("$500");
+    expect(res.data?.content).toContain("clean book");
 
     const txs = await orgRef(ORG).collection("treasuryTransactions").get();
     expect(txs.size).toBe(1);
     expect(txs.docs[0].data()).toMatchObject({
       kind: "dues",
       amount: 500,
+      book: "clean",
       memberId: "m1",
       submittedByUid: "u1",
       status: "pending",
     });
     expect(await balance()).toBe(0); // filing never moves money
+  });
+
+  it("/dues takes dirty money when the caller says so", async () => {
+    const res = await handleDiscordCommand(
+      command(
+        "dues",
+        [
+          { name: "amount", type: 4, value: 500 },
+          { name: "book", type: 3, value: "dirty" },
+        ],
+        { id: "D1" },
+      ),
+    );
+    expect(res.data?.content).toContain("dirty book");
+    const txs = await orgRef(ORG).collection("treasuryTransactions").get();
+    expect(txs.docs[0].data()?.book).toBe("dirty");
+  });
+
+  it("files clean when the book option is missing entirely", async () => {
+    // `book` is a required option, so Discord should never send this. The
+    // handler still has to land somewhere sane rather than throw.
+    const res = await handleDiscordCommand(
+      command("dues", [{ name: "amount", type: 4, value: 500 }], { id: "D1" }),
+    );
+    expect(res.data?.content).toContain("Dues payment filed");
+    const txs = await orgRef(ORG).collection("treasuryTransactions").get();
+    expect(txs.docs[0].data()?.book).toBe("clean");
   });
 
   it("/withdraw requires a real note", async () => {
@@ -161,6 +205,7 @@ describe("money-ticket commands", () => {
         "deposit",
         [
           { name: "amount", type: 4, value: 2000 },
+          { name: "book", type: 3, value: "dirty" },
           { name: "note", type: 3, value: "docks cut" },
         ],
         { id: "D2" },
@@ -171,6 +216,7 @@ describe("money-ticket commands", () => {
     expect(txs.docs[0].data()).toMatchObject({
       kind: "deposit",
       amount: 2000,
+      book: "dirty",
       note: "docks cut",
       memberId: "m2",
     });
@@ -185,7 +231,8 @@ describe("money-ticket commands", () => {
 });
 
 describe("/bank", () => {
-  it("shows the balance, dues status, and recent movements", async () => {
+  it("shows both books, dues status, and recent movements", async () => {
+    // Seeded in the PRE-SPLIT shape: /bank has to read it as clean money.
     await orgRef(ORG)
       .collection("treasury")
       .doc("account")
@@ -208,12 +255,39 @@ describe("/bank", () => {
 
     const res = await handleDiscordCommand(command("bank", [], { id: "D1" }));
     const content = res.data?.content ?? "";
-    expect(content).toContain("**$12,500**");
+    expect(content).toContain("Clean: **$12,500**");
+    expect(content).toContain("Dirty: **$0**");
+    expect(content).toContain("Both books: $12,500");
     expect(content).toContain("Dues this month: 1 of 3 paid");
     expect(content).toContain("+$2,000");
     expect(content).toContain('"Six"');
     expect(content).toContain("docks cut");
     expect(res.data?.flags).toBe(64); // ephemeral: the bank is club business
+  });
+
+  it("tags each ledger row with the book it moved", async () => {
+    await orgRef(ORG)
+      .collection("treasury")
+      .doc("account")
+      .set({ clean: 100, dirty: 900, updatedAt: Timestamp.now() });
+    await orgRef(ORG).collection("treasuryTransactions").doc("t1").set({
+      kind: "deposit",
+      amount: 900,
+      book: "dirty",
+      memberId: "m2",
+      submittedByUid: "u2",
+      note: "docks cut",
+      status: "approved",
+      createdAt: Timestamp.now(),
+      reviewedBy: "u3",
+      reviewedAt: Timestamp.now(),
+      balanceAfter: 900,
+    });
+
+    const content =
+      (await handleDiscordCommand(command("bank", [], { id: "D1" }))).data?.content ?? "";
+    expect(content).toContain("Clean: **$100** · Dirty: **$900**");
+    expect(content).toContain("+$900 dirty");
   });
 });
 
@@ -256,7 +330,7 @@ describe("treasury buttons", () => {
     expect(res.type).toBe(7); // message updated in place
     expect(res.data?.content).toContain("**Dues payment** of $500");
     expect(res.data?.content).toContain('✅ **Approved** by "Ledger" Vera Ledger');
-    expect(res.data?.content).toContain("balance $1,500");
+    expect(res.data?.content).toContain("clean book $1,500");
     expect(res.data?.components).toEqual([]);
 
     expect(await balance()).toBe(1_500);
@@ -297,10 +371,44 @@ describe("treasury buttons", () => {
       createdAt: Timestamp.now(),
     });
     const res = await handleComponent(click(`treasury:approve:${ORG}:t2`, { id: "D3" }));
-    expect(res.data?.content).toContain("The bank holds $1,000");
+    expect(res.data?.content).toContain("The clean book holds $1,000");
     const tx = await orgRef(ORG).collection("treasuryTransactions").doc("t2").get();
     expect(tx.data()?.status).toBe("pending"); // approvable later, after a deposit
     expect(await balance()).toBe(1_000);
+  });
+
+  it("approves a dirty movement onto the dirty book alone", async () => {
+    await orgRef(ORG).collection("treasuryTransactions").doc("t3").set({
+      kind: "deposit",
+      amount: 750,
+      book: "dirty",
+      memberId: "m1",
+      submittedByUid: "u1",
+      note: "docks job",
+      status: "pending",
+      createdAt: Timestamp.now(),
+    });
+    const res = await handleComponent(click(`treasury:approve:${ORG}:t3`, { id: "D3" }));
+    expect(res.data?.content).toContain("dirty book $750");
+    // The clean book was seeded at $1,000 and must not have moved.
+    expect(await balance()).toBe(1_000);
+    expect(await dirtyBalance()).toBe(750);
+  });
+
+  it("refuses a dirty withdrawal the clean book could have covered", async () => {
+    await orgRef(ORG).collection("treasuryTransactions").doc("t4").set({
+      kind: "withdrawal",
+      amount: 200,
+      book: "dirty",
+      memberId: "m1",
+      submittedByUid: "u1",
+      note: "payoff",
+      status: "pending",
+      createdAt: Timestamp.now(),
+    });
+    const res = await handleComponent(click(`treasury:approve:${ORG}:t4`, { id: "D3" }));
+    expect(res.data?.content).toContain("The dirty book holds $0");
+    expect(await balance()).toBe(1_000); // untouched, not raided
   });
 
   it("reports a movement that was already ruled on", async () => {

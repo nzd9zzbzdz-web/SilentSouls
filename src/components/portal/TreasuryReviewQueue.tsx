@@ -15,8 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { reviewTreasuryTx } from "@/actions/treasury";
-import { formatMoney } from "@/lib/constants";
+import { TREASURY_BOOK_LABEL, formatMoney } from "@/lib/constants";
+import type { TreasuryBook } from "@/lib/types";
 
 export interface TreasuryReviewItem {
   id: string;
@@ -27,12 +29,16 @@ export interface TreasuryReviewItem {
   memberName: string;
   note: string;
   date: string;
+  /** Which book approving this would move. */
+  book: TreasuryBook;
 }
 
 /**
  * The treasury's pending queue, admin-and-Treasurer only (the page decides who
- * sees it; the action re-checks). Approval moves the balance, so the card says
- * which way the money goes before anyone clicks.
+ * sees it; the action re-checks). Approval moves one book, so the card says
+ * which way the money goes AND which book it comes out of before anyone
+ * clicks: a withdrawal the clean book can cover and the dirty book cannot is
+ * two different decisions wearing the same amount.
  */
 export function TreasuryReviewQueue({
   orgId,
@@ -57,7 +63,7 @@ export function TreasuryReviewQueue({
       if (result.ok) {
         toast.success(
           result.data
-            ? `Approved. The bank holds ${formatMoney(result.data.balance)}`
+            ? `Approved. The ${TREASURY_BOOK_LABEL[result.data.book].toLowerCase()} book holds ${formatMoney(result.data.balance)}`
             : "Approved",
         );
       } else {
@@ -116,6 +122,9 @@ export function TreasuryReviewQueue({
                     <span className="ml-2 text-sm font-normal text-muted-foreground">
                       {item.kindLabel}
                     </span>
+                    <Badge variant="outline" className="ml-2 align-middle">
+                      {TREASURY_BOOK_LABEL[item.book]}
+                    </Badge>
                   </p>
                   <p className="font-stat text-lg font-semibold text-primary">
                     {item.outbound ? "-" : "+"}
@@ -171,7 +180,7 @@ export function TreasuryReviewQueue({
             <DialogTitle>Deny this movement?</DialogTitle>
             <DialogDescription>
               {denyTarget &&
-                `"${denyTarget.memberName}" · ${denyTarget.kindLabel} of ${formatMoney(denyTarget.amount)}. Tell them why.`}
+                `"${denyTarget.memberName}" · ${denyTarget.kindLabel} of ${formatMoney(denyTarget.amount)} on the ${TREASURY_BOOK_LABEL[denyTarget.book].toLowerCase()} book. Tell them why.`}
             </DialogDescription>
           </DialogHeader>
           <div>

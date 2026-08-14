@@ -60,9 +60,17 @@ async function seedPending(id: string, fields: Record<string, unknown> = {}) {
   });
 }
 
+/** The clean book, which is what this suite's older cases mean by "balance". */
 async function balance(): Promise<number> {
   const snap = await orgRef(ORG).collection("treasury").doc("account").get();
-  return (snap.data()?.balance ?? 0) as number;
+  const data = snap.data();
+  return Number(data?.clean ?? data?.balance ?? 0);
+}
+
+/** The dirty book, for the cases that check the two never bleed together. */
+async function dirtyBalance(): Promise<number> {
+  const snap = await orgRef(ORG).collection("treasury").doc("account").get();
+  return Number(snap.data()?.dirty ?? 0);
 }
 
 beforeEach(async () => {
@@ -85,6 +93,7 @@ describe("submitTreasuryTx", () => {
     const res = await submitTreasuryTx({
       orgId: ORG,
       kind: "dues",
+      book: "clean",
       amount: 500,
       note: "",
     });
@@ -93,13 +102,52 @@ describe("submitTreasuryTx", () => {
       .collection("treasuryTransactions")
       .doc(res.data!.txId)
       .get();
-    expect(tx.data()).toMatchObject({ kind: "dues", amount: 500, memberId: "m1" });
+    expect(tx.data()).toMatchObject({
+      kind: "dues",
+      amount: 500,
+      book: "clean",
+      memberId: "m1",
+    });
+  });
+
+  it("files against the dirty book when the member picks it", async () => {
+    const res = await submitTreasuryTx({
+      orgId: ORG,
+      kind: "deposit",
+      book: "dirty",
+      amount: 2_000,
+      note: "cut from the docks job",
+    });
+    expect(res.ok).toBe(true);
+    const tx = await orgRef(ORG)
+      .collection("treasuryTransactions")
+      .doc(res.data!.txId)
+      .get();
+    expect(tx.data()?.book).toBe("dirty");
+  });
+
+  it("treats a payload with no book as clean, for a client mid-deploy", async () => {
+    // The schema default earns its keep here: a member on the previous bundle
+    // posts the old shape, and it files rather than erroring at them.
+    const res = await submitTreasuryTx({
+      orgId: ORG,
+      kind: "dues",
+      amount: 500,
+      note: "",
+    } as Parameters<typeof submitTreasuryTx>[0]);
+    expect(res.ok).toBe(true);
+    const tx = await orgRef(ORG)
+      .collection("treasuryTransactions")
+      .doc(res.data!.txId)
+      .get();
+    expect(tx.data()?.book).toBe("clean");
   });
 
   it("refuses a plain member filing for someone else", async () => {
     const res = await submitTreasuryTx({
       orgId: ORG,
       kind: "dues",
+      book: "clean",
       amount: 500,
       note: "",
       subjectMemberId: "m3",
@@ -115,6 +163,7 @@ describe("submitTreasuryTx", () => {
     const res = await submitTreasuryTx({
       orgId: ORG,
       kind: "dues",
+      book: "clean",
       amount: 500,
       note: "cash at church",
       subjectMemberId: "m3",
@@ -134,6 +183,7 @@ describe("submitTreasuryTx", () => {
     const res = await submitTreasuryTx({
       orgId: ORG,
       kind: "withdrawal",
+      book: "clean",
       amount: 100,
       note: "ammo run",
       subjectMemberId: "m3",
@@ -148,6 +198,7 @@ describe("submitTreasuryTx", () => {
     const res = await submitTreasuryTx({
       orgId: ORG,
       kind: "dues",
+      book: "clean",
       amount: 500,
       note: "",
       subjectMemberId: "ghost",
@@ -158,7 +209,13 @@ describe("submitTreasuryTx", () => {
 
   it("rejects a zero, negative, or fractional amount", async () => {
     for (const amount of [0, -5, 2.5]) {
-      const res = await submitTreasuryTx({ orgId: ORG, kind: "dues", amount, note: "" });
+      const res = await submitTreasuryTx({
+        orgId: ORG,
+        kind: "dues",
+        book: "clean",
+        amount,
+        note: "",
+      });
       expect(res.ok).toBe(false);
     }
   });
@@ -167,6 +224,7 @@ describe("submitTreasuryTx", () => {
     const res = await submitTreasuryTx({
       orgId: ORG,
       kind: "withdrawal",
+      book: "clean",
       amount: 100,
       note: "",
     });
@@ -201,7 +259,22 @@ describe("reviewTreasuryTx permissions", () => {
     const res = await reviewTreasuryTx({ orgId: ORG, txId: "t1", decision: "approved" });
     expect(res.ok).toBe(true);
     expect(res.data?.balance).toBe(500);
+    expect(res.data?.book).toBe("clean");
     expect(await balance()).toBe(500);
+  });
+
+  it("approves onto the dirty book without touching the clean one", async () => {
+    caller.role = "admin";
+    await seedPending("t1", { kind: "deposit", amount: 800, book: "dirty", note: "job" });
+    const res = await reviewTreasuryTx({ orgId: ORG, txId: "t1", decision: "approved" });
+    expect(res.ok).toBe(true);
+    expect(res.data).toMatchObject({
+      book: "dirty",
+      balance: 800,
+      balances: { clean: 0, dirty: 800, total: 800 },
+    });
+    expect(await balance()).toBe(0);
+    expect(await dirtyBalance()).toBe(800);
   });
 
   it("lets an admin deny with a note", async () => {
@@ -219,12 +292,30 @@ describe("reviewTreasuryTx permissions", () => {
     expect(await balance()).toBe(0);
   });
 
-  it("surfaces insufficient funds as a plain refusal", async () => {
+  it("surfaces insufficient funds as a plain refusal naming the book", async () => {
     caller.role = "admin";
     await seedPending("t1", { kind: "withdrawal", amount: 900, note: "too rich" });
     const res = await reviewTreasuryTx({ orgId: ORG, txId: "t1", decision: "approved" });
     expect(res.ok).toBe(false);
-    expect(res.error).toContain("The bank holds $0");
+    expect(res.error).toContain("The clean book holds $0");
+  });
+
+  it("refuses a dirty withdrawal the clean book could have covered", async () => {
+    caller.role = "admin";
+    await orgRef(ORG)
+      .collection("treasury")
+      .doc("account")
+      .set({ clean: 5_000, dirty: 50 });
+    await seedPending("t1", {
+      kind: "withdrawal",
+      amount: 900,
+      book: "dirty",
+      note: "payoff",
+    });
+    const res = await reviewTreasuryTx({ orgId: ORG, txId: "t1", decision: "approved" });
+    expect(res.ok).toBe(false);
+    expect(res.error).toContain("The dirty book holds $50");
+    expect(await balance()).toBe(5_000);
   });
 
   it("reports an already-reviewed movement", async () => {

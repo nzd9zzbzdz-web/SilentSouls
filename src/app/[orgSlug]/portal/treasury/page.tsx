@@ -19,11 +19,16 @@ import {
 } from "@/components/portal/TreasuryReviewQueue";
 import { requireOrgRole } from "@/lib/auth/session";
 import { getOrgBySlug } from "@/lib/tenant";
-import { canReviewTreasury, isDuesCurrent } from "@/lib/treasury-core";
-import { formatMoney } from "@/lib/constants";
+import { bookOf, canReviewTreasury, isDuesCurrent } from "@/lib/treasury-core";
+import {
+  TREASURY_BOOKS,
+  TREASURY_BOOK_BLURB,
+  TREASURY_BOOK_LABEL,
+  formatMoney,
+} from "@/lib/constants";
 import {
   getMember,
-  getTreasuryBalance,
+  getTreasuryBalances,
   listMembers,
   listTreasuryLedger,
   listTreasuryTransactions,
@@ -69,8 +74,8 @@ export default async function TreasuryPage({
   const viewer = access.memberId ? await getMember(org.id, access.memberId) : null;
   const mayReview = canReviewTreasury(access.role, viewer?.rankId);
 
-  const [balance, ledger, members, pendingTxs, myTxs] = await Promise.all([
-    getTreasuryBalance(org.id),
+  const [balances, ledger, members, pendingTxs, myTxs] = await Promise.all([
+    getTreasuryBalances(org.id),
     listTreasuryLedger(org.id),
     listMembers(org.id),
     mayReview
@@ -95,6 +100,7 @@ export default async function TreasuryPage({
     memberName: memberById.get(t.memberId)?.roadName ?? "Unknown",
     note: t.note,
     date: shortDate(t.createdAt),
+    book: bookOf(t),
   }));
 
   const settled = ledger.filter((t) => t.status !== "pending");
@@ -107,24 +113,40 @@ export default async function TreasuryPage({
           Club Bank
         </DisplayHeading>
         <p className="mt-1 text-sm text-muted-foreground">
-          Dues, deposits and withdrawals, ruled on by an admin or the Treasurer.
-          Every approved movement lands on the ledger.
+          Two books, clean and dirty. Dues, deposits and withdrawals are ruled
+          on by an admin or the Treasurer, and every approved movement lands on
+          the ledger against the book it named.
         </p>
       </div>
 
-      {/* The one number the page exists for. */}
+      {/* The two numbers the page exists for. They are shown side by side and
+          never added up in the headline: the club's own question is always
+          "how much of this can we account for", not "how much is there". */}
       <Card>
-        <CardContent className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              In the account
-            </p>
-            <p className="font-stat mt-1 text-4xl font-bold text-primary">
-              {formatMoney(balance)}
-            </p>
+        <CardContent className="flex flex-wrap items-end justify-between gap-6">
+          <div className="flex flex-wrap gap-8">
+            {TREASURY_BOOKS.map((b) => (
+              <div key={b}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {TREASURY_BOOK_LABEL[b]}
+                </p>
+                <p className="font-stat mt-1 text-4xl font-bold text-primary">
+                  {formatMoney(balances[b])}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {TREASURY_BOOK_BLURB[b]}
+                </p>
+              </div>
+            ))}
           </div>
           <div className="text-right text-sm text-muted-foreground">
             <p>
+              Both books:{" "}
+              <span className="font-stat font-semibold text-foreground">
+                {formatMoney(balances.total)}
+              </span>
+            </p>
+            <p className="mt-0.5">
               Dues this month:{" "}
               <span className="font-stat font-semibold text-foreground">
                 {paidCount} of {riding.length}
@@ -188,7 +210,8 @@ export default async function TreasuryPage({
                       <li key={t.id} className="py-3">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-sm font-medium text-foreground">
-                            {KIND_LABEL[t.kind]} · {formatMoney(t.amount)}
+                            {KIND_LABEL[t.kind]} · {formatMoney(t.amount)} ·{" "}
+                            {TREASURY_BOOK_LABEL[bookOf(t)].toLowerCase()}
                           </p>
                           <Badge
                             variant={
@@ -284,10 +307,11 @@ export default async function TreasuryPage({
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Movement</TableHead>
+                    <TableHead>Book</TableHead>
                     <TableHead>Member</TableHead>
                     <TableHead>Note</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-right">Book balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -305,6 +329,9 @@ export default async function TreasuryPage({
                               denied
                             </Badge>
                           )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {TREASURY_BOOK_LABEL[bookOf(t)]}
                         </TableCell>
                         <TableCell className="text-sm">
                           &ldquo;{memberById.get(t.memberId)?.roadName ?? "Unknown"}&rdquo;

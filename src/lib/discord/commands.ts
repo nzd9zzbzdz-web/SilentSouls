@@ -19,6 +19,28 @@ const CLUB_OPTION = {
   required: false,
   autocomplete: true,
 };
+
+/**
+ * Which set of books the money lands on, on every command that moves money.
+ *
+ * REQUIRED, and deliberately not defaulted: the schema falls back to clean so
+ * that rows filed before the split still read, but a member who did not look
+ * is not the same as old data. Filing dirty money onto the clean book is a
+ * mistake only an admin correction can undo, so Discord asks every time.
+ *
+ * Required options must be declared before optional ones, which is why this
+ * sits between `amount` and `note` on /dues.
+ */
+const BOOK_OPTION = {
+  type: 3,
+  name: "book",
+  description: "Which set of books this money belongs to",
+  required: true,
+  choices: [
+    { name: "Clean (the club can account for it)", value: "clean" },
+    { name: "Dirty (it cannot be shown)", value: "dirty" },
+  ],
+};
 export const DISCORD_COMMANDS = [
   {
     type: 1,
@@ -117,6 +139,7 @@ export const DISCORD_COMMANDS = [
         // Mirrors MAX_TREASURY_AMOUNT (this module imports nothing).
         max_value: 1000000000,
       },
+      BOOK_OPTION,
       {
         type: 3,
         name: "note",
@@ -140,6 +163,7 @@ export const DISCORD_COMMANDS = [
         min_value: 1,
         max_value: 1000000000,
       },
+      BOOK_OPTION,
       {
         type: 3,
         name: "note",
@@ -163,6 +187,7 @@ export const DISCORD_COMMANDS = [
         min_value: 1,
         max_value: 1000000000,
       },
+      BOOK_OPTION,
       {
         type: 3,
         name: "note",

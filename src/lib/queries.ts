@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { FieldPath, adminDb, orgRef } from "@/lib/firebase/admin";
 import { TTL, orgCached, orgTags } from "@/lib/cache";
+import { accountBooks } from "@/lib/treasury-core";
 import type {
   Activity,
   ActivityType,
@@ -14,6 +15,7 @@ import type {
   Rank,
   ServiceRecordEntry,
   SystemRole,
+  TreasuryBalances,
   TreasuryTransaction,
 } from "@/lib/types";
 
@@ -449,15 +451,22 @@ export const listOrgRoles = orgCached(
   },
 );
 
-/** The club bank's running balance. Missing account doc ⇒ zero: the club has
- *  never moved money. Cleared by the treasury tag on every review. */
-export const getTreasuryBalance = orgCached(
-  "treasuryBalance",
+/**
+ * The club bank's running balance, one figure per book plus their sum.
+ * Missing account doc ⇒ all zero: the club has never moved money. Cleared by
+ * the treasury tag on every review.
+ *
+ * The cache key changed with the shape (it used to be "treasuryBalance",
+ * holding a bare number). A key that outlived its type would hand a cached
+ * number to code expecting an object for a whole TTL after deploy.
+ */
+export const getTreasuryBalances = orgCached(
+  "treasuryBalances",
   (orgId) => [orgTags.treasury(orgId)],
   TTL.club,
-  async (orgId: string): Promise<number> => {
+  async (orgId: string): Promise<TreasuryBalances> => {
     const snap = await orgRef(orgId).collection("treasury").doc("account").get();
-    return (snap.data()?.balance ?? 0) as number;
+    return accountBooks(snap.data());
   },
 );
 

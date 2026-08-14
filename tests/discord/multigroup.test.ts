@@ -295,6 +295,27 @@ describe("club resolution in a shared server", () => {
     },
   );
 
+  it("falls back to the env-pinned club in a server with no bindings", async () => {
+    // The single-club deployment: nothing was ever /connect'd, so the guild
+    // query is empty, but every command still resolves the pinned club. The
+    // picker has to agree, or it reads as broken.
+    await adminDb.collection("discordClubs").doc(ORG_A).delete();
+    await adminDb.collection("discordClubs").doc(ORG_B).delete();
+    // Restored in a finally: a leaked env pin would quietly change how every
+    // later test in this file resolves its club.
+    process.env.DISCORD_ORG_ID = ORG_A;
+    try {
+      const res = await handleAutocomplete({
+        type: 4,
+        guild_id: NETWORK,
+        data: { name: "bankpanel", options: [{ name: "club", type: 3, value: "", focused: true }] },
+      });
+      expect(res.data?.choices).toEqual([{ name: "Alpha MC", value: ORG_A }]);
+    } finally {
+      delete process.env.DISCORD_ORG_ID;
+    }
+  });
+
   it("suggests nothing for a command with no club option", async () => {
     const res = await handleAutocomplete({
       type: 4,

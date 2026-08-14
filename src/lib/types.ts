@@ -393,6 +393,17 @@ export interface Activity {
 export type TreasuryTxKind = "dues" | "deposit" | "withdrawal";
 
 /**
+ * Which set of books a movement lands on. The club keeps two: money it can
+ * account for and money it cannot. Every movement names one, the two balances
+ * never mix, and a withdrawal is covered by ITS OWN book or it is refused.
+ *
+ * Absent on a stored row means clean: everything filed before the books split
+ * moved the one balance the bank had, and that balance became the clean book.
+ * See bookOf in treasury-core, which is the only place that default is spelled.
+ */
+export type TreasuryBook = "clean" | "dirty";
+
+/**
  * One money movement, pending until a reviewer rules on it. Same lifecycle as
  * an activity ticket on purpose (anyone files, review applies it), but the
  * review gate is narrower: portal admins and the member holding the Treasurer
@@ -403,6 +414,9 @@ export interface TreasuryTransaction {
   kind: TreasuryTxKind;
   /** Whole dollars, always positive; `kind` carries the direction. */
   amount: number;
+  /** Which book it lands on. Optional because rows filed before the split
+   *  carry no field; read it through bookOf, never directly. */
+  book?: TreasuryBook;
   /** Whose money movement this is — for dues, the member whose dues are paid. */
   memberId: string;
   /** Who actually filed it. Differs from memberId when a reviewer logs cash
@@ -414,16 +428,36 @@ export interface TreasuryTransaction {
   reviewedBy?: string;
   reviewedAt?: Timestamp | Date;
   reviewNote?: string;
-  /** The account balance after this transaction applied. Approved rows only —
-   *  it makes the ledger read like a bank statement. */
+  /** THIS ROW'S BOOK after the transaction applied — not the club's total.
+   *  Approved rows only; it makes the ledger read like a bank statement, one
+   *  running column per book. */
   balanceAfter?: number;
 }
 
-/** organizations/{orgId}/treasury/account — the running balance. Missing doc
- *  means the club has never moved money: balance zero. */
+/**
+ * organizations/{orgId}/treasury/account — the running balance of each book.
+ * Missing doc means the club has never moved money: both zero.
+ */
 export interface TreasuryAccount {
-  balance: number;
+  /** Money the club can account for. */
+  clean: number;
+  /** Money it cannot. */
+  dirty: number;
+  /**
+   * DEAD FIELD. The single balance the bank ran on before it kept two books,
+   * left in place so the split stays reversible. It is read exactly once, as
+   * the opening clean figure when `clean` is absent (accountBooks in
+   * treasury-core), and nothing writes it any more.
+   */
+  balance?: number;
   updatedAt: Timestamp | Date;
+}
+
+/** Both books and their sum, the shape every balance surface renders. */
+export interface TreasuryBalances {
+  clean: number;
+  dirty: number;
+  total: number;
 }
 
 export type PatchCategory =

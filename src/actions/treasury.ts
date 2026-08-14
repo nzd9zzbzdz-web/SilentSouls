@@ -8,11 +8,11 @@ import {
   approveTreasuryTxCore,
   canReviewTreasury,
   denyTreasuryTxCore,
+  insufficientFundsMessage,
   memberRankFresh,
   submitTreasuryTxCore,
   type TreasuryApproval,
 } from "@/lib/treasury-core";
-import { formatMoney } from "@/lib/constants";
 import { notifyTreasurySubmitted, updateBankPanel } from "@/lib/discord/notify";
 import { getMember } from "@/lib/queries";
 import {
@@ -82,6 +82,7 @@ export async function submitTreasuryTx(
         orgId: input.orgId,
         kind: input.kind,
         amount: input.amount,
+        book: input.book,
         note: input.note.trim(),
         subjectMemberId,
       },
@@ -93,6 +94,7 @@ export async function submitTreasuryTx(
       txId,
       orgId: input.orgId,
       kind: input.kind,
+      book: input.book,
       amount: input.amount,
       memberLabel: subject
         ? `"${subject.roadName}" ${subject.displayName}`
@@ -164,10 +166,7 @@ function failure(e: unknown): { ok: false; error: string } {
       case "not_pending":
         return { ok: false, error: "This transaction was already reviewed" };
       case "insufficient_funds":
-        return {
-          ok: false,
-          error: `The bank holds ${formatMoney(Number(e.detail ?? 0))}; it cannot cover this withdrawal`,
-        };
+        return { ok: false, error: insufficientFundsMessage(e) };
     }
   }
   if (e instanceof Error && e.name === "AuthError") {

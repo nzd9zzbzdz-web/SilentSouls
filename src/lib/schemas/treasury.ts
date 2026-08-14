@@ -4,6 +4,14 @@ import { MAX_TREASURY_AMOUNT } from "@/lib/constants";
 export const treasuryTxKindSchema = z.enum(["dues", "deposit", "withdrawal"]);
 
 /**
+ * Which book the money belongs to. Defaults to clean when a caller says
+ * nothing, matching how a row filed before the split reads (bookOf in
+ * treasury-core). Both transports ASK rather than lean on that default: the
+ * default is for old data, not for a member who did not look.
+ */
+export const treasuryBookSchema = z.enum(["clean", "dirty"]);
+
+/**
  * A money ticket. Amounts are whole positive dollars; the kind carries the
  * direction, so nobody types a minus sign.
  *
@@ -14,6 +22,7 @@ export const submitTreasuryTxSchema = z
   .object({
     orgId: z.string().min(1),
     kind: treasuryTxKindSchema,
+    book: treasuryBookSchema.default("clean"),
     amount: z
       .number()
       .int("Whole dollars only")
